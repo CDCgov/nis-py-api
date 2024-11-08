@@ -66,7 +66,7 @@ def get_datasets() -> [dict]:
         return yaml.safe_load(f)
 
 
-def get_nis(cache: Path = None):
+def get_nis(cache: Path = None) -> pl.LazyFrame:
     if cache is None:
         cache = default_cache_path()
 
