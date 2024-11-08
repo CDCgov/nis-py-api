@@ -2,9 +2,24 @@
 
 Python API to the National Immunization Survey (NIS) data
 
+## Data dictionary
+
+| column                | type    | values                            |
+| --------------------- | ------- | --------------------------------- |
+| `vaccine`             | String  | `flu`, `covid`                    |
+| `geographic_level`    | String  | `national`, `state`, `substate`   |
+| `geographic_name`     | String  | `national`, name of the sub/state |
+| `demographic_level`   | String  |                                   |
+| `demographic_name`    | String  |                                   |
+| `indicator_level`     | String  |                                   |
+| `indicator_name`      | String  |                                   |
+| `week_ending`         | Date    |                                   |
+| `estimate`            | Float64 |                                   |
+| `ci_half_width_95pct` | Float64 |                                   |
+
 ## Project Admin
 
-Scott Olesen <ulp7@cdc.gov> (CDC/CFA)
+- Scott Olesen <ulp7@cdc.gov> (CDC/CFA)
 
 ## General Disclaimer
 

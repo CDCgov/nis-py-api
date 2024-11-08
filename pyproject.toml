@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "nis-py-api"
+name = "nisapi"
 version = "0.1.0"
 description = ""
 authors = ["Scott Olesen <ulp7@cdc.gov>"]
@@ -7,7 +7,14 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.10"
+sodapy = "^2.2.0"
+polars = "^1.12.0"
+platformdirs = "^4.3.6"
+pyyaml = "^6.0.2"
 
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3.3"
 
 [build-system]
 requires = ["poetry-core"]
