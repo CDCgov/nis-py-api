@@ -143,27 +143,38 @@ def validate(df: pl.DataFrame):
     assert (df["ci_half_width_95pct"] >= 0.0).all()
 
 
+def _get_dataset(id: str) -> pl.DataFrame:
+    """Download and clean a dataset
+
+    Args:
+        id (str): dataset ID
+
+    Returns:
+        pl.DataFrame: clean dataset
+    """
+    raw_df = download_dataset(id)
+    clean_df = clean_dataset(id, raw_df)
+    return clean_df
+
+
 def cache_dataset(
     id: str,
-    get_fun: Callable[[str], pl.DataFrame] = download_dataset,
-    cache_path: Path = None,
     overwrite: str = "warn",
-    clean: bool = True,
+    cache_path: Path = None,
+    get_fun: Callable[[str], pl.DataFrame] = _get_dataset,
     **kwargs,
 ) -> None:
     """Download, clean, and cache a dataset
 
     Args:
         id (str): dataset ID
-        get_fun (Callable[[str], pl.DataFrame], optional): Function used to get the raw data. Defaults
-            to `download_dataset`. No reason to change except for testing purposes.
-        cache_path (Path, optional): Path to cache this specific dataset. If `None` (the default), uses
-            the default path.
         overwrite (str, optional): If "warn" (default), will warn if the cache file already exists. If
             "error", will raise an error. If "skip", will silently do nothing. If "yes", will silently
             overwrite.
-        clean (bool, optional): If `True` (default), will clean the dataset before caching it. `False`
-            is useful for testing purposes.
+        cache_path (Path, optional): Path to cache this specific dataset. If `None` (the default), uses
+            the default path.
+        get_fun (Callable[[str], pl.DataFrame], optional): Function used to get the raw data. Defaults
+            to `_get_dataset`. No reason to change except for testing purposes.
 
     Raises:
         RuntimeError: _description_
@@ -195,14 +206,8 @@ def cache_dataset(
     else:
         data_dir.mkdir()
 
-    raw_df = get_fun(id, **kwargs)
-
-    if clean:
-        clean_df = clean_dataset(id, raw_df)
-    else:
-        clean_df = raw_df
-
-    pl.DataFrame(clean_df).write_parquet(cache_path)
+    df = get_fun(id, **kwargs)
+    df.write_parquet(cache_path)
 
 
 def get_datasets() -> [dict]:

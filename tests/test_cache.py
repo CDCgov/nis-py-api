@@ -23,7 +23,7 @@ def test_cache_dataset():
 
     with tempfile.NamedTemporaryFile() as f:
         nisapi.cache_dataset(
-            id="BOGUS", get_fun=get_fun, cache_path=f.name, overwrite="yes", clean=False
+            id="BOGUS", get_fun=get_fun, cache_path=f.name, overwrite="yes"
         )
 
         assert Path(f.name).exists()
@@ -37,16 +37,12 @@ def test_cache_dataset_overwrite_error():
 
     with tempfile.NamedTemporaryFile() as f:
         nisapi.cache_dataset(
-            id="BOGUS", get_fun=get_fun, cache_path=f.name, overwrite="yes", clean=False
+            id="BOGUS", get_fun=get_fun, cache_path=f.name, overwrite="yes"
         )
 
         with pytest.raises(RuntimeError, match="exists"):
             nisapi.cache_dataset(
-                id="BOGUS",
-                get_fun=get_fun,
-                cache_path=f.name,
-                overwrite="error",
-                clean=False,
+                id="BOGUS", get_fun=get_fun, cache_path=f.name, overwrite="error"
             )
 
 
@@ -58,16 +54,12 @@ def test_cache_dataset_overwrite_warning():
 
     with tempfile.NamedTemporaryFile() as f:
         nisapi.cache_dataset(
-            id="BOGUS", get_fun=get_fun, cache_path=f.name, overwrite="yes", clean=False
+            id="BOGUS", get_fun=get_fun, cache_path=f.name, overwrite="yes"
         )
 
         with pytest.warns(UserWarning, match="exists"):
             nisapi.cache_dataset(
-                id="BOGUS",
-                get_fun=get_fun,
-                cache_path=f.name,
-                overwrite="warn",
-                clean=False,
+                id="BOGUS", get_fun=get_fun, cache_path=f.name, overwrite="warn"
             )
 
 
@@ -81,11 +73,7 @@ def test_cache_dataset_overwrite_skip():
         f.write(b"fake data")
 
         nisapi.cache_dataset(
-            id="bogus_id",
-            get_fun=get_fun,
-            cache_path=f.name,
-            overwrite="skip",
-            clean=False,
+            id="bogus_id", get_fun=get_fun, cache_path=f.name, overwrite="skip"
         )
 
         f.seek(0)
