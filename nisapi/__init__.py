@@ -59,13 +59,18 @@ def clean_dataset(id: str, df: pl.DataFrame) -> pl.DataFrame:
 
     if id in ["sw5n-wg2p", "ksfb-ug5d"]:
         clean = (
+            # make "indicator" follow the same logic as "geography" and
+            # "demographic", with "level" and "name"
             clean.rename(
                 {
                     "indicator_label": "indicator_level",
                     "indicator_category_label": "indicator_name",
                 }
             )
+            # drop unneeded columns
             .select(data_schema.names())
+            # change most string columns to all lowercase
+            # (but don't change, e.g., the names of states)
             .with_columns(
                 pl.col(
                     [
@@ -77,10 +82,13 @@ def clean_dataset(id: str, df: pl.DataFrame) -> pl.DataFrame:
                     ]
                 ).str.to_lowercase()
             )
+            # Change from "national" to "nation", so that levels are nouns rather
+            # than adjectives. (Otherwise we would need to change "region" to "regional")
             .with_columns(
                 pl.col("geographic_level").replace({"national": "nation"}),
                 pl.col("geographic_name").replace({"National": "nation"}),
             )
+            # "sw5n-wg2p" only:
             # this dataset has an error: for `demographic_level="overall"`, it has
             # `demographic_name="18+ years"`, but it should be "overall"
             .with_columns(
