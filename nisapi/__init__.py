@@ -38,7 +38,7 @@ def download_dataset(id: str, app_token=None) -> pl.DataFrame:
     with Socrata("data.cdc.gov", app_token) as client:
         df = client.get(id)
 
-    return df
+    return pl.DataFrame(df)
 
 
 def clean_dataset(id: str, df: pl.DataFrame) -> pl.DataFrame:
@@ -51,13 +51,18 @@ def clean_dataset(id: str, df: pl.DataFrame) -> pl.DataFrame:
     Returns:
         pl.DataFrame: clean dataset
     """
+    clean = df
+
     if id == "sw5n-wg2p":
+        # there is an error in the column name in this particular dataset
+        clean = clean.rename({"estimates": "estimate"})
+
+    if id in ["sw5n-wg2p", "ksfb-ug5d"]:
         clean = (
-            df.rename(
+            clean.rename(
                 {
                     "indicator_label": "indicator_level",
                     "indicator_category_label": "indicator_name",
-                    "estimates": "estimate",
                 }
             )
             .select(data_schema.names())
