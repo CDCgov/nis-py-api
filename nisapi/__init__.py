@@ -148,7 +148,7 @@ def validate(df: pl.DataFrame):
     assert (df["ci_half_width_95pct"] >= 0.0).all()
 
 
-def _get_dataset(id: str) -> pl.DataFrame:
+def _get_dataset(id: str, app_token=None) -> pl.DataFrame:
     """Download and clean a dataset
 
     Args:
@@ -157,7 +157,7 @@ def _get_dataset(id: str) -> pl.DataFrame:
     Returns:
         pl.DataFrame: clean dataset
     """
-    raw_df = download_dataset(id)
+    raw_df = download_dataset(id, app_token=app_token)
     clean_df = clean_dataset(id, raw_df)
     return clean_df
 
