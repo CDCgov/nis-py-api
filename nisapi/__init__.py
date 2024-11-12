@@ -148,6 +148,7 @@ def cache_dataset(
     get_fun: Callable[[str], pl.DataFrame] = download_dataset,
     cache_path: Path = None,
     overwrite: str = "warn",
+    clean: bool = True,
     **kwargs,
 ) -> None:
     """Download, clean, and cache a dataset
@@ -161,6 +162,8 @@ def cache_dataset(
         overwrite (str, optional): If "warn" (default), will warn if the cache file already exists. If
             "error", will raise an error. If "skip", will silently do nothing. If "yes", will silently
             overwrite.
+        clean (bool, optional): If `True` (default), will clean the dataset before caching it. `False`
+            is useful for testing purposes.
 
     Raises:
         RuntimeError: _description_
@@ -193,7 +196,11 @@ def cache_dataset(
         data_dir.mkdir()
 
     raw_df = get_fun(id, **kwargs)
-    clean_df = clean_dataset(id, raw_df)
+
+    if clean:
+        clean_df = clean_dataset(id, raw_df)
+    else:
+        clean_df = raw_df
 
     pl.DataFrame(clean_df).write_parquet(cache_path)
 
