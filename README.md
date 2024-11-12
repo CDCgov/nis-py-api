@@ -1,21 +1,68 @@
 # nis-py-api
 
-Python API to the National Immunization Survey (NIS) data
+Python API to the National Immunization Survey (NIS) data.
+
+:construction: This tool is in alpha development. The API and data schema are not stable.
 
 ## Data dictionary
 
-| column                | type    | values                                     |
-| --------------------- | ------- | ------------------------------------------ |
-| `vaccine`             | String  | `flu`, `covid`                             |
-| `geographic_level`    | String  | `nation`, `region`, `state`, `substate`    |
-| `geographic_name`     | String  | `nation`, or name of the region, etc.      |
-| `demographic_level`   | String  | `overall`, or varies                       |
-| `demographic_name`    | String  | `overall`, or varies                       |
-| `indicator_level`     | String  | always `4-level vaccination and intent`(?) |
-| `indicator_name`      | String  | e.g., `received a vaccination`             |
-| `week_ending`         | Date    |                                            |
-| `estimate`            | Float64 | proportion between 0 and 1                 |
-| `ci_half_width_95pct` | Float64 |                                            |
+The data have these columns, in order, with these types:
+
+| column                | type    |
+| --------------------- | ------- |
+| `vaccine`             | String  |
+| `geographic_level`    | String  |
+| `geographic_name`     | String  |
+| `demographic_level`   | String  |
+| `demographic_name`    | String  |
+| `indicator_level`     | String  |
+| `indicator_name`      | String  |
+| `week_ending`         | Date    |
+| `estimate`            | Float64 |
+| `ci_half_width_95pct` | Float64 |
+
+### `vaccine`
+
+- Either `"flu"` or `"covid"`
+
+### `geographic_level`
+
+- One of `"nation"`, `"region"`, `"state"`, `"substate"`
+
+### `geographic_name`
+
+- If `geographic_level` is `"nation"`, then this is `"nation"`
+- Otherwise, the name of the region, state, or substate
+
+### `demographic_level`
+
+- There are multiple levels, including `"overall"` and `"age"`
+
+### `demographic_name`
+
+- If `demographic_level` is `"overall"`, then this is `"overall"`
+- If `demographic_level` is `"age"`, then this is the age group, with the form `"x-y years"` or `"x+ years"`
+
+### `indicator_level`
+
+- Always `"4-level vaccination and intent"`
+
+### `indicator_name`
+
+- The name of the indicator, e.g., `"received a vaccination"`
+
+### `week_ending`
+
+- Always a Saturday
+
+### `estimate`
+
+- Proportion (i.e., a number between 0 and 1) of the population (defined by geography and demography) that has the characteristic described by the indicator
+
+### `ci_half_width_95pct`
+
+- The half-width of the 95% confidence interval, measured in the same units as `estimate`
+- Always non-negative
 
 ## Contributing
 

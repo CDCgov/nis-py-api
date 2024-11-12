@@ -120,6 +120,7 @@ def validate(df: pl.DataFrame):
     Args:
         df (pl.DataFrame): dataset
     """
+    # force collection, to make validations easier
     if isinstance(df, pl.LazyFrame):
         df = df.collect()
 
@@ -129,6 +130,7 @@ def validate(df: pl.DataFrame):
     # `vaccine` must be in a certain set
     assert df["vaccine"].is_in(["flu", "covid"]).all()
 
+    # Geography ---------------------------------------------------------------
     # `geographic_level` must be in a certain set
     assert df["geographic_level"].is_in(["nation", "region", "state", "substate"]).all()
     # if `geographic_level` is "nation", `geographic_name` must also be "nation"
@@ -136,6 +138,8 @@ def validate(df: pl.DataFrame):
         df.filter(pl.col("geographic_level") == pl.lit("nation"))["geographic_name"]
         == "nation"
     ).all()
+
+    # Demographics ------------------------------------------------------------
     # if `demographic_level` is "overall", `demographic_name` must also be "overall"
     assert (
         df.filter(pl.col("demographic_level") == pl.lit("overall"))["demographic_name"]
@@ -146,6 +150,10 @@ def validate(df: pl.DataFrame):
         "demographic_name"
     ].pipe(valid_age_groups)
 
+    # Indicators --------------------------------------------------------------
+    assert df["indicator_level"].is_in(["4-level vaccination and intent"]).all()
+
+    # Metrics -----------------------------------------------------------------
     # estimates must be percents
     assert df["estimate"].is_between(0.0, 1.0).all()
     # confidence intervals must be non-negative
