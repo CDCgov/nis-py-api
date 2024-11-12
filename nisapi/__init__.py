@@ -141,11 +141,24 @@ def validate(df: pl.DataFrame):
         df.filter(pl.col("demographic_level") == pl.lit("overall"))["demographic_name"]
         == "overall"
     ).all()
+    # age groups should have the form "18-49 years" or "65+ years"
+    assert df.filter(pl.col("demographic_level") == pl.lit("age"))[
+        "demographic_name"
+    ].pipe(valid_age_groups)
 
     # estimates must be percents
     assert df["estimate"].is_between(0.0, 1.0).all()
     # confidence intervals must be non-negative
     assert (df["ci_half_width_95pct"] >= 0.0).all()
+
+
+def valid_age_groups(x: pl.Series) -> bool:
+    """Validate that a series of age groups is valid
+
+    Args:
+        x (pl.Series): series of age groups
+    """
+    return x.str.contains(r"^(\d+-\d+|\d+\+) years$").all()
 
 
 def _get_dataset(id: str, app_token=None) -> pl.DataFrame:
