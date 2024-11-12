@@ -17,6 +17,12 @@ Python API to the National Immunization Survey (NIS) data
 | `estimate`            | Float64 | proportion between 0 and 1                 |
 | `ci_half_width_95pct` | Float64 |                                            |
 
+## Contributing
+
+When adding a new dataset, include demonstrations that the content of the clean data is what you expected.
+
+See also the [contributing notice](#contributing-standard-notice) below.
+
 ## Project Admin
 
 - Scott Olesen <ulp7@cdc.gov> (CDC/CFA)
