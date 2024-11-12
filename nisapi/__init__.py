@@ -36,9 +36,9 @@ def dataset_cache_path(id: str, cache_path: Path = None, ensure_exists=False) ->
 
 def download_dataset(id: str, app_token=None) -> pl.DataFrame:
     with Socrata("data.cdc.gov", app_token) as client:
-        df = client.get(id)
+        rows = list(client.get_all(id))
 
-    return pl.DataFrame(df)
+    return pl.DataFrame(rows)
 
 
 def clean_dataset(id: str, df: pl.DataFrame) -> pl.DataFrame:
