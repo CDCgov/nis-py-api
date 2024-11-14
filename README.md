@@ -73,6 +73,8 @@ Rows that were suppressed in the raw data are dropped. This includes data with s
 
 When adding a new dataset, include demonstrations that the content of the clean data is what you expected.
 
+See `scripts/clean_example.py` for an example of a script that can be run, to validate your cleaning steps.
+
 See also the [contributing notice](#contributing-standard-notice) below.
 
 ## Project Admin

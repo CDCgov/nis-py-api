@@ -58,6 +58,21 @@ def clean_dataset(id: str, df: pl.DataFrame) -> pl.DataFrame:
                     ]
                 ).str.to_lowercase()
             )
+            # cast types
+            .with_columns(
+                pl.col("week_ending").str.strptime(pl.Datetime, "%Y-%m-%dT%H:%M:%S%.f"),
+                pl.col(["estimate", "ci_half_width_95pct"]).cast(pl.Float64),
+            )
+            # change percents to proportions
+            .with_columns(pl.col(["estimate", "ci_half_width_95pct"]) / 100.0)
+        )
+
+        # check that the date doesn't have any trailing seconds
+        assert (clean["week_ending"].dt.truncate("1d") == clean["week_ending"]).all()
+        clean = clean.with_columns(pl.col("week_ending").dt.date())
+
+        clean = (
+            clean
             # Change from "national" to "nation", so that types are nouns rather
             # than adjectives. (Otherwise we would need to change "region" to "regional")
             .with_columns(
@@ -79,41 +94,16 @@ def clean_dataset(id: str, df: pl.DataFrame) -> pl.DataFrame:
         # there should now be no nulls in any column
         assert clean.null_count().pipe(sum).item() == 0
 
+        # Remove duplicate rows
+        clean = clean.filter(clean.is_duplicated().not_())
+
+        # Find the rows that are *almost* duplicates: there are some rows that
+        # have nearly duplicate values
+        clean = clean.pipe(remove_near_duplicates)
+
         # Verify that indicator type "up-to-date" has only one value ("yes")
         assert clean.filter(pl.col("indicator_type") == pl.lit("up-to-date")).pipe(
             col_values_in, "indicator_value", ["yes"]
-        )
-
-        problem_bits = (
-            clean.filter(
-                pl.col("indicator_value").is_in(["yes", "received a vaccination"])
-            )
-            .drop("indicator_type")
-            .group_by(
-                set(data_schema.names())
-                - set(
-                    [
-                        "indicator_type",
-                        "indicator_value",
-                        "estimate",
-                        "ci_half_width_95pct",
-                    ]
-                )
-            )
-            .count()
-            .filter(pl.col("count") > 1)
-            .drop("count")
-        )
-
-        print("problem_bits", problem_bits.filter(problem_bits.is_duplicated()))
-
-        print("null columns", clean.filter(pl.col("vaccine").is_null()))
-
-        print(
-            "join clean",
-            clean.join(problem_bits, on=problem_bits.columns)
-            .sort(problem_bits.columns)
-            .glimpse(),
         )
 
         # check that "Yes" and "Received a vaccination" are the same thing, so that
@@ -124,34 +114,26 @@ def clean_dataset(id: str, df: pl.DataFrame) -> pl.DataFrame:
             )
             .drop("indicator_type")
             .pivot(on="indicator_value", values=["estimate", "ci_half_width_95pct"])
-            .select((pl.col("yes") == pl.col("received a vaccination")).alias("x"))["x"]
-            .all()
-        )
-
-        # this dataset has two indicators: `4-level vaccination and intent` and
-        # `Up-to-date` ("Yes" if the 4-level factor is "Received a vaccination";
-        # otherwise "No"). The second is redundant, so drop it.
-        clean.pivot(on="indicator_type", value="estimate")
-
-        clean = (
-            clean
-            # this dataset has two indicators: `4-level vaccination and intent` and
-            # `Up-to-date` ("Yes" if the 4-level factor is "Received a vaccination";
-            # otherwise "No"). The second is redundant, so drop it.
-            .filter(pl.col("indicator_type") == "4-level vaccination and intent")
-            # cast types
-            .with_columns(
-                pl.col("week_ending").str.strptime(pl.Datetime, "%Y-%m-%dT%H:%M:%S%.f"),
-                pl.col(["estimate", "ci_half_width_95pct"]).cast(pl.Float64),
+            .select(
+                (
+                    (
+                        pl.col("estimate_yes")
+                        == pl.col("estimate_received a vaccination")
+                    )
+                    & (
+                        pl.col("ci_half_width_95pct_yes")
+                        == pl.col("ci_half_width_95pct_received a vaccination")
+                    )
+                ).all()
             )
-            # change percents to proportions
-            .with_columns(pl.col(["estimate", "ci_half_width_95pct"]) / 100.0)
+            .item()
         )
 
-        # check that the date doesn't have any trailing seconds
-        assert (clean["week_ending"].dt.truncate("1d") == clean["week_ending"]).all()
+        clean = clean.filter(
+            pl.col("indicator_type") == pl.lit("4-level vaccination and intent")
+        )
 
-        clean = clean.with_columns(pl.col("week_ending").dt.date())
+        return clean
 
     validate(clean)
     return clean
@@ -179,6 +161,36 @@ def col_values_in(df: pl.DataFrame, col: str, values: str) -> bool:
     return df[col].is_in(values).all()
 
 
+def remove_near_duplicates(df: pl.DataFrame, tolerance: float = 1e-3) -> pl.DataFrame:
+    value_cols = ["estimate", "ci_half_width_95pct"]
+    group_cols = set(df.columns) - set(value_cols)
+
+    nearly_dup_rows = df.drop(value_cols).is_duplicated()
+
+    # assert that there are only 2 of each of these
+    assert (
+        df.filter(nearly_dup_rows)
+        .select(group_cols)
+        .group_by(pl.all())
+        .count()["count"]
+        == 2
+    ).all()
+
+    # assert that the estimates and CIs in these groups are similar to
+    # one another, within some small margin
+    assert (
+        df.filter(nearly_dup_rows)
+        .group_by(group_cols)
+        .agg((pl.col(value_cols).pipe(lambda x: x.max() - x.min())))
+        .select((pl.col(value_cols) < tolerance).all())
+        .select(pl.all_horizontal(value_cols))
+        .item()
+    )
+
+    # drop the nearly-duplicate rows
+    return df.filter(nearly_dup_rows.not_())
+
+
 def validate(df: pl.DataFrame):
     """Validate a clean dataset
 
@@ -193,7 +205,7 @@ def validate(df: pl.DataFrame):
     assert df.schema == data_schema
 
     # no duplicated rows
-    polars.testing.assert_frame_equal(df, df.unique())
+    polars.testing.assert_frame_equal(df, df.unique(), check_row_order=False)
 
     # no null values in crucial columns
     for col in df.columns:
@@ -218,9 +230,9 @@ def validate(df: pl.DataFrame):
         == "overall"
     ).all()
     # age groups should have the form "18-49 years" or "65+ years"
-    assert df.filter(pl.col("demographic_type") == pl.lit("age"))[
-        "demographic_value"
-    ].pipe(valid_age_groups)
+    assert valid_age_groups(
+        df.filter(pl.col("demographic_type") == pl.lit("age"))["demographic_value"]
+    )
 
     # Indicators --------------------------------------------------------------
     assert df["indicator_type"].is_in(["4-level vaccination and intent"]).all()
