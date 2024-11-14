@@ -30,9 +30,16 @@ def clean_dataset(id: str, df: pl.DataFrame) -> pl.DataFrame:
     """
     clean = df
 
+    if id not in ["sw5n-wg2p", "ksfb-ug5d"]:
+        raise RuntimeError(f"No cleaning set up for dataset {id}")
+
+    # Drop rows with suppression flags
+    clean = clean.filter(pl.col("suppression_flag") == pl.lit("0"))
+
     if id == "sw5n-wg2p":
         # this particular dataset has a bad column name
         clean = clean.rename({"estimates": "estimate"})
+
     if id in ["sw5n-wg2p", "ksfb-ug5d"]:
         clean = (
             clean.pipe(rename_indicator_columns)
@@ -69,10 +76,10 @@ def clean_dataset(id: str, df: pl.DataFrame) -> pl.DataFrame:
             )
         )
 
-        # Remove the null values
-        # assert (clean.filter(pl.col("vaccine").is_null()['estimate'].is_nu.)
+        # there should now be no nulls in any column
+        assert clean.null_count().pipe(sum).item() == 0
 
-        # Indicator type "up to date" has only one value, "Yes"
+        # Verify that indicator type "up-to-date" has only one value ("yes")
         assert clean.filter(pl.col("indicator_type") == pl.lit("up-to-date")).pipe(
             col_values_in, "indicator_value", ["yes"]
         )
@@ -98,14 +105,15 @@ def clean_dataset(id: str, df: pl.DataFrame) -> pl.DataFrame:
             .drop("count")
         )
 
-        print(problem_bits.describe())
+        print("problem_bits", problem_bits.filter(problem_bits.is_duplicated()))
 
-        print(clean.filter(pl.col("vaccine").is_null()))
+        print("null columns", clean.filter(pl.col("vaccine").is_null()))
 
         print(
+            "join clean",
             clean.join(problem_bits, on=problem_bits.columns)
             .sort(problem_bits.columns)
-            .glimpse()
+            .glimpse(),
         )
 
         # check that "Yes" and "Received a vaccination" are the same thing, so that
@@ -144,8 +152,6 @@ def clean_dataset(id: str, df: pl.DataFrame) -> pl.DataFrame:
         assert (clean["week_ending"].dt.truncate("1d") == clean["week_ending"]).all()
 
         clean = clean.with_columns(pl.col("week_ending").dt.date())
-    else:
-        raise RuntimeError(f"No cleaning set up for dataset {id}")
 
     validate(clean)
     return clean
@@ -158,6 +164,10 @@ def rename_indicator_columns(df: pl.DataFrame) -> pl.DataFrame:
     """
     return df.rename(
         {
+            "geographic_level": "geographic_type",
+            "geographic_name": "geographic_value",
+            "demographic_level": "demographic_type",
+            "demographic_name": "demographic_value",
             "indicator_label": "indicator_type",
             "indicator_category_label": "indicator_value",
         }

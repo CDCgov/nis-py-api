@@ -1,6 +1,8 @@
 - id: sw5n-wg2p
   vaccine: flu
   start_date: 2021-10-02
+  notes:
+    - One row (national, Pacific Islander, 2023-04-29) has a suppression flag, a null sample size, but a non-null estimate. This row was dropped.
 - id: ksfb-ug5d
   vaccine: covid
   start_date: 2021-10-02

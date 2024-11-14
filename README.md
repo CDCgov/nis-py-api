@@ -23,9 +23,11 @@ The data have these columns, in order, with these types:
 
 Note the paired use of "type" and "value" columns.
 
+Rows that were suppressed in the raw data are dropped. This includes data with suppression flag `"1"`, indicating small sample size, and data with flag `"."`, which may indicate that data were not collected.
+
 ### `vaccine`
 
-- Either `"flu"` or `"covid"`
+- One of `"flu"` or `"covid"`
 
 ### `geographic_type`
 
@@ -39,6 +41,7 @@ Note the paired use of "type" and "value" columns.
 ### `demographic_type`
 
 - There are multiple types, including `"overall"` and `"age"`
+- Note that "overall" might refer only to certain age groups (e.g., 18+)
 
 ### `demographic_value`
 

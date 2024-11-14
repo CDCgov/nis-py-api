@@ -13,7 +13,7 @@ if not os.path.exists(tmp_path):
     nisapi.download_dataset(dataset_id, app_token=app_token).write_parquet(tmp_path)
 
 df = pl.read_parquet(tmp_path)
-print(df.glimpse())
-clean = nisapi.clean_dataset(dataset_id, df)
+df.glimpse()
 
+clean = nisapi.clean_dataset(dataset_id, df)
 print(clean)
