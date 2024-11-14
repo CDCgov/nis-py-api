@@ -20,14 +20,14 @@ df = (
         # by age group
         pl.col("demographic_type") == pl.lit("age"),
         # showing %vaccinated through time
-        pl.col("indicator_name") == pl.lit("received a vaccination"),
+        pl.col("indicator_value") == pl.lit("received a vaccination"),
     )
     .drop(
         "geographic_type",
-        "geographic_name",
+        "geographic_value",
         "demographic_type",
         "indicator_type",
-        "indicator_name",
+        "indicator_value",
     )
     .collect()
 )

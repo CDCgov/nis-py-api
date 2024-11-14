@@ -6,11 +6,11 @@ data_schema = pl.Schema(
     [
         ("vaccine", pl.String),
         ("geographic_type", pl.String),
-        ("geographic_name", pl.String),
+        ("geographic_value", pl.String),
         ("demographic_type", pl.String),
-        ("demographic_name", pl.String),
+        ("demographic_value", pl.String),
         ("indicator_type", pl.String),
-        ("indicator_name", pl.String),
+        ("indicator_value", pl.String),
         ("week_ending", pl.Date),
         ("estimate", pl.Float64),
         ("ci_half_width_95pct", pl.Float64),
@@ -21,12 +21,12 @@ data_schema = pl.Schema(
 def rename_indicator_columns(df: pl.DataFrame) -> pl.DataFrame:
     """
     Make "indicator" follow the same logic as "geography" and
-    "demographic", with "type" and "name" columns
+    "demographic", with "type" and "value" columns
     """
     return df.rename(
         {
             "indicator_label": "indicator_type",
-            "indicator_category_label": "indicator_name",
+            "indicator_category_label": "indicator_value",
         }
     )
 
@@ -59,7 +59,7 @@ def clean_dataset(id: str, df: pl.DataFrame) -> pl.DataFrame:
                         "vaccine",
                         "geographic_type",
                         "demographic_type",
-                        "indicator_name",
+                        "indicator_value",
                         "indicator_type",
                     ]
                 ).str.to_lowercase()
@@ -68,17 +68,17 @@ def clean_dataset(id: str, df: pl.DataFrame) -> pl.DataFrame:
             # than adjectives. (Otherwise we would need to change "region" to "regional")
             .with_columns(
                 pl.col("geographic_type").replace({"national": "nation"}),
-                pl.col("geographic_name").replace({"National": "nation"}),
+                pl.col("geographic_value").replace({"National": "nation"}),
             )
             # "sw5n-wg2p" only:
             # this dataset has an error: for `demographic_type="overall"`, it has
-            # `demographic_name="18+ years"`, but it should be "overall"
+            # `demographic_value="18+ years"`, but it should be "overall"
             .with_columns(
-                demographic_name=pl.when(
+                demographic_value=pl.when(
                     pl.col("demographic_type") == pl.lit("overall")
                 )
                 .then(pl.lit("overall"))
-                .otherwise(pl.col("demographic_name"))
+                .otherwise(pl.col("demographic_value"))
             )
         )
 
@@ -88,14 +88,14 @@ def clean_dataset(id: str, df: pl.DataFrame) -> pl.DataFrame:
         # Indicator type "up to date" has only one value, "Yes"
         assert (
             clean.filter(pl.col("indicator_type") == pl.lit("up-to-date"))[
-                "indicator_name"
+                "indicator_value"
             ]
             == "yes"
         ).all()
 
         problem_bits = (
             clean.filter(
-                pl.col("indicator_name").is_in(["yes", "received a vaccination"])
+                pl.col("indicator_value").is_in(["yes", "received a vaccination"])
             )
             .drop("indicator_type")
             .group_by(
@@ -103,7 +103,7 @@ def clean_dataset(id: str, df: pl.DataFrame) -> pl.DataFrame:
                 - set(
                     [
                         "indicator_type",
-                        "indicator_name",
+                        "indicator_value",
                         "estimate",
                         "ci_half_width_95pct",
                     ]
@@ -128,10 +128,10 @@ def clean_dataset(id: str, df: pl.DataFrame) -> pl.DataFrame:
         # we can drop "Up to Date"
         assert (
             clean.filter(
-                pl.col("indicator_name").is_in(["yes", "received a vaccination"])
+                pl.col("indicator_value").is_in(["yes", "received a vaccination"])
             )
             .drop("indicator_type")
-            .pivot(on="indicator_name", values=["estimate", "ci_half_width_95pct"])
+            .pivot(on="indicator_value", values=["estimate", "ci_half_width_95pct"])
             .select((pl.col("yes") == pl.col("received a vaccination")).alias("x"))["x"]
             .all()
         )
@@ -193,21 +193,21 @@ def validate(df: pl.DataFrame):
     # Geography ---------------------------------------------------------------
     # `geographic_type` must be in a certain set
     assert df["geographic_type"].is_in(["nation", "region", "state", "substate"]).all()
-    # if `geographic_type` is "nation", `geographic_name` must also be "nation"
+    # if `geographic_type` is "nation", `geographic_value` must also be "nation"
     assert (
-        df.filter(pl.col("geographic_type") == pl.lit("nation"))["geographic_name"]
+        df.filter(pl.col("geographic_type") == pl.lit("nation"))["geographic_value"]
         == "nation"
     ).all()
 
     # Demographics ------------------------------------------------------------
-    # if `demographic_type` is "overall", `demographic_name` must also be "overall"
+    # if `demographic_type` is "overall", `demographic_value` must also be "overall"
     assert (
-        df.filter(pl.col("demographic_type") == pl.lit("overall"))["demographic_name"]
+        df.filter(pl.col("demographic_type") == pl.lit("overall"))["demographic_value"]
         == "overall"
     ).all()
     # age groups should have the form "18-49 years" or "65+ years"
     assert df.filter(pl.col("demographic_type") == pl.lit("age"))[
-        "demographic_name"
+        "demographic_value"
     ].pipe(valid_age_groups)
 
     # Indicators --------------------------------------------------------------

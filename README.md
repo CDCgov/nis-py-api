@@ -21,7 +21,7 @@ The data have these columns, in order, with these types:
 | `estimate`            | Float64 |
 | `ci_half_width_95pct` | Float64 |
 
-Note the use of "type" and "name" to refer to the
+Note the paired use of "type" and "value" columns.
 
 ### `vaccine`
 
@@ -31,7 +31,7 @@ Note the use of "type" and "name" to refer to the
 
 - One of `"nation"`, `"region"`, `"state"`, `"substate"`
 
-### `geographic_name`
+### `geographic_value`
 
 - If `geographic_type` is `"nation"`, then this is `"nation"`
 - Otherwise, the name of the region, state, or substate
@@ -40,7 +40,7 @@ Note the use of "type" and "name" to refer to the
 
 - There are multiple types, including `"overall"` and `"age"`
 
-### `demographic_name`
+### `demographic_value`
 
 - If `demographic_type` is `"overall"`, then this is `"overall"`
 - If `demographic_type` is `"age"`, then this is the age group, with the form `"x-y years"` or `"x+ years"`
@@ -49,9 +49,9 @@ Note the use of "type" and "name" to refer to the
 
 - Always `"4-level vaccination and intent"`
 
-### `indicator_name`
+### `indicator_value`
 
-- The name of the indicator, e.g., `"received a vaccination"`
+- The value of the indicator, e.g., `"received a vaccination"`
 
 ### `week_ending`
 
