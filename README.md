@@ -4,6 +4,12 @@ Python API to the National Immunization Survey (NIS) data.
 
 :construction: This tool is in alpha development. The API and data schema are not stable.
 
+## Getting started
+
+- This a poetry-enabled project.
+- See `scripts/demo.py` for an example of how to cache and query the data.
+- See `scripts/clean_example.py` for an example of a script that you could run while iteratively developing the cleaning code in `nisapi/clean.py`.
+
 ## Data dictionary
 
 The data have these columns, in order, with these types:
@@ -72,8 +78,6 @@ Rows that were suppressed in the raw data are dropped. This includes data with s
 ## Contributing
 
 When adding a new dataset, include demonstrations that the content of the clean data is what you expected.
-
-See `scripts/clean_example.py` for an example of a script that can be run, to validate your cleaning steps.
 
 See also the [contributing notice](#contributing-standard-notice) below.
 
