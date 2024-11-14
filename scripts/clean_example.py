@@ -2,6 +2,7 @@ import polars as pl
 import os.path
 import yaml
 import nisapi
+import altair as alt
 
 tmp_path = "tmp_raw_dataset.parquet"
 dataset_id = "sw5n-wg2p"
@@ -17,3 +18,11 @@ df = pl.read_parquet(tmp_path)
 clean = nisapi.clean_dataset(dataset_id, df)
 clean.glimpse()
 clean.tail().glimpse()
+
+alt.Chart(
+    clean.filter(
+        pl.col("geographic_type") == pl.lit("nation"),
+        pl.col("demographic_type") == "overall",
+        pl.col("indicator_value") == "received a vaccination",
+    )
+).encode(x="week_ending", y="estimate").mark_point().save("tmp_overall.png")
