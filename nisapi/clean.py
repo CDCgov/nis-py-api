@@ -18,19 +18,6 @@ data_schema = pl.Schema(
 )
 
 
-def rename_indicator_columns(df: pl.DataFrame) -> pl.DataFrame:
-    """
-    Make "indicator" follow the same logic as "geography" and
-    "demographic", with "type" and "value" columns
-    """
-    return df.rename(
-        {
-            "indicator_label": "indicator_type",
-            "indicator_category_label": "indicator_value",
-        }
-    )
-
-
 def clean_dataset(id: str, df: pl.DataFrame) -> pl.DataFrame:
     """Clean a raw dataset, applying dataset-specific cleaning rules
 
@@ -86,12 +73,9 @@ def clean_dataset(id: str, df: pl.DataFrame) -> pl.DataFrame:
         # assert (clean.filter(pl.col("vaccine").is_null()['estimate'].is_nu.)
 
         # Indicator type "up to date" has only one value, "Yes"
-        assert (
-            clean.filter(pl.col("indicator_type") == pl.lit("up-to-date"))[
-                "indicator_value"
-            ]
-            == "yes"
-        ).all()
+        assert clean.filter(pl.col("indicator_type") == pl.lit("up-to-date")).pipe(
+            col_values_in, "indicator_value", ["yes"]
+        )
 
         problem_bits = (
             clean.filter(
@@ -165,6 +149,24 @@ def clean_dataset(id: str, df: pl.DataFrame) -> pl.DataFrame:
 
     validate(clean)
     return clean
+
+
+def rename_indicator_columns(df: pl.DataFrame) -> pl.DataFrame:
+    """
+    Make "indicator" follow the same logic as "geography" and
+    "demographic", with "type" and "value" columns
+    """
+    return df.rename(
+        {
+            "indicator_label": "indicator_type",
+            "indicator_category_label": "indicator_value",
+        }
+    )
+
+
+def col_values_in(df: pl.DataFrame, col: str, values: str) -> bool:
+    """All values of `df` in column `col` are in `values`?"""
+    return df[col].is_in(values).all()
 
 
 def validate(df: pl.DataFrame):
