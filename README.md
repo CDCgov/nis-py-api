@@ -11,39 +11,41 @@ The data have these columns, in order, with these types:
 | column                | type    |
 | --------------------- | ------- |
 | `vaccine`             | String  |
-| `geographic_level`    | String  |
-| `geographic_name`     | String  |
-| `demographic_level`   | String  |
-| `demographic_name`    | String  |
-| `indicator_level`     | String  |
-| `indicator_name`      | String  |
+| `geographic_type`     | String  |
+| `geographic_value`    | String  |
+| `demographic_type`    | String  |
+| `demographic_value`   | String  |
+| `indicator_type`      | String  |
+| `indicator_value`     | String  |
 | `week_ending`         | Date    |
 | `estimate`            | Float64 |
 | `ci_half_width_95pct` | Float64 |
+
+Note the use of "type" and "name" to refer to the
 
 ### `vaccine`
 
 - Either `"flu"` or `"covid"`
 
-### `geographic_level`
+### `geographic_type`
 
 - One of `"nation"`, `"region"`, `"state"`, `"substate"`
 
 ### `geographic_name`
 
-- If `geographic_level` is `"nation"`, then this is `"nation"`
+- If `geographic_type` is `"nation"`, then this is `"nation"`
 - Otherwise, the name of the region, state, or substate
 
-### `demographic_level`
+### `demographic_type`
 
-- There are multiple levels, including `"overall"` and `"age"`
+- There are multiple types, including `"overall"` and `"age"`
 
 ### `demographic_name`
 
-- If `demographic_level` is `"overall"`, then this is `"overall"`
-- If `demographic_level` is `"age"`, then this is the age group, with the form `"x-y years"` or `"x+ years"`
+- If `demographic_type` is `"overall"`, then this is `"overall"`
+- If `demographic_type` is `"age"`, then this is the age group, with the form `"x-y years"` or `"x+ years"`
 
-### `indicator_level`
+### `indicator_type`
 
 - Always `"4-level vaccination and intent"`
 

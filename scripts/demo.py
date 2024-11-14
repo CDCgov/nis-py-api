@@ -9,24 +9,24 @@ with open("secrets.yaml") as f:
 
 # Cache all datasets. Change "skip" to "yes" if you want to rebuild the cache.
 for ds in nisapi.get_datasets():
-    nisapi.cache_dataset(ds["id"], overwrite="skip", app_token=app_token)
+    nisapi.cache_dataset(ds["id"], overwrite="warn", app_token=app_token)
 
 # Pull a subset of the data that's currently available
 df = (
     nisapi.get_nis()
     .filter(
         # national data
-        pl.col("geographic_level") == pl.lit("nation"),
+        pl.col("geographic_type") == pl.lit("nation"),
         # by age group
-        pl.col("demographic_level") == pl.lit("age"),
+        pl.col("demographic_type") == pl.lit("age"),
         # showing %vaccinated through time
         pl.col("indicator_name") == pl.lit("received a vaccination"),
     )
     .drop(
-        "geographic_level",
+        "geographic_type",
         "geographic_name",
-        "demographic_level",
-        "indicator_level",
+        "demographic_type",
+        "indicator_type",
         "indicator_name",
     )
     .collect()
