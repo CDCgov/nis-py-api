@@ -9,6 +9,10 @@ Python API to the National Immunization Survey (NIS) data.
 - This a poetry-enabled project.
 - See `scripts/demo.py` for an example of how to cache and query the data.
 - See `scripts/clean_example.py` for an example of a script that you could run while iteratively developing the cleaning code in `nisapi/clean.py`.
+  - Copy `scripts/secrets_template.yaml` to `scripts/secrets.yaml` and fill out the `app_token`.
+  - You will need to acquire a [Socrata app token](https://support.socrata.com/hc/en-us/articles/210138558-Generating-App-Tokens-and-API-Keys).
+- See `scripts/demo_cloud.py` for a demo of how the data could be downloaded, cleaned, uploaded to Azure Blob Storage, and then downloaded from there.
+  - Copy `scripts/secrets_template.yaml` to `scripts/secrets.yaml` and fill out the `azure:` keys.
 
 ## Data dictionary
 
