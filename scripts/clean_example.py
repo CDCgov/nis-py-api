@@ -4,11 +4,11 @@ import yaml
 import nisapi
 import altair as alt
 
-tmp_path = "tmp_raw_dataset.parquet"
+tmp_path = "scripts/tmp_raw_dataset.parquet"
 dataset_id = "sw5n-wg2p"
 
 if not os.path.exists(tmp_path):
-    with open("secrets.yaml") as f:
+    with open("scripts/secrets.yaml") as f:
         app_token = yaml.safe_load(f)["app_token"]
 
     nisapi.download_dataset(dataset_id, app_token=app_token).write_parquet(tmp_path)
@@ -25,4 +25,4 @@ alt.Chart(
         pl.col("demographic_type") == "overall",
         pl.col("indicator_value") == "received a vaccination",
     )
-).encode(x="week_ending", y="estimate").mark_point().save("tmp_overall.png")
+).encode(x="week_ending", y="estimate").mark_point().save("scripts/tmp_overall.png")
