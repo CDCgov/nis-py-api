@@ -1,6 +1,6 @@
 import polars as pl
 import polars.testing
-from typing import Sequence
+from typing import Sequence, Callable
 
 """Data schema to be used for all datasets"""
 data_schema = pl.Schema(
@@ -165,6 +165,7 @@ def col_values_in(df: pl.DataFrame, col: str, values: str) -> bool:
 def remove_near_duplicates(
     df: pl.DataFrame,
     tolerance: float,
+    aggregate_function: Callable,
     n_fold_duplication: int = None,
     value_columns: Sequence[str] = ["estimate", "ci_half_width_95pct"],
     group_columns: Sequence[str] = None,
@@ -178,6 +179,9 @@ def remove_near_duplicates(
     Args:
         df (pl.DataFrame): input data frame
         tolerance (float): greatest difference in `estimate` and `ci_half_width_95pct`
+        aggregate_function (Callable): How to collapse the near-duplicate rows.
+          Function of one grouped dataframe. E.g., `lambda gb: gb.first()` or
+          `lambda gb: gb.map_groups(my_fun)`.
         n_fold_duplication (int, optional): For each set of grouping values,
           there are exactly this number of near-duplicate rows. If None (default),
           do not apply this kind of check.
@@ -192,22 +196,31 @@ def remove_near_duplicates(
     if group_columns is None:
         group_columns = set(df.columns) - set(value_columns)
 
-    nearly_dup_rows = df.drop(value_columns).is_duplicated()
+    near_dup_rows = df.select(group_columns).is_duplicated()
+    n_near_dup_rows = near_dup_rows.sum()
+
+    # get groups of duplicated rows
+    near_dup_groups = df.filter(near_dup_rows).select(group_columns).unique()
+    n_near_dup_groups = near_dup_groups.shape[0]
 
     if n_fold_duplication is not None:
         # assert that there are N of each of these duplicated groups
         assert (
-            df.filter(nearly_dup_rows)
+            df.filter(near_dup_rows)
             .select(group_columns)
             .group_by(pl.all())
             .count()["count"]
             == n_fold_duplication
         ).all()
 
+        # the number of near-duplicate rows should be the number of groups, times
+        # the size of each of those groups
+        assert near_dup_rows.sum() == near_dup_groups.shape[0] * n_fold_duplication
+
     # assert that the estimates and CIs in these groups are similar to
     # one another, within some small margin
     assert (
-        df.filter(nearly_dup_rows)
+        df.filter(near_dup_rows)
         .group_by(group_columns)
         .agg((pl.col(value_columns).pipe(lambda x: x.max() - x.min())))
         .select((pl.col(value_columns) < tolerance).all())
@@ -215,8 +228,13 @@ def remove_near_duplicates(
         .item()
     )
 
-    # drop the nearly-duplicate rows
-    return df.filter(nearly_dup_rows.not_())
+    # aggregate to drop the nearly-duplicate rows
+    print(group_columns)
+    out = aggregate_function(df.group_by(group_columns))
+
+    assert out.shape[0] == df.shape[0] - n_near_dup_rows + n_near_dup_groups
+
+    return out
 
 
 def validate(df: pl.DataFrame):
