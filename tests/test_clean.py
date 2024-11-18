@@ -15,7 +15,7 @@ def test_remove_near_duplicates_first():
 
     current_df = input_df.pipe(
         remove_near_duplicates,
-        aggregate_function=lambda gb: gb.first(),
+        filter_expr=pl.col("value1") == pl.col("value1").first(),
         value_columns=["value1", "value2"],
         group_columns=["group"],
         tolerance=1e-1,
@@ -35,12 +35,9 @@ def test_remove_near_duplicates_round():
         }
     )
 
-    def fewest_sig_figs(df: pl.DataFrame) -> pl.DataFrame:
-        return df.filter(pl.col("value1") == pl.col("value1").round(1))
-
     current_df = input_df.pipe(
         remove_near_duplicates,
-        aggregate_function=lambda gb: gb.map_groups(fewest_sig_figs),
+        filter_expr=pl.col("value1") == pl.col("value1").round(1),
         value_columns=["value1", "value2"],
         group_columns=["group"],
         tolerance=1e-1,

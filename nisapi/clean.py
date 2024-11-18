@@ -165,7 +165,7 @@ def col_values_in(df: pl.DataFrame, col: str, values: str) -> bool:
 def remove_near_duplicates(
     df: pl.DataFrame,
     tolerance: float,
-    aggregate_function: Callable,
+    filter_expr: pl.Expr,
     n_fold_duplication: int = None,
     value_columns: Sequence[str] = ["estimate", "ci_half_width_95pct"],
     group_columns: Sequence[str] = None,
@@ -179,9 +179,8 @@ def remove_near_duplicates(
     Args:
         df (pl.DataFrame): input data frame
         tolerance (float): greatest difference in `estimate` and `ci_half_width_95pct`
-        aggregate_function (Callable): How to collapse the near-duplicate rows.
-          Function of one grouped dataframe. E.g., `lambda gb: gb.first()` or
-          `lambda gb: gb.map_groups(my_fun)`.
+        filter_expr (Expr): How to filter for the desired row in each group.
+          Implemented like `dataframe.filter(filter_expr.over(group_columns))`.
         n_fold_duplication (int, optional): For each set of grouping values,
           there are exactly this number of near-duplicate rows. If None (default),
           do not apply this kind of check.
@@ -209,7 +208,7 @@ def remove_near_duplicates(
             df.filter(near_dup_rows)
             .select(group_columns)
             .group_by(pl.all())
-            .count()["count"]
+            .len(name="len")["len"]
             == n_fold_duplication
         ).all()
 
@@ -229,9 +228,12 @@ def remove_near_duplicates(
     )
 
     # aggregate to drop the nearly-duplicate rows
-    print(group_columns)
-    out = aggregate_function(df.group_by(group_columns))
+    out = df.filter(filter_expr.over(group_columns))
 
+    # check that there are no more duplicate rows
+    assert not out.select(group_columns).is_duplicated().any()
+
+    # check that we ended up with the correct number of output rows
     assert out.shape[0] == df.shape[0] - n_near_dup_rows + n_near_dup_groups
 
     return out
