@@ -1,5 +1,6 @@
 import polars as pl
 import polars.testing
+from typing import Sequence
 
 """Data schema to be used for all datasets"""
 data_schema = pl.Schema(
@@ -161,34 +162,77 @@ def col_values_in(df: pl.DataFrame, col: str, values: str) -> bool:
     return df[col].is_in(values).all()
 
 
-def remove_near_duplicates(df: pl.DataFrame, tolerance: float = 1e-3) -> pl.DataFrame:
-    value_cols = ["estimate", "ci_half_width_95pct"]
-    group_cols = set(df.columns) - set(value_cols)
+def remove_near_duplicates(
+    df: pl.DataFrame,
+    tolerance: float,
+    filter_expr: pl.Expr,
+    n_fold_duplication: int = None,
+    value_columns: Sequence[str] = ["estimate", "ci_half_width_95pct"],
+    group_columns: Sequence[str] = None,
+) -> pl.DataFrame:
+    """Remove near-duplicate rows
 
-    nearly_dup_rows = df.drop(value_cols).is_duplicated()
+    Args:
+        df (pl.DataFrame): input data frame
+        tolerance (float): greatest difference in `estimate` and `ci_half_width_95pct`
+        filter_expr (Expr): How to filter for the desired row in each group.
+          Implemented like `dataframe.filter(filter_expr.over(group_columns))`.
+        n_fold_duplication (int, optional): For each set of grouping values,
+          there are exactly this number of near-duplicate rows. If None (default),
+          do not apply this kind of check.
+        value_columns (Sequence[str]): names of the value columns. Defaults to
+          `["estimate", "ci_half_width_95pct"]`.
+        group_columns (Sequence[str]): names of the grouping columns. If None
+          (the default), uses all columns in `df` that are not in `value_columns`.
 
-    # assert that there are only 2 of each of these
-    assert (
-        df.filter(nearly_dup_rows)
-        .select(group_cols)
-        .group_by(pl.all())
-        .count()["count"]
-        == 2
-    ).all()
+    Returns:
+        pl.DataFrame: _description_
+    """
+    if group_columns is None:
+        group_columns = set(df.columns) - set(value_columns)
+
+    near_dup_rows = df.select(group_columns).is_duplicated()
+    n_near_dup_rows = near_dup_rows.sum()
+
+    # get groups of duplicated rows
+    near_dup_groups = df.filter(near_dup_rows).select(group_columns).unique()
+    n_near_dup_groups = near_dup_groups.shape[0]
+
+    if n_fold_duplication is not None:
+        # assert that there are N of each of these duplicated groups
+        assert (
+            df.filter(near_dup_rows)
+            .select(group_columns)
+            .group_by(pl.all())
+            .len(name="len")["len"]
+            == n_fold_duplication
+        ).all()
+
+        # the number of near-duplicate rows should be the number of groups, times
+        # the size of each of those groups
+        assert near_dup_rows.sum() == near_dup_groups.shape[0] * n_fold_duplication
 
     # assert that the estimates and CIs in these groups are similar to
     # one another, within some small margin
     assert (
-        df.filter(nearly_dup_rows)
-        .group_by(group_cols)
-        .agg((pl.col(value_cols).pipe(lambda x: x.max() - x.min())))
-        .select((pl.col(value_cols) < tolerance).all())
-        .select(pl.all_horizontal(value_cols))
+        df.filter(near_dup_rows)
+        .group_by(group_columns)
+        .agg((pl.col(value_columns).pipe(lambda x: x.max() - x.min())))
+        .select((pl.col(value_columns) < tolerance).all())
+        .select(pl.all_horizontal(value_columns))
         .item()
     )
 
-    # drop the nearly-duplicate rows
-    return df.filter(nearly_dup_rows.not_())
+    # aggregate to drop the nearly-duplicate rows
+    out = df.filter(filter_expr.over(group_columns))
+
+    # check that there are no more duplicate rows
+    assert not out.select(group_columns).is_duplicated().any()
+
+    # check that we ended up with the correct number of output rows
+    assert out.shape[0] == df.shape[0] - n_near_dup_rows + n_near_dup_groups
+
+    return out
 
 
 def validate(df: pl.DataFrame):
