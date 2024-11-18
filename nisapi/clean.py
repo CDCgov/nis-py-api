@@ -1,6 +1,6 @@
 import polars as pl
 import polars.testing
-from typing import Sequence, Callable
+from typing import Sequence
 
 """Data schema to be used for all datasets"""
 data_schema = pl.Schema(
