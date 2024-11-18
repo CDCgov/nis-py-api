@@ -195,31 +195,21 @@ def remove_near_duplicates(
     if group_columns is None:
         group_columns = set(df.columns) - set(value_columns)
 
-    near_dup_rows = df.select(group_columns).is_duplicated()
-    n_near_dup_rows = near_dup_rows.sum()
-
-    # get groups of duplicated rows
-    near_dup_groups = df.filter(near_dup_rows).select(group_columns).unique()
-    n_near_dup_groups = near_dup_groups.shape[0]
+    # a "group" is a unique combination of group columns
+    group_size_col = "group_size"
+    assert group_size_col not in group_columns
+    groups = df.group_by(group_columns).len(name=group_size_col)
+    dup_groups = groups.filter(pl.col(group_size_col) > 1)
 
     if n_fold_duplication is not None:
-        # assert that there are N of each of these duplicated groups
-        assert (
-            df.filter(near_dup_rows)
-            .select(group_columns)
-            .group_by(pl.all())
-            .len(name="len")["len"]
-            == n_fold_duplication
-        ).all()
-
-        # the number of near-duplicate rows should be the number of groups, times
-        # the size of each of those groups
-        assert near_dup_rows.sum() == near_dup_groups.shape[0] * n_fold_duplication
+        # all groups that aren't of size 1 should be the "fold" duplication size
+        assert (dup_groups[group_size_col] == n_fold_duplication).all()
 
     # assert that the estimates and CIs in these groups are similar to
     # one another, within some small margin
     assert (
-        df.filter(near_dup_rows)
+        dup_groups.drop(group_size_col)
+        .join(df, how="inner", validate="1:m", on=group_columns)
         .group_by(group_columns)
         .agg((pl.col(value_columns).pipe(lambda x: x.max() - x.min())))
         .select((pl.col(value_columns) < tolerance).all())
@@ -234,7 +224,7 @@ def remove_near_duplicates(
     assert not out.select(group_columns).is_duplicated().any()
 
     # check that we ended up with the correct number of output rows
-    assert out.shape[0] == df.shape[0] - n_near_dup_rows + n_near_dup_groups
+    assert out.shape[0] == groups.shape[0]
 
     return out
 
