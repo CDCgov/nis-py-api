@@ -1,6 +1,7 @@
 import polars as pl
 import polars.testing
 from typing import Sequence
+import uuid
 
 """Data schema to be used for all datasets"""
 data_schema = pl.Schema(
@@ -100,7 +101,7 @@ def clean_dataset(id: str, df: pl.DataFrame) -> pl.DataFrame:
 
         # Find the rows that are *almost* duplicates: there are some rows that
         # have nearly duplicate values
-        clean = clean.pipe(remove_near_duplicates, tolerance=1e-3, n_fold_duplicates=2)
+        clean = clean.pipe(remove_near_duplicates, tolerance=1e-3, n_fold_duplication=2)
 
         # Verify that indicator type "up-to-date" has only one value ("yes")
         assert clean.filter(pl.col("indicator_type") == pl.lit("up-to-date")).pipe(
@@ -165,68 +166,71 @@ def col_values_in(df: pl.DataFrame, col: str, values: str) -> bool:
 def remove_near_duplicates(
     df: pl.DataFrame,
     tolerance: float,
-    filter_expr: pl.Expr,
     n_fold_duplication: int = None,
     value_columns: Sequence[str] = ["estimate", "ci_half_width_95pct"],
     group_columns: Sequence[str] = None,
 ) -> pl.DataFrame:
     """Remove near-duplicate rows
 
-    Two rows are "near-duplicate" if they have all the same grouping variables
-    (i.e., everything other than estimate and CI) and have estimate and CI
+    Rows are "near-duplicate" if they have the same grouping variables
+    (e.g., everything other than estimate and CI) and have estimate and CI
     values that are within some tolerance of one another.
 
+    This function removes duplicates by
+      1. Grouping by group columns
+      2. Summarizing the value columns using the mean value
+      3. Checking that the difference between the raw values and the
+        summarized values is below some tolerance
+
     Args:
-        df (pl.DataFrame): input data frame
-        tolerance (float): greatest difference in `estimate` and `ci_half_width_95pct`
-        filter_expr (Expr): How to filter for the desired row in each group.
-          Implemented like `dataframe.filter(filter_expr.over(group_columns))`.
+        df (pl.DataFrame): Input data frame
+        tolerance (float): Greatest permissible difference between summarized
+          value and input value
         n_fold_duplication (int, optional): For each set of grouping values,
-          there are exactly this number of near-duplicate rows. If None (default),
-          do not apply this kind of check.
+          assert there are exactly this number of near-duplicate rows. If
+          None (default), do not do this check.
         value_columns (Sequence[str]): names of the value columns. Defaults to
           `["estimate", "ci_half_width_95pct"]`.
         group_columns (Sequence[str]): names of the grouping columns. If None
           (the default), uses all columns in `df` that are not in `value_columns`.
 
     Returns:
-        pl.DataFrame: _description_
+        pl.DataFrame: data frame with columns `group_columns` and `value_columns`
+          and at most as many rows as in `df`
     """
     if group_columns is None:
         group_columns = set(df.columns) - set(value_columns)
 
-    # a "group" is a unique combination of group columns
-    group_size_col = "group_size"
-    assert group_size_col not in group_columns
-    groups = df.group_by(group_columns).len(name=group_size_col)
-    dup_groups = groups.filter(pl.col(group_size_col) > 1)
+    assert set(group_columns).issubset(df.columns)
+    assert set(value_columns).issubset(df.columns)
 
     if n_fold_duplication is not None:
+        # ensure we have a group size column without collisions
+        group_size_col = str(uuid.uuid1())
+        assert group_size_col not in group_columns
+
         # all groups that aren't of size 1 should be the "fold" duplication size
-        assert (dup_groups[group_size_col] == n_fold_duplication).all()
+        assert (
+            df.group_by(group_columns)
+            .len(name=group_size_col)
+            .filter(pl.col(group_size_col) > 1)[group_size_col]
+            == n_fold_duplication
+        ).all()
 
-    # assert that the estimates and CIs in these groups are similar to
-    # one another, within some small margin
-    assert (
-        dup_groups.drop(group_size_col)
-        .join(df, how="inner", validate="1:m", on=group_columns)
-        .group_by(group_columns)
-        .agg((pl.col(value_columns).pipe(lambda x: x.max() - x.min())))
-        .select((pl.col(value_columns) < tolerance).all())
-        .select(pl.all_horizontal(value_columns))
-        .item()
+    # check that the difference between summarized values and input values is
+    # less than the tolerance
+    out_spread = df.group_by(group_columns).agg(
+        pl.col(value_columns).pipe(_mean_max_diff, tolerance=tolerance)
     )
+    out_spread_bad = out_spread.filter(pl.all_horizontal(value_columns).not_())
+    if out_spread_bad.shape[0] > 0:
+        raise RuntimeError("Some groups violate tolerance:", out_spread_bad)
 
-    # aggregate to drop the nearly-duplicate rows
-    out = df.filter(filter_expr.over(group_columns))
+    return df.group_by(group_columns).agg(pl.col(value_columns).mean())
 
-    # check that there are no more duplicate rows
-    assert not out.select(group_columns).is_duplicated().any()
 
-    # check that we ended up with the correct number of output rows
-    assert out.shape[0] == groups.shape[0]
-
-    return out
+def _mean_max_diff(x: pl.Expr, tolerance: float) -> pl.Expr:
+    return (x - x.mean()).abs().max() < tolerance
 
 
 def validate(df: pl.DataFrame):
