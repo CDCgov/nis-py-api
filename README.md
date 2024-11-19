@@ -1,21 +1,85 @@
 # nis-py-api
 
-Python API to the National Immunization Survey (NIS) data
+Python API to the National Immunization Survey (NIS) data.
+
+:construction: This tool is in alpha development. The API and data schema are not stable.
+
+## Getting started
+
+- This a poetry-enabled project.
+- See `scripts/demo.py` for an example of how to cache and query the data.
+- See `scripts/clean_example.py` for an example of a script that you could run while iteratively developing the cleaning code in `nisapi/clean.py`.
 
 ## Data dictionary
 
-| column                | type    | values                            |
-| --------------------- | ------- | --------------------------------- |
-| `vaccine`             | String  | `flu`, `covid`                    |
-| `geographic_level`    | String  | `national`, `state`, `substate`   |
-| `geographic_name`     | String  | `national`, name of the sub/state |
-| `demographic_level`   | String  |                                   |
-| `demographic_name`    | String  |                                   |
-| `indicator_level`     | String  |                                   |
-| `indicator_name`      | String  |                                   |
-| `week_ending`         | Date    |                                   |
-| `estimate`            | Float64 |                                   |
-| `ci_half_width_95pct` | Float64 |                                   |
+The data have these columns, in order, with these types:
+
+| column                | type    |
+| --------------------- | ------- |
+| `vaccine`             | String  |
+| `geographic_type`     | String  |
+| `geographic_value`    | String  |
+| `demographic_type`    | String  |
+| `demographic_value`   | String  |
+| `indicator_type`      | String  |
+| `indicator_value`     | String  |
+| `week_ending`         | Date    |
+| `estimate`            | Float64 |
+| `ci_half_width_95pct` | Float64 |
+
+Note the paired use of "type" and "value" columns.
+
+Rows that were suppressed in the raw data are dropped. This includes data with suppression flag `"1"`, indicating small sample size, and data with flag `"."`, which may indicate that data were not collected.
+
+### `vaccine`
+
+- One of `"flu"` or `"covid"`
+
+### `geographic_type`
+
+- One of `"nation"`, `"region"`, `"state"`, `"substate"`
+
+### `geographic_value`
+
+- If `geographic_type` is `"nation"`, then this is `"nation"`
+- Otherwise, the name of the region, state, or substate
+
+### `demographic_type`
+
+- There are multiple types, including `"overall"` and `"age"`
+- Note that "overall" might refer only to certain age groups (e.g., 18+)
+
+### `demographic_value`
+
+- If `demographic_type` is `"overall"`, then this is `"overall"`
+- If `demographic_type` is `"age"`, then this is the age group, with the form `"x-y years"` or `"x+ years"`
+
+### `indicator_type`
+
+- Always `"4-level vaccination and intent"`
+
+### `indicator_value`
+
+- The value of the indicator, e.g., `"received a vaccination"`
+
+### `week_ending`
+
+- Always a Saturday
+
+### `estimate`
+
+- Proportion (i.e., a number between 0 and 1) of the population (defined by geography and demography) that has the characteristic described by the indicator
+
+### `ci_half_width_95pct`
+
+- The half-width of the 95% confidence interval, measured in the same units as `estimate`
+- Always non-negative
+
+## Contributing
+
+When adding a new dataset, include demonstrations that the content of the clean data is what you expected.
+
+See also the [contributing notice](#contributing-standard-notice) below.
 
 ## Project Admin
 

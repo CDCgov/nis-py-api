@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Callable
 import warnings
 import yaml
+from .clean import clean_dataset
 
 
 def default_cache_path(ensure_exists=False) -> Path:
@@ -20,18 +21,50 @@ def dataset_cache_path(id: str, cache_path: Path = None, ensure_exists=False) ->
 
 def download_dataset(id: str, app_token=None) -> pl.DataFrame:
     with Socrata("data.cdc.gov", app_token) as client:
-        df = client.get(id)
+        rows = list(client.get_all(id))
 
-    return df
+    return pl.DataFrame(rows)
+
+
+def _get_dataset(id: str, app_token=None) -> pl.DataFrame:
+    """Download and clean a dataset
+
+    Args:
+        id (str): dataset ID
+
+    Returns:
+        pl.DataFrame: clean dataset
+    """
+    raw_df = download_dataset(id, app_token=app_token)
+    clean_df = clean_dataset(id, raw_df)
+    return clean_df
 
 
 def cache_dataset(
     id: str,
-    get_fun: Callable[[str], pl.DataFrame] = download_dataset,
-    cache_path: Path = None,
     overwrite: str = "warn",
+    cache_path: Path = None,
+    get_fun: Callable[[str], pl.DataFrame] = _get_dataset,
     **kwargs,
 ) -> None:
+    """Download, clean, and cache a dataset
+
+    Args:
+        id (str): dataset ID
+        overwrite (str, optional): If "warn" (default), will warn if the cache file already exists. If
+            "error", will raise an error. If "skip", will silently do nothing. If "yes", will silently
+            overwrite.
+        cache_path (Path, optional): Path to cache this specific dataset. If `None` (the default), uses
+            the default path.
+        get_fun (Callable[[str], pl.DataFrame], optional): Function used to get the raw data. Defaults
+            to `_get_dataset`. No reason to change except for testing purposes.
+
+    Raises:
+        RuntimeError: _description_
+
+    Returns:
+        _type_: _description_
+    """
     if cache_path is None:
         cache_path = dataset_cache_path(id, ensure_exists=True)
     else:
@@ -57,8 +90,7 @@ def cache_dataset(
         data_dir.mkdir()
 
     df = get_fun(id, **kwargs)
-
-    pl.DataFrame(df).write_parquet(cache_path)
+    df.write_parquet(cache_path)
 
 
 def get_datasets() -> [dict]:
