@@ -7,6 +7,7 @@ Python API to the National Immunization Survey (NIS) data.
 ## Getting started
 
 - This a poetry-enabled project.
+- Use `nisapi.cache_all_datasets()` to download, clean, and cache data. Then `nisapi.get_nis()` to get a lazy dataframe pointing to that locally cached data.
 - See `scripts/demo.py` for an example of how to cache and query the data.
 - See `scripts/clean_example.py` for an example of a script that you could run while iteratively developing the cleaning code in `nisapi/clean.py`.
 
