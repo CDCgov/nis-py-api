@@ -4,7 +4,7 @@ import polars as pl
 
 # Load secrets from a top-level file `secrets.yaml` with key `app_token`.
 # To get an app token: https://support.socrata.com/hc/en-us/articles/210138558-Generating-App-Tokens-and-API-Keys
-with open("secrets.yaml") as f:
+with open("scripts/secrets.yaml") as f:
     app_token = yaml.safe_load(f)["app_token"]
 
 # Cache all datasets. Change "skip" to "yes" if you want to rebuild the cache.
