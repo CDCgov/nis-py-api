@@ -36,7 +36,7 @@ def clean_dataset(id: str, df: pl.DataFrame) -> pl.DataFrame:
         raise RuntimeError(f"No cleaning set up for dataset {id}")
 
     # Drop rows with suppression flags
-    clean = clean.filter(pl.col("suppression_flag") == pl.lit("0"))
+    clean = clean.pipe(drop_suppressed_rows)
 
     if id == "sw5n-wg2p":
         # this particular dataset has a bad column name
@@ -231,6 +231,10 @@ def remove_near_duplicates(
 
 def _mean_max_diff(x: pl.Expr, tolerance: float) -> pl.Expr:
     return (x - x.mean()).abs().max() < tolerance
+
+
+def drop_suppressed_rows(df: pl.DataFrame) -> pl.DataFrame:
+    return df.filter(pl.col("suppression_flag") == pl.lit("0")).drop("suppression_flag")
 
 
 def validate(df: pl.DataFrame):

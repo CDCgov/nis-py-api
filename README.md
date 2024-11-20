@@ -82,9 +82,14 @@ Rows that were suppressed in the raw data are dropped. This includes data with s
 
 ## Contributing
 
-When adding a new dataset, include demonstrations that the content of the clean data is what you expected.
-
 See also the [contributing notice](#contributing-standard-notice) below.
+
+### Adding a new dataset
+
+1. Annotate the dataset ID and URL in `datasets.yaml`
+2. Use a script like `scripts/demo_clean.py` to iterate when formulating the cleaning steps.
+
+When adding a new dataset, include demonstrations that the content of the clean data is what you expected.
 
 ## Project Admin
 
