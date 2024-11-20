@@ -4,16 +4,14 @@ import yaml
 import nisapi
 import altair as alt
 
-tmp_path = "scripts/tmp_nis2.parquet"
+tmp_path = "scripts/tmp_nis.parquet"
 dataset_id = "udsf-9v7b"
 
 if not os.path.exists(tmp_path):
     with open("scripts/secrets.yaml") as f:
         app_token = yaml.safe_load(f)["app_token"]
 
-    nisapi.download_dataset(dataset_id, app_token=app_token, limit=10).write_parquet(
-        tmp_path
-    )
+    nisapi.download_dataset(dataset_id, app_token=app_token).write_parquet(tmp_path)
 
 df = pl.read_parquet(tmp_path)
 
