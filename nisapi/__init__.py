@@ -1,4 +1,3 @@
-from sodapy import Socrata
 import polars as pl
 import platformdirs
 from pathlib import Path
@@ -6,6 +5,7 @@ from typing import Callable
 import warnings
 import yaml
 from .clean import clean_dataset
+from .socrata import download_dataset_pages
 
 
 def default_cache_path(ensure_exists=False) -> Path:
@@ -19,11 +19,17 @@ def dataset_cache_path(id: str, cache_path: Path = None, ensure_exists=False) ->
     return Path(cache_path) / f"id={id}" / "part-0.parquet"
 
 
-def download_dataset(id: str, app_token=None) -> pl.DataFrame:
-    with Socrata("data.cdc.gov", app_token) as client:
-        rows = list(client.get_all(id))
+def download_dataset(id: str, app_token: str = None, **kwargs) -> pl.DataFrame:
+    """Download an NIS dataset
 
-    return pl.DataFrame(rows)
+    Args:
+        id (str): dataset ID
+        app_token (str, optional): Socrata developer API token
+
+    Returns:
+        pl.DataFrame: raw dataset
+    """
+    return pl.DataFrame(sum(download_dataset_pages(id, app_token=app_token), []))
 
 
 def _get_dataset(id: str, app_token=None) -> pl.DataFrame:
