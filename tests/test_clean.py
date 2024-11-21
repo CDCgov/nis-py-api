@@ -1,6 +1,10 @@
 import polars as pl
 import polars.testing
-from nisapi.clean.helpers import remove_near_duplicates, _mean_max_diff
+from nisapi.clean.helpers import (
+    remove_near_duplicates,
+    _mean_max_diff,
+    is_valid_age_groups,
+)
 
 
 def test_mean_max_diff():
@@ -72,3 +76,20 @@ def test_remove_near_duplicates_multiple_values():
     polars.testing.assert_frame_equal(
         current_df, expected_df, check_column_order=False, check_row_order=False
     )
+
+
+def test_validate_age_groups():
+    assert is_valid_age_groups(pl.Series(["18-49 years"]))
+
+    assert is_valid_age_groups(pl.Series(["65+ years"]))
+
+    assert is_valid_age_groups(pl.Series(["18-49 years", "50-64 years", "65+ years"]))
+
+    # en dash should fail
+    assert not is_valid_age_groups(pl.Series(["18–49 years"]))
+
+    # missing "years" should fail
+    assert not is_valid_age_groups(pl.Series(["18-49"]))
+
+    # fail if there are spaces
+    assert not is_valid_age_groups(pl.Series(["18 - 49 years"]))
