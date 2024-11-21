@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Callable
 import warnings
 import yaml
+import shutil
 from .clean import clean_dataset
 from .socrata import download_dataset_pages
 
@@ -99,9 +100,44 @@ def cache_dataset(
     df.write_parquet(cache_path)
 
 
-def get_datasets() -> [dict]:
+def get_datasets() -> list[dict]:
     with open("nisapi/datasets.yaml") as f:
         return yaml.safe_load(f)
+
+
+def cache_all_datasets(**kwargs):
+    """Cache all datasets from `get_datasets()`
+
+    Args:
+        **kwargs: Keyword arguments passed to `cache_dataset()`
+    """
+    ids = [ds["id"] for ds in get_datasets()]
+    for id in ids:
+        cache_dataset(id, **kwargs)
+
+
+def delete_cache(cache_path: str = None, confirm: bool = True) -> None:
+    """Delete cache
+
+    Args:
+        cache_path (str, optional): Path to cache. If None (default), get
+          path from `default_cache_path()`.
+        confirm (bool, optional): If True (the default), get interactive
+          confirmation before deleting
+    """
+    if cache_path is None:
+        cache_path = default_cache_path()
+
+    if not Path(cache_path).exists():
+        raise RuntimeError(f"Cache path {cache_path} does not exist")
+
+    if confirm:
+        yn = input(f"Remove all files in {cache_path}? [y/N] ").lower()
+
+    if confirm and yn != "y":
+        print("Not deleting cache")
+    elif not confirm or yn == "y":
+        shutil.rmtree(cache_path)
 
 
 def get_nis(cache: Path = None) -> pl.LazyFrame:
