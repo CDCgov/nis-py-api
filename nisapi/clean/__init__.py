@@ -81,13 +81,17 @@ class Validate:
 
         # Demographics ------------------------------------------------------------
         # if `demographic_type` is "overall", `demographic_value` must also be "overall"
-        if not (
+        overall_demographic_values = (
             df.filter(pl.col("demographic_type") == pl.lit("overall"))[
                 "demographic_value"
             ]
-            == "overall"
-        ).all():
-            errors.append("Bad overall")
+            .unique()
+            .to_list()
+        )
+        if overall_demographic_values != ["overall"]:
+            errors.append(
+                f"Bad overall demographic values: {overall_demographic_values}"
+            )
         # age groups should have the form "18-49 years" or "65+ years"
         if not is_valid_age_groups(
             df.filter(pl.col("demographic_type") == pl.lit("age"))["demographic_value"]

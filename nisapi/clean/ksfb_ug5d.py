@@ -8,6 +8,7 @@ from nisapi.clean.helpers import (
     clean_geography,
     clean_4_level,
     remove_near_duplicates,
+    replace_overall_demographic_value,
 )
 
 
@@ -22,4 +23,5 @@ def clean(df: pl.LazyFrame) -> pl.LazyFrame:
         .pipe(remove_near_duplicates, tolerance=1e-3, n_fold_duplication=2)
         .pipe(clean_4_level)
         .select(data_schema.names())
+        .pipe(replace_overall_demographic_value)
     )

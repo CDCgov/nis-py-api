@@ -8,6 +8,7 @@ from nisapi.clean.helpers import (
     clean_geography,
     remove_near_duplicates,
     clean_4_level,
+    replace_overall_demographic_value,
 )
 
 
@@ -21,13 +22,7 @@ def clean(df: pl.LazyFrame) -> pl.LazyFrame:
         .pipe(set_lowercase)
         .pipe(cast_types)
         .pipe(clean_geography)
-        # this dataset has an error: for `demographic_type="overall"`, it has
-        # `demographic_value="18+ years"`, but it should be "overall"
-        .with_columns(
-            demographic_value=pl.when(pl.col("demographic_type") == pl.lit("overall"))
-            .then(pl.lit("overall"))
-            .otherwise(pl.col("demographic_value"))
-        )
+        .pipe(replace_overall_demographic_value)
         # Find the rows that are *almost* duplicates: there are some rows that
         # have nearly duplicate values
         .pipe(remove_near_duplicates, tolerance=1e-3, n_fold_duplication=2)

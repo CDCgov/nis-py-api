@@ -182,12 +182,12 @@ def rename_indicator_columns(df: pl.DataFrame) -> pl.DataFrame:
 
 
 def remove_near_duplicates(
-    df: pl.DataFrame,
+    df: pl.LazyFrame,
     tolerance: float,
     n_fold_duplication: int = None,
     value_columns: Sequence[str] = ["estimate", "ci_half_width_95pct"],
     group_columns: Sequence[str] = None,
-) -> pl.DataFrame:
+) -> pl.LazyFrame:
     """Remove near-duplicate rows
 
     Rows are "near-duplicate" if they have the same grouping variables
@@ -216,11 +216,13 @@ def remove_near_duplicates(
         pl.DataFrame: data frame with columns `group_columns` and `value_columns`
           and at most as many rows as in `df`
     """
-    if group_columns is None:
-        group_columns = set(df.columns) - set(value_columns)
+    columns = df.collect_schema().names()
 
-    assert set(group_columns).issubset(df.columns)
-    assert set(value_columns).issubset(df.columns)
+    if group_columns is None:
+        group_columns = set(columns) - set(value_columns)
+
+    assert set(group_columns).issubset(columns)
+    assert set(value_columns).issubset(columns)
 
     if n_fold_duplication is not None:
         # ensure we have a group size column without collisions
@@ -249,6 +251,22 @@ def remove_near_duplicates(
         raise RuntimeError("Some groups violate tolerance:", out_spread_bad)
 
     return df.group_by(group_columns).agg(pl.col(value_columns).mean())
+
+
+def replace_overall_demographic_value(df: pl.LazyFrame) -> pl.LazyFrame:
+    return df.with_columns(
+        _replace_overall_demographic_value_expr(
+            pl.col("demographic_type"), pl.col("demographic_value")
+        ).alias("demographic_value")
+    )
+
+
+def _replace_overall_demographic_value_expr(type_: pl.Expr, value: pl.Expr) -> pl.Expr:
+    return (
+        pl.when(pl.col("demographic_type") == pl.lit("overall"))
+        .then(pl.lit("overall"))
+        .otherwise(pl.col("demographic_value"))
+    )
 
 
 def _mean_max_diff(x: pl.Expr, tolerance: float) -> pl.Expr:
