@@ -2,6 +2,22 @@ import polars as pl
 import uuid
 from typing import Sequence
 
+"""Data schema to be used for all datasets"""
+data_schema = pl.Schema(
+    [
+        ("vaccine", pl.String),
+        ("geographic_type", pl.String),
+        ("geographic_value", pl.String),
+        ("demographic_type", pl.String),
+        ("demographic_value", pl.String),
+        ("indicator_type", pl.String),
+        ("indicator_value", pl.String),
+        ("week_ending", pl.Date),
+        ("estimate", pl.Float64),
+        ("ci_half_width_95pct", pl.Float64),
+    ]
+)
+
 """First-level administrative divisions of the US: states, territories, and DC"""
 admin1_values = [
     "Alabama",
@@ -59,6 +75,77 @@ admin1_values = [
     "Puerto Rico",
     "U.S. Virgin Islands",
 ]
+
+
+def set_lowercase(df: pl.LazyFrame) -> pl.LazyFrame:
+    return df.with_columns(
+        pl.col(
+            [
+                "vaccine",
+                "geographic_type",
+                "demographic_type",
+                "indicator_value",
+                "indicator_type",
+            ]
+        ).str.to_lowercase()
+    )
+
+
+def cast_types(df: pl.LazyFrame) -> pl.LazyFrame:
+    out = df.with_columns(
+        pl.col("week_ending").str.strptime(pl.Datetime, "%Y-%m-%dT%H:%M:%S%.f"),
+        pl.col(["estimate", "ci_half_width_95pct"]).cast(pl.Float64),
+    ).with_columns(pl.col(["estimate", "ci_half_width_95pct"]) / 100.0)
+
+    # check that the date doesn't have any trailing seconds
+    assert (
+        out.select(
+            (pl.col("week_ending").dt.truncate("1d") == pl.col("week_ending")).all()
+        )
+        .pipe(ensure_eager)
+        .item()
+    )
+
+    return out.with_columns(pl.col("week_ending").dt.date())
+
+
+def clean_geography(df: pl.LazyFrame) -> pl.LazyFrame:
+    # Change from "national" to "nation", so that types are nouns rather
+    # than adjectives. (Otherwise we would need to change "region" to "regional")
+    return df.with_columns(
+        pl.col("geographic_type").replace({"national": "nation"}),
+        pl.col("geographic_value").replace({"National": "nation"}),
+    ).with_columns(
+        pl.col("geographic_type").replace_strict(
+            {
+                "nation": "nation",
+                "state": "admin1",
+                "region": "region",
+                "substate": "substate",
+            }
+        )
+    )
+
+
+def remove_duplicate_rows(df: pl.LazyFrame) -> pl.LazyFrame:
+    return df.filter(df.is_duplicated().not_())
+
+
+def rename_indicator_columns(df: pl.DataFrame) -> pl.DataFrame:
+    """
+    Make "indicator" follow the same logic as "geography" and
+    "demographic", with "type" and "value" columns
+    """
+    return df.rename(
+        {
+            "geographic_level": "geographic_type",
+            "geographic_name": "geographic_value",
+            "demographic_level": "demographic_type",
+            "demographic_name": "demographic_value",
+            "indicator_label": "indicator_type",
+            "indicator_category_label": "indicator_value",
+        }
+    )
 
 
 def remove_near_duplicates(
