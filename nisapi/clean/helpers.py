@@ -77,6 +77,39 @@ admin1_values = [
 ]
 
 
+def clean_4_level(df: pl.LazyFrame) -> pl.LazyFrame:
+    # Verify that indicator type "up-to-date" has only one value ("yes")
+    assert (
+        df.filter(pl.col("indicator_type") == pl.lit("up-to-date"))
+        .select((pl.col("indicator_value") == pl.lit("yes")).all())
+        .pipe(ensure_eager)
+        .item()
+    )
+
+    # check that "Yes" and "Received a vaccination" are the same thing, so that
+    # we can drop "Up to Date"
+    assert (
+        df.filter(pl.col("indicator_value").is_in(["yes", "received a vaccination"]))
+        .drop("indicator_type")
+        .pipe(ensure_eager)
+        .pivot(on="indicator_value", values=["estimate", "ci_half_width_95pct"])
+        .select(
+            (
+                (pl.col("estimate_yes") == pl.col("estimate_received a vaccination"))
+                & (
+                    pl.col("ci_half_width_95pct_yes")
+                    == pl.col("ci_half_width_95pct_received a vaccination")
+                )
+            ).all()
+        )
+        .item()
+    )
+
+    return df.filter(
+        pl.col("indicator_type") == pl.lit("4-level vaccination and intent")
+    )
+
+
 def set_lowercase(df: pl.LazyFrame) -> pl.LazyFrame:
     return df.with_columns(
         pl.col(

@@ -6,7 +6,6 @@ import nisapi.clean.sw5n_wg2p
 from nisapi.clean.helpers import (
     valid_age_groups,
     assert_valid_geography,
-    remove_near_duplicates,
     data_schema,
     ensure_eager,
 )
@@ -24,62 +23,16 @@ def clean_dataset(id: str, df: pl.DataFrame) -> pl.DataFrame:
     """
 
     if id == "udsf-9v7b":
-        return nisapi.clean.udsf_9v7b.clean(df)
+        out = nisapi.clean.udsf_9v7b.clean(df)
     elif id == "sw5n-wg2p":
-        return nisapi.clean.sw5n_wg2p.clean(df)
+        out = nisapi.clean.sw5n_wg2p.clean(df)
     elif id == "ksfb-ug5d":
-        return nisapi.clean.ksfb_ug5d.clean(df)
+        out = nisapi.clean.ksfb_ug5d.clean(df)
     else:
         raise RuntimeError(f"No cleaning set up for dataset {id}")
 
-    clean = df
-
-    if id in ["sw5n-wg2p", "ksfb-ug5d"]:
-        # Find the rows that are *almost* duplicates: there are some rows that
-        # have nearly duplicate values
-        clean = clean.pipe(remove_near_duplicates, tolerance=1e-3, n_fold_duplication=2)
-
-        # Verify that indicator type "up-to-date" has only one value ("yes")
-        assert clean.filter(pl.col("indicator_type") == pl.lit("up-to-date")).pipe(
-            col_values_in, "indicator_value", ["yes"]
-        )
-
-        # check that "Yes" and "Received a vaccination" are the same thing, so that
-        # we can drop "Up to Date"
-        assert (
-            clean.filter(
-                pl.col("indicator_value").is_in(["yes", "received a vaccination"])
-            )
-            .drop("indicator_type")
-            .pivot(on="indicator_value", values=["estimate", "ci_half_width_95pct"])
-            .select(
-                (
-                    (
-                        pl.col("estimate_yes")
-                        == pl.col("estimate_received a vaccination")
-                    )
-                    & (
-                        pl.col("ci_half_width_95pct_yes")
-                        == pl.col("ci_half_width_95pct_received a vaccination")
-                    )
-                ).all()
-            )
-            .item()
-        )
-
-        clean = clean.filter(
-            pl.col("indicator_type") == pl.lit("4-level vaccination and intent")
-        )
-
-        return clean
-
-    validate(clean)
-    return clean
-
-
-def col_values_in(df: pl.DataFrame, col: str, values: str) -> bool:
-    """All values of `df` in column `col` are in `values`?"""
-    return df[col].is_in(values).all()
+    validate(out)
+    return out
 
 
 def validate(df: pl.DataFrame):
@@ -96,6 +49,10 @@ def validate(df: pl.DataFrame):
 
     # no duplicated rows
     polars.testing.assert_frame_equal(df, df.unique(), check_row_order=False)
+    assert not df.is_duplicated().any()
+
+    # no duplicated values
+    assert not df.drop(["estimate", "ci_half_width_95pct"]).is_duplicated().any()
 
     # no null values
     assert df.null_count().pipe(sum).item() == 0
