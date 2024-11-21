@@ -20,6 +20,64 @@ data_schema = pl.Schema(
     ]
 )
 
+"""First-level administrative divisions of the US: states, territories, and DC"""
+admin1_values = [
+    "Alabama",
+    "Alaska",
+    "Arizona",
+    "Arkansas",
+    "California",
+    "Colorado",
+    "Connecticut",
+    "Delaware",
+    "Florida",
+    "Georgia",
+    "Hawaii",
+    "Idaho",
+    "Illinois",
+    "Indiana",
+    "Iowa",
+    "Kansas",
+    "Kentucky",
+    "Louisiana",
+    "Maine",
+    "Maryland",
+    "Massachusetts",
+    "Michigan",
+    "Minnesota",
+    "Mississippi",
+    "Missouri",
+    "Montana",
+    "Nebraska",
+    "Nevada",
+    "New Hampshire",
+    "New Jersey",
+    "New Mexico",
+    "New York",
+    "North Carolina",
+    "North Dakota",
+    "Ohio",
+    "Oklahoma",
+    "Oregon",
+    "Pennsylvania",
+    "Rhode Island",
+    "South Carolina",
+    "South Dakota",
+    "Tennessee",
+    "Texas",
+    "Utah",
+    "Vermont",
+    "Virginia",
+    "Washington",
+    "West Virginia",
+    "Wisconsin",
+    "Wyoming",
+    "District of Columbia",
+    "Guam",
+    "Puerto Rico",
+    "U.S. Virgin Islands",
+]
+
 
 def clean_dataset(id: str, df: pl.DataFrame) -> pl.DataFrame:
     """Clean a raw dataset, applying dataset-specific cleaning rules
@@ -81,6 +139,16 @@ def clean_dataset(id: str, df: pl.DataFrame) -> pl.DataFrame:
             .with_columns(
                 pl.col("geographic_type").replace({"national": "nation"}),
                 pl.col("geographic_value").replace({"National": "nation"}),
+            )
+            .with_columns(
+                pl.col("geographic_type").replace_strict(
+                    {
+                        "nation": "nation",
+                        "state": "admin1",
+                        "region": "region",
+                        "substate": "substate",
+                    }
+                )
             )
             # "sw5n-wg2p" only:
             # this dataset has an error: for `demographic_type="overall"`, it has
@@ -325,13 +393,7 @@ def validate(df: pl.DataFrame):
     assert df["vaccine"].is_in(["flu", "covid"]).all()
 
     # Geography ---------------------------------------------------------------
-    # `geographic_type` must be in a certain set
-    assert df["geographic_type"].is_in(["nation", "region", "state", "substate"]).all()
-    # if `geographic_type` is "nation", `geographic_value` must also be "nation"
-    assert (
-        df.filter(pl.col("geographic_type") == pl.lit("nation"))["geographic_value"]
-        == "nation"
-    ).all()
+    assert_valid_geography(df["geographic_type"], df["geographic_value"])
 
     # Demographics ------------------------------------------------------------
     # if `demographic_type` is "overall", `demographic_value` must also be "overall"
@@ -352,6 +414,18 @@ def validate(df: pl.DataFrame):
     assert df["estimate"].is_between(0.0, 1.0).all()
     # confidence intervals must be non-negative
     assert (df["ci_half_width_95pct"] >= 0.0).all()
+
+
+def assert_valid_geography(type_: pl.Series, value: pl.Series) -> None:
+    # type must be in a certain set
+    assert type_.is_in(["nation", "region", "admin1", "substate"]).all()
+    # if type is "nation", value must also be "nation"
+    assert (value.filter(type_ == "nation") == "nation").all()
+    # if type is "region", must be of the form "Region 1"
+    assert value.filter(type_ == "region").str.contains(r"^Region \d+$").all()
+    # if type is "admin1", value must be in a specific list
+    assert value.filter(type_ == "admin1").is_in(admin1_values).all()
+    # no validation applies to substate
 
 
 def valid_age_groups(x: pl.Series) -> bool:
