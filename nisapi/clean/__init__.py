@@ -2,7 +2,7 @@ import polars as pl
 import polars.testing
 from typing import Sequence
 import uuid
-import calendar
+import nisapi.clean.udsf_9v7b
 
 """Data schema to be used for all datasets"""
 data_schema = pl.Schema(
@@ -89,6 +89,10 @@ def clean_dataset(id: str, df: pl.DataFrame) -> pl.DataFrame:
     Returns:
         pl.DataFrame: clean dataset
     """
+
+    if id == "udsf-9v7b":
+        return nisapi.clean.udsf_9v7b.clean(df)
+
     clean = df
 
     if id not in ["sw5n-wg2p", "ksfb-ug5d"]:
@@ -313,60 +317,6 @@ def ensure_eager(df: pl.DataFrame | pl.LazyFrame) -> pl.DataFrame:
         return df.collect()
     else:
         raise RuntimeError(f"Cannot collect object of type {type(df)}")
-
-
-def parse_coninf_95(df: pl.DataFrame) -> pl.DataFrame:
-    df_split = df.with_columns(
-        pl.col("coninf_95")
-        .str.split_exact(" - ", 1)
-        .struct.rename_fields(["lci", "uci"])
-    )
-
-    assert (
-        df_split.filter(pl.col("coninf_95").is_null()).pipe(ensure_eager).shape[0] == 0
-    )
-
-    return df_split.unnest("coninf_95")
-
-
-def month_name_to_number(x: pl.Expr) -> pl.Expr:
-    # note that we need to do this union because "May" is both a full name and an abbreviation,
-    # and replace_strict wants unique old values. Note also that range(13) includes 0, and
-    # month_name[0] is ""
-    mapping = dict(zip(calendar.month_name, range(13))) | dict(
-        zip(calendar.month_abbr, range(13))
-    )
-    return x.replace_strict(mapping)
-
-
-def _parse_time_period_expr(time_year: pl.Expr, time_period: pl.Expr) -> pl.Expr:
-    year = time_year.cast(pl.Int32)
-    period_split = time_period.str.extract_groups(
-        r"^(\w+)\s+(\w+)\s+-\s+(\w+)\s+(\w+)\s*$"
-    ).struct.rename_fields(["month1", "day1", "month2", "day2"])
-
-    month1 = period_split.struct["month1"].pipe(month_name_to_number)
-    day1 = period_split.struct["day1"].str.strip_chars().cast(pl.Int32)
-    month2 = period_split.struct["month2"].pipe(month_name_to_number)
-    day2 = period_split.struct["day2"].str.strip_chars().cast(pl.Int32)
-
-    date1 = pl.date(year, month1, day1)
-    date2 = pl.date(year, month2, day2)
-
-    return pl.struct(start=date1, end=date2)
-
-
-def parse_time_period(df: pl.DataFrame) -> pl.DataFrame:
-    column_name = str(uuid.uuid1())
-    return (
-        df.with_columns(
-            _parse_time_period_expr(pl.col("time_year"), pl.col("time_period")).alias(
-                column_name
-            )
-        )
-        .unnest(column_name)
-        .drop(["time_year", "time_period"])
-    )
 
 
 def validate(df: pl.DataFrame):
