@@ -11,6 +11,6 @@
   url: https://data.cdc.gov/Vaccinations/Weekly-Cumulative-COVID-19-Vaccination-Coverage-an/ksfb-ug5d/about_data
   vaccine: covid
   start_date: 2021-10-02
-- id: udsf-9v7b
-  url: https://data.cdc.gov/Vaccinations/National-Immunization-Survey-Adult-COVID-Module-NI/udsf-9v7b/about_data
-  vaccine: covid
+# - id: udsf-9v7b
+#   url: https://data.cdc.gov/Vaccinations/National-Immunization-Survey-Adult-COVID-Module-NI/udsf-9v7b/about_data
+#   vaccine: covid

@@ -231,16 +231,20 @@ def remove_near_duplicates(
         assert (
             df.group_by(group_columns)
             .len(name=group_size_col)
-            .filter(pl.col(group_size_col) > 1)[group_size_col]
-            == n_fold_duplication
-        ).all()
+            .filter(pl.col(group_size_col) > 1)
+            .select((pl.col(group_size_col) == n_fold_duplication).all())
+            .pipe(ensure_eager)
+            .item()
+        )
 
     # check that the difference between summarized values and input values is
     # less than the tolerance
     out_spread = df.group_by(group_columns).agg(
         pl.col(value_columns).pipe(_mean_max_diff, tolerance=tolerance)
     )
-    out_spread_bad = out_spread.filter(pl.all_horizontal(value_columns).not_())
+    out_spread_bad = out_spread.filter(pl.all_horizontal(value_columns).not_()).pipe(
+        ensure_eager
+    )
     if out_spread_bad.shape[0] > 0:
         raise RuntimeError("Some groups violate tolerance:", out_spread_bad)
 
@@ -264,19 +268,21 @@ def ensure_eager(df: pl.DataFrame | pl.LazyFrame) -> pl.DataFrame:
         raise RuntimeError(f"Cannot collect object of type {type(df)}")
 
 
-def assert_valid_geography(type_: pl.Series, value: pl.Series) -> None:
-    # type must be in a certain set
-    assert type_.is_in(["nation", "region", "admin1", "substate"]).all()
-    # if type is "nation", value must also be "nation"
-    assert (value.filter(type_ == "nation") == "nation").all()
-    # if type is "region", must be of the form "Region 1"
-    assert value.filter(type_ == "region").str.contains(r"^Region \d+$").all()
-    # if type is "admin1", value must be in a specific list
-    assert value.filter(type_ == "admin1").is_in(admin1_values).all()
-    # no validation applies to substate
+def is_valid_geography(type_: pl.Series, value: pl.Series) -> bool:
+    return (
+        # type must be in a certain set
+        type_.is_in(["nation", "region", "admin1", "substate"]).all()
+        # if type is "nation", value must also be "nation"
+        and (value.filter(type_ == "nation") == "nation").all()
+        # if type is "region", must be of the form "Region 1"
+        and value.filter(type_ == "region").str.contains(r"^Region \d+$").all()
+        # if type is "admin1", value must be in a specific list
+        and value.filter(type_ == "admin1").is_in(admin1_values).all()
+        # no validation applies to substate
+    )
 
 
-def valid_age_groups(x: pl.Series) -> bool:
+def is_valid_age_groups(x: pl.Series) -> bool:
     """Validate that a series of age groups is valid
 
     Args:

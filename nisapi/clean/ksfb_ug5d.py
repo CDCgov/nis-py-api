@@ -6,8 +6,8 @@ from nisapi.clean.helpers import (
     set_lowercase,
     cast_types,
     clean_geography,
-    remove_duplicate_rows,
     clean_4_level,
+    remove_near_duplicates,
 )
 
 
@@ -15,10 +15,11 @@ def clean(df: pl.LazyFrame) -> pl.LazyFrame:
     return (
         df.pipe(drop_suppressed_rows)
         .pipe(rename_indicator_columns)
-        .select(data_schema.names())
         .pipe(set_lowercase)
         .pipe(cast_types)
         .pipe(clean_geography)
-        .pipe(remove_duplicate_rows)
+        .unique()
+        .pipe(remove_near_duplicates, tolerance=1e-3, n_fold_duplication=2)
         .pipe(clean_4_level)
+        .select(data_schema.names())
     )

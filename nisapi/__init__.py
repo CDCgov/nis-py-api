@@ -1,119 +1,29 @@
 import polars as pl
 import platformdirs
 from pathlib import Path
-from typing import Callable
-import warnings
 import yaml
 import shutil
-from .clean import clean_dataset
-from .socrata import download_dataset_pages
+import nisapi.clean
+import nisapi.socrata
+from typing import Sequence
+import warnings
 
 
-def default_cache_path(ensure_exists=False) -> Path:
-    return Path(platformdirs.user_cache_dir("nisapi", ensure_exists=ensure_exists))
+def get_nis(path: Path = None) -> pl.LazyFrame:
+    if path is None:
+        cache = Path(_root_cache_path(), "clean")
+
+    return pl.scan_parquet(cache)
 
 
-def dataset_cache_path(id: str, cache_path: Path = None, ensure_exists=False) -> Path:
-    if cache_path is None:
-        cache_path = default_cache_path(ensure_exists=ensure_exists)
-
-    return Path(cache_path) / f"id={id}" / "part-0.parquet"
-
-
-def download_dataset(id: str, app_token: str = None, **kwargs) -> pl.DataFrame:
-    """Download an NIS dataset
+def cache_all_datasets(app_token: str = None) -> None:
+    """Download all raw datasets known in the metadata, and clean them
 
     Args:
-        id (str): dataset ID
-        app_token (str, optional): Socrata developer API token
-
-    Returns:
-        pl.DataFrame: raw dataset
+        app_token (str)
     """
-    return pl.DataFrame(sum(download_dataset_pages(id, app_token=app_token), []))
-
-
-def _get_dataset(id: str, app_token=None) -> pl.DataFrame:
-    """Download and clean a dataset
-
-    Args:
-        id (str): dataset ID
-
-    Returns:
-        pl.DataFrame: clean dataset
-    """
-    raw_df = download_dataset(id, app_token=app_token)
-    clean_df = clean_dataset(id, raw_df)
-    return clean_df
-
-
-def cache_dataset(
-    id: str,
-    overwrite: str = "warn",
-    cache_path: Path = None,
-    get_fun: Callable[[str], pl.DataFrame] = _get_dataset,
-    **kwargs,
-) -> None:
-    """Download, clean, and cache a dataset
-
-    Args:
-        id (str): dataset ID
-        overwrite (str, optional): If "warn" (default), will warn if the cache file already exists. If
-            "error", will raise an error. If "skip", will silently do nothing. If "yes", will silently
-            overwrite.
-        cache_path (Path, optional): Path to cache this specific dataset. If `None` (the default), uses
-            the default path.
-        get_fun (Callable[[str], pl.DataFrame], optional): Function used to get the raw data. Defaults
-            to `_get_dataset`. No reason to change except for testing purposes.
-
-    Raises:
-        RuntimeError: _description_
-
-    Returns:
-        _type_: _description_
-    """
-    if cache_path is None:
-        cache_path = dataset_cache_path(id, ensure_exists=True)
-    else:
-        cache_path = Path(cache_path)
-
-    assert overwrite in ["error", "warn", "skip", "yes"]
-
-    if cache_path.exists():
-        msg = f"Cached file {cache_path} exists; use force=True to overwrite"
-        if overwrite == "error":
-            raise RuntimeError(msg)
-        elif overwrite == "warn":
-            warnings.warn(msg)
-        elif overwrite == "skip":
-            # quietly skip this file
-            return None
-
-    # ensure that there is a directory to save the data to
-    data_dir = cache_path.parent
-    if data_dir.exists():
-        assert data_dir.is_dir()
-    else:
-        data_dir.mkdir()
-
-    df = get_fun(id, **kwargs)
-    df.write_parquet(cache_path)
-
-
-def get_datasets() -> list[dict]:
-    with open("nisapi/datasets.yaml") as f:
-        return yaml.safe_load(f)
-
-
-def cache_all_datasets(**kwargs):
-    """Cache all datasets from `get_datasets()`
-
-    Args:
-        **kwargs: Keyword arguments passed to `cache_dataset()`
-    """
-    ids = [ds["id"] for ds in get_datasets()]
-    for id in ids:
-        cache_dataset(id, **kwargs)
+    for id in _get_dataset_ids():
+        _cache_clean_dataset(id, app_token=app_token)
 
 
 def delete_cache(cache_path: str = None, confirm: bool = True) -> None:
@@ -121,15 +31,16 @@ def delete_cache(cache_path: str = None, confirm: bool = True) -> None:
 
     Args:
         cache_path (str, optional): Path to cache. If None (default), get
-          path from `default_cache_path()`.
+          path from `_root_cache_path()`.
         confirm (bool, optional): If True (the default), get interactive
           confirmation before deleting
     """
     if cache_path is None:
-        cache_path = default_cache_path()
+        cache_path = _root_cache_path()
 
     if not Path(cache_path).exists():
-        raise RuntimeError(f"Cache path {cache_path} does not exist")
+        warnings.warn(f"Cache path {cache_path} does not exist")
+        return None
 
     if confirm:
         yn = input(f"Remove all files in {cache_path}? [y/N] ").lower()
@@ -140,8 +51,58 @@ def delete_cache(cache_path: str = None, confirm: bool = True) -> None:
         shutil.rmtree(cache_path)
 
 
-def get_nis(cache: Path = None) -> pl.LazyFrame:
-    if cache is None:
-        cache = default_cache_path()
+def _get_dataset_ids() -> Sequence[str]:
+    with open("nisapi/datasets.yaml") as f:
+        metadata = yaml.safe_load(f)
 
-    return pl.scan_parquet(cache)
+    return [dataset["id"] for dataset in metadata]
+
+
+def _cache_clean_dataset(id: str, app_token: str = None) -> None:
+    raw_data = _get_nis_raw(id, app_token=app_token)
+    clean_data = nisapi.clean.clean_dataset(df=raw_data, id=id)
+    clean_path_dir = _dataset_cache_path(
+        root_path=_root_cache_path(), type_="clean", id=id
+    )
+    clean_path = clean_path_dir / "part-0.parquet"
+
+    if not clean_path_dir.exists():
+        clean_path_dir.mkdir(parents=True)
+
+    clean_data.write_parquet(clean_path)
+
+
+def _root_cache_path() -> Path:
+    return Path(platformdirs.user_cache_dir("nisapi"))
+
+
+def _dataset_cache_path(root_path: str, type_: str, id: str) -> Path:
+    return Path(root_path, type_, f"id={id}")
+
+
+def _get_nis_raw(id: str, app_token: str = None) -> pl.LazyFrame:
+    root_path = _root_cache_path()
+    dir_path = _dataset_cache_path(root_path=root_path, type_="raw", id=id)
+
+    if not dir_path.exists():
+        dir_path.mkdir(parents=True)
+        path = dir_path / "part-0.parquet"
+        data = _download_dataset(id=id, app_token=app_token)
+        data.write_parquet(path)
+
+    return pl.scan_parquet(dir_path)
+
+
+def _download_dataset(id: str, app_token: str = None) -> pl.DataFrame:
+    """Download a raw NIS dataset
+
+    Args:
+        id (str): dataset ID
+        app_token (str, optional): Socrata developer API token
+
+    Returns:
+        pl.DataFrame: raw dataset
+    """
+    return pl.DataFrame(
+        sum(nisapi.socrata.download_dataset_pages(id, app_token=app_token), [])
+    )

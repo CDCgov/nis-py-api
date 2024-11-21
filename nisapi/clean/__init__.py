@@ -4,19 +4,19 @@ import nisapi.clean.ksfb_ug5d
 import nisapi.clean.udsf_9v7b
 import nisapi.clean.sw5n_wg2p
 from nisapi.clean.helpers import (
-    valid_age_groups,
-    assert_valid_geography,
+    is_valid_age_groups,
+    is_valid_geography,
     data_schema,
     ensure_eager,
 )
 
 
-def clean_dataset(id: str, df: pl.DataFrame) -> pl.DataFrame:
+def clean_dataset(df: pl.DataFrame, id: str) -> pl.DataFrame:
     """Clean a raw dataset, applying dataset-specific cleaning rules
 
     Args:
-        id (str): dataset ID
         df (pl.DataFrame): raw dataset
+        id (str): dataset ID
 
     Returns:
         pl.DataFrame: clean dataset
@@ -31,54 +31,79 @@ def clean_dataset(id: str, df: pl.DataFrame) -> pl.DataFrame:
     else:
         raise RuntimeError(f"No cleaning set up for dataset {id}")
 
-    validate(out)
+    out = out.pipe(ensure_eager)
+    Validate(id=id, df=out)
     return out
 
 
-def validate(df: pl.DataFrame):
-    """Validate a clean dataset
+class Validate:
+    def __init__(self, id: str, df: pl.DataFrame):
+        assert isinstance(df, pl.DataFrame)
+        self.id = id
+        self.df = df
+        self.validate()
 
-    Args:
-        df (pl.DataFrame): dataset
-    """
-    # force collection, to make validations easier
-    df = df.pipe(ensure_eager)
+    def validate(self):
+        self.errors = self.get_validation_errors(self.df)
+        if len(self.errors) > 0:
+            for error in self.errors:
+                print(f"{self.id=}", error)
 
-    # df must have expected column order and types
-    assert df.schema == data_schema
+            raise RuntimeError("Validation errors")
 
-    # no duplicated rows
-    polars.testing.assert_frame_equal(df, df.unique(), check_row_order=False)
-    assert not df.is_duplicated().any()
+    @staticmethod
+    def get_validation_errors(df: pl.DataFrame):
+        errors = []
 
-    # no duplicated values
-    assert not df.drop(["estimate", "ci_half_width_95pct"]).is_duplicated().any()
+        # df must have expected column order and types
+        if not df.schema == data_schema:
+            errors.append(f"Bad schema: {df.schema}")
 
-    # no null values
-    assert df.null_count().pipe(sum).item() == 0
+        # no duplicated rows
+        if df.is_duplicated().any():
+            errors.append("Duplicated rows")
 
-    # `vaccine` must be in a certain set
-    assert df["vaccine"].is_in(["flu", "covid"]).all()
+        # no duplicated values
+        if df.drop(["estimate", "ci_half_width_95pct"]).is_duplicated().any():
+            errors.append("Duplicated groups")
 
-    # Geography ---------------------------------------------------------------
-    assert_valid_geography(df["geographic_type"], df["geographic_value"])
+        # no null values
+        if df.null_count().pipe(sum).item() > 0:
+            errors.append("Null values")
 
-    # Demographics ------------------------------------------------------------
-    # if `demographic_type` is "overall", `demographic_value` must also be "overall"
-    assert (
-        df.filter(pl.col("demographic_type") == pl.lit("overall"))["demographic_value"]
-        == "overall"
-    ).all()
-    # age groups should have the form "18-49 years" or "65+ years"
-    assert valid_age_groups(
-        df.filter(pl.col("demographic_type") == pl.lit("age"))["demographic_value"]
-    )
+        # `vaccine` must be in a certain set
+        if not df["vaccine"].is_in(["flu", "covid"]).all():
+            errors.append("Bad `vaccine` values")
 
-    # Indicators --------------------------------------------------------------
-    assert df["indicator_type"].is_in(["4-level vaccination and intent"]).all()
+        # Geography ---------------------------------------------------------------
+        if not is_valid_geography(df["geographic_type"], df["geographic_value"]):
+            errors.append("Invalid geography")
 
-    # Metrics -----------------------------------------------------------------
-    # estimates must be percents
-    assert df["estimate"].is_between(0.0, 1.0).all()
-    # confidence intervals must be non-negative
-    assert (df["ci_half_width_95pct"] >= 0.0).all()
+        # Demographics ------------------------------------------------------------
+        # if `demographic_type` is "overall", `demographic_value` must also be "overall"
+        if not (
+            df.filter(pl.col("demographic_type") == pl.lit("overall"))[
+                "demographic_value"
+            ]
+            == "overall"
+        ).all():
+            errors.append("Bad overall")
+        # age groups should have the form "18-49 years" or "65+ years"
+        if not is_valid_age_groups(
+            df.filter(pl.col("demographic_type") == pl.lit("age"))["demographic_value"]
+        ):
+            errors.append("Invalid age groups")
+
+        # Indicators --------------------------------------------------------------
+        if not df["indicator_type"].is_in(["4-level vaccination and intent"]).all():
+            errors.append("Bad indicator types")
+
+        # Metrics -----------------------------------------------------------------
+        # estimates must be percents
+        if not df["estimate"].is_between(0.0, 1.0).all():
+            errors.append("`estimate` is not in range 0-1")
+        # confidence intervals must be non-negative
+        if not (df["ci_half_width_95pct"] >= 0.0).all():
+            errors.append("`ci_half_width_95pct` is not in range 0-1")
+
+        return errors

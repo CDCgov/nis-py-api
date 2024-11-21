@@ -7,9 +7,9 @@ import polars as pl
 with open("scripts/secrets.yaml") as f:
     app_token = yaml.safe_load(f)["app_token"]
 
-# Cache all datasets. Change "skip" to "yes" if you want to rebuild the cache.
-for ds in nisapi.get_datasets():
-    nisapi.cache_dataset(ds["id"], overwrite="warn", app_token=app_token)
+# Clear and rebuild
+# nisapi.delete_cache()
+nisapi.cache_all_datasets(app_token=app_token)
 
 # Pull a subset of the data that's currently available
 df = (

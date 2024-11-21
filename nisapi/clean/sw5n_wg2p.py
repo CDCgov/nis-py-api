@@ -6,7 +6,6 @@ from nisapi.clean.helpers import (
     set_lowercase,
     cast_types,
     clean_geography,
-    remove_duplicate_rows,
     remove_near_duplicates,
     clean_4_level,
 )
@@ -18,7 +17,7 @@ def clean(df: pl.LazyFrame) -> pl.LazyFrame:
         df.rename({"estimates": "estimate"})
         .pipe(drop_suppressed_rows)
         .pipe(rename_indicator_columns)
-        .select(data_schema.names())
+        .unique()
         .pipe(set_lowercase)
         .pipe(cast_types)
         .pipe(clean_geography)
@@ -29,9 +28,9 @@ def clean(df: pl.LazyFrame) -> pl.LazyFrame:
             .then(pl.lit("overall"))
             .otherwise(pl.col("demographic_value"))
         )
-        .pipe(remove_duplicate_rows)
         # Find the rows that are *almost* duplicates: there are some rows that
         # have nearly duplicate values
         .pipe(remove_near_duplicates, tolerance=1e-3, n_fold_duplication=2)
         .pipe(clean_4_level)
+        .select(data_schema.names())
     )
