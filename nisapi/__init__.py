@@ -58,13 +58,23 @@ def _get_dataset_ids() -> Sequence[str]:
     return [dataset["id"] for dataset in metadata]
 
 
-def _cache_clean_dataset(id: str, app_token: str = None) -> None:
+def _cache_clean_dataset(
+    id: str, app_token: str = None, overwrite: str = "warn"
+) -> None:
     raw_data = _get_nis_raw(id, app_token=app_token)
     clean_data = nisapi.clean.clean_dataset(df=raw_data, id=id)
     clean_path_dir = _dataset_cache_path(
         root_path=_root_cache_path(), type_="clean", id=id
     )
     clean_path = clean_path_dir / "part-0.parquet"
+
+    if clean_path.exists():
+        msg = f"Clean dataset {clean_path} already exists"
+        if overwrite == "warn":
+            warnings.warn(msg)
+            return None
+        else:
+            raise RuntimeError(f"Invalid overwrite option '{overwrite}'")
 
     if not clean_path_dir.exists():
         clean_path_dir.mkdir(parents=True)
