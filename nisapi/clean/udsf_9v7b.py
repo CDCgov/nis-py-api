@@ -1,7 +1,7 @@
 import polars as pl
 import uuid
 import calendar
-from nisapi.clean import admin1_values, drop_suppressed_rows
+from nisapi.clean.helpers import admin1_values, drop_suppressed_rows
 
 
 def _clean_geography_expr(type_: pl.Expr, value: pl.Expr) -> pl.Expr:

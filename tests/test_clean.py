@@ -1,6 +1,6 @@
 import polars as pl
 import polars.testing
-from nisapi.clean import remove_near_duplicates, _mean_max_diff
+from nisapi.clean.helpers import remove_near_duplicates, _mean_max_diff
 
 
 def test_mean_max_diff():
