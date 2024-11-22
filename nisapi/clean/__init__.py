@@ -1,6 +1,7 @@
 import polars as pl
 import polars.testing
 import nisapi.clean.ksfb_ug5d
+import nisapi.clean.udsf_9v7b
 import nisapi.clean.sw5n_wg2p
 from nisapi.clean.helpers import (
     is_valid_age_groups,
@@ -21,7 +22,9 @@ def clean_dataset(df: pl.DataFrame, id: str) -> pl.DataFrame:
         pl.DataFrame: clean dataset
     """
 
-    if id == "sw5n-wg2p":
+    if id == "udsf-9v7b":
+        out = nisapi.clean.udsf_9v7b.clean(df)
+    elif id == "sw5n-wg2p":
         out = nisapi.clean.sw5n_wg2p.clean(df)
     elif id == "ksfb-ug5d":
         out = nisapi.clean.ksfb_ug5d.clean(df)
