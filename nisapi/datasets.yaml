@@ -7,6 +7,7 @@
     - "There is a typo column in column names: `estimates` rather than `estimate`"
     - When demographic type is "overall"`, demographic value "18+ years". Clean data changes this value to "overall".
     - There are some rows that are duplicated, except for point estimate and CIs, which are rounded to different places. Clean data takes the mean over these rows.
+    - In some cases, the estimate minus the half 95% CI yields a value lower than 0. In those cases, the lower bound is replaced with zero.
 - id: ksfb-ug5d
   url: https://data.cdc.gov/Vaccinations/Weekly-Cumulative-COVID-19-Vaccination-Coverage-an/ksfb-ug5d/about_data
   vaccine: covid

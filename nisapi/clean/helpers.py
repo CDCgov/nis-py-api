@@ -12,9 +12,12 @@ data_schema = pl.Schema(
         ("demographic_value", pl.String),
         ("indicator_type", pl.String),
         ("indicator_value", pl.String),
-        ("week_ending", pl.Date),
+        ("time_type", pl.String),
+        ("time_start", pl.Date),
+        ("time_end", pl.Date),
         ("estimate", pl.Float64),
-        ("ci_half_width_95pct", pl.Float64),
+        ("lci", pl.Float64),
+        ("uci", pl.Float64),
     ]
 )
 
@@ -307,3 +310,88 @@ def is_valid_age_groups(x: pl.Series) -> bool:
         x (pl.Series): series of age groups
     """
     return x.str.contains(r"^(\d+-\d+|\d+\+) years$").all()
+
+
+def week_ending_to_times(df: pl.LazyFrame) -> pl.LazyFrame:
+    """Convert `week_ending` to time type, time start, and time end
+
+    Args:
+        df (pl.LazyFrame): input frame with column "week_ending"
+
+    Returns:
+        pl.LazyFrame: frame without "week_ending" but with "time_type",
+          "time_start", and "time_end"
+    """
+    name = str(uuid.uuid1())
+    return (
+        df.with_columns(_week_ending_to_times_expr(pl.col("week_ending")).alias(name))
+        .unnest(name)
+        .drop("week_ending")
+        .with_columns(time_type=pl.lit("week"))
+    )
+
+
+def _week_ending_to_times_expr(week_ending: pl.Expr) -> pl.Expr:
+    week_start = week_ending.dt.offset_by("-6d")
+    return pl.struct(
+        time_start=week_start, time_end=week_ending, time_type=pl.lit("week")
+    )
+
+
+def hci_to_cis(
+    df: pl.LazyFrame,
+    estimate_name: str = "estimate",
+    hci_name: str = "ci_half_width_95pct",
+) -> pl.LazyFrame:
+    """Convert estimate and half confidence interval columns into lower and upper columns
+
+    Args:
+        df (pl.LazyFrame): input data frame
+        estimate_name (str): defaults to "estimate"
+        hci_name (str): defaults to "ci_half_width_95pct"
+
+    Returns:
+        pl.LazyFrame: data frame without `hci_name` column but with `lci` and `uci`
+    """
+    name = str(uuid.uuid1())
+    return (
+        df.with_columns(
+            _hci_to_cis_expr(pl.col(estimate_name), pl.col(hci_name)).alias(name)
+        )
+        .unnest(name)
+        .drop(hci_name)
+    )
+
+
+def _hci_to_cis_expr(estimate: pl.Expr, hci: pl.Expr) -> pl.Expr:
+    """Convert estimate and half confidence interval into lower and upper interval
+
+    Args:
+        estimate (pl.Expr): point estimate
+        hci (pl.Expr): half width of the confidence interval
+
+    Returns:
+        pl.Expr: struct with fields `lci` and `uci`
+    """
+    return pl.struct(lci=(estimate - hci).clip(lower_bound=0.0), uci=estimate + hci)
+
+
+def enforce_columns(df: pl.LazyFrame, schema: pl.Schema = data_schema) -> pl.LazyFrame:
+    """Enforce columns from the data schema
+
+    Check that input data frame has all the needed columns, then select only those
+    column
+
+    Args:
+        df (pl.LazyFrame): input data frame
+        schema (pl.Schema): data schema. Defaults to `nisapi.clean.helpers.data_schema`.
+
+    Returns:
+        pl.LazyFrame: `df`, but with only the columns in the data schema
+    """
+    current_columns = df.collect_schema().names()
+    needed_columns = schema.names()
+    missing_columns = set(needed_columns) - set(current_columns)
+    if missing_columns != set():
+        raise RuntimeError("Missing columns:", missing_columns)
+    return df.select(needed_columns)
