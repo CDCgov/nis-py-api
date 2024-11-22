@@ -19,18 +19,21 @@ Python API to the National Immunization Survey (NIS) data.
 
 The data have these columns, in order, with these types:
 
-| column                | type    |
-| --------------------- | ------- |
-| `vaccine`             | String  |
-| `geographic_type`     | String  |
-| `geographic_value`    | String  |
-| `demographic_type`    | String  |
-| `demographic_value`   | String  |
-| `indicator_type`      | String  |
-| `indicator_value`     | String  |
-| `week_ending`         | Date    |
-| `estimate`            | Float64 |
-| `ci_half_width_95pct` | Float64 |
+| column              | type    |
+| ------------------- | ------- |
+| `vaccine`           | String  |
+| `geographic_type`   | String  |
+| `geographic_value`  | String  |
+| `demographic_type`  | String  |
+| `demographic_value` | String  |
+| `indicator_type`    | String  |
+| `indicator_value`   | String  |
+| `time_type`         | String  |
+| `time_start`        | Date    |
+| `time_end`          | Date    |
+| `estimate`          | Float64 |
+| `lci`               | Float64 |
+| `uci`               | Float64 |
 
 Note the paired use of "type" and "value" columns.
 
@@ -42,12 +45,16 @@ Rows that were suppressed in the raw data are dropped. This includes data with s
 
 ### `geographic_type`
 
-- One of `"nation"`, `"region"`, `"state"`, `"substate"`
+- One of `"nation"`, `"region"`, `"admin1"`, `"substate"`
+- "Region" means HHS Region
+- First-level administrative divisions include US states, territories, and the District of Columbia
 
 ### `geographic_value`
 
 - If `geographic_type` is `"nation"`, then this is `"nation"`
-- Otherwise, the name of the region, state, or substate
+- If `"region"`, then a string of the form `"Region 1"`
+- If `"admin1"`, then the full name of the jurisdiction
+- If `"substate"`, no validation is currently applied
 
 ### `demographic_type`
 
@@ -67,18 +74,21 @@ Rows that were suppressed in the raw data are dropped. This includes data with s
 
 - The value of the indicator, e.g., `"received a vaccination"`
 
-### `week_ending`
+### `time_type`
 
-- Always a Saturday
+- One of `"monthly"` or `"weekly"`
+
+### `time_start` and `time_end`
+
+Period of time associated with the observation. Note that "monthly" and "weekly" observations do not always align with calendar weeks or months, so we specify the two dates explicitly.
 
 ### `estimate`
 
 - Proportion (i.e., a number between 0 and 1) of the population (defined by geography and demography) that has the characteristic described by the indicator
 
-### `ci_half_width_95pct`
+### `lci` and `uci`
 
-- The half-width of the 95% confidence interval, measured in the same units as `estimate`
-- Always non-negative
+The lower and upper limits of the 95% confidence interval, measured in the same units as `estimate`
 
 ## Contributing
 
