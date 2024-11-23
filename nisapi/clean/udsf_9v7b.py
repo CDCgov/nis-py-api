@@ -1,7 +1,7 @@
 import polars as pl
 import uuid
 import calendar
-from nisapi.clean.helpers import admin1_values, drop_suppressed_rows
+from nisapi.clean.helpers import admin1_values, drop_suppressed_rows, enforce_columns
 
 
 def _clean_geography_expr(type_: pl.Expr, value: pl.Expr) -> pl.Expr:
@@ -88,7 +88,7 @@ def _parse_time_period_expr(time_year: pl.Expr, time_period: pl.Expr) -> pl.Expr
     date1 = pl.date(year, month1, day1)
     date2 = pl.date(year, month2, day2)
 
-    return pl.struct(start=date1, end=date2)
+    return pl.struct(time_start=date1, time_end=date2)
 
 
 def parse_time_period(df: pl.DataFrame) -> pl.DataFrame:
@@ -116,14 +116,16 @@ def clean(df: pl.LazyFrame) -> pl.LazyFrame:
                 "indicator_category": "indicator_value",
             }
         )
+        .with_columns(vaccine=pl.lit("covid"))
         .pipe(drop_suppressed_rows)
         .drop("sample_size")
         .pipe(parse_coninf_95)
+        .with_columns(pl.col(["estimate", "lci", "uci"]).cast(pl.Float64) / 100)
         .pipe(parse_time_period)
         .with_columns(
             pl.col("time_type").replace_strict({"Monthly": "month", "Weekly": "week"})
         )
-        .with_columns(pl.col(["estimate", "lci", "uci"]).cast(pl.Float64))
         .with_columns(pl.col("demographic_value").pipe(clean_age_group))
         .pipe(clean_geography)
+        .pipe(enforce_columns)
     )

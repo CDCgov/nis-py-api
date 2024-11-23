@@ -37,10 +37,9 @@ def clean_dataset(df: pl.DataFrame, id: str) -> pl.DataFrame:
 
 
 class Validate:
-    def __init__(self, id: str, df: pl.DataFrame):
-        assert isinstance(df, pl.DataFrame)
+    def __init__(self, id: str, df: pl.DataFrame | pl.LazyFrame):
         self.id = id
-        self.df = df
+        self.df = df.pipe(ensure_eager)
         self.validate()
 
     def validate(self):
