@@ -28,8 +28,9 @@ df = (
         "indicator_type",
         "indicator_value",
     )
+    # get the first few rows
+    .head(10)
     .collect()
 )
 
-# Print the first few rows
 print(df)
