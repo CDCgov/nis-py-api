@@ -92,14 +92,29 @@ The lower and upper limits of the 95% confidence interval, measured in the same 
 
 ## Contributing
 
-See also the [contributing notice](#contributing-standard-notice) below.
-
 ### Adding a new dataset
 
-1. Annotate the dataset ID and URL in `datasets.yaml`
-2. Use a script like `scripts/demo_clean.py` to iterate when formulating the cleaning steps.
+1. Find the dataset you want to clean on <https://data.cdc.gov/>.
+2. Add the dataset to `nisapi/datasets.yaml`.
+   - At a minimum, you must include the dataset ID.
+   - It is helpful to also include URL, vaccine, date range, and universe (i.e., what "overall" demography means).
+3. Create a dataset-specific module in `nisapi/clean/`. It should have a main function `clean()`.
+   - Start with a `clean()` function that does nothing and just returns the input data frame.
+4. Add the `import` and `elif` statements for this dataset ID to `clean_dataset()` in `nisapi/clean/__init__.py`.
+5. Run `scripts/clean_demo.py`. This should cache the raw dataset, run the cleaning function, and fail on validation.
+6. Iteratively update the dataset-specific `clean()` function until validation passes.
+   - Ideally, `clean()` should be a series of pipe functions.
+   - If a cleaning step is shared between datasets, move it into `helpers.py`.
+   - If multiple indicators are redundant, validate that redundancy in code, and then pick only one indicator. (E.g., `ksfb-ug5d` and `sw5n-wg2p` drop the up-to-date indicator in favor of the 4-level vaccination intent indicator.)
+   - If you find some dataset-specific anomaly or validation problem, make a note of it in `datasets.yaml`.
+7. Open a PR.
+   - Include any validations if you needed to correct an anomaly.
 
-When adding a new dataset, include demonstrations that the content of the clean data is what you expected.
+### Standard Notice
+
+Anyone is encouraged to contribute to the repository by [forking](https://help.github.com/articles/fork-a-repo) and submitting a pull request. (If you are new to GitHub, you might start with a [basic tutorial](https://help.github.com/articles/set-up-git).) By contributing to this project, you grant a world-wide, royalty-free, perpetual, irrevocable, non-exclusive, transferable license to all users under the terms of the [Apache Software License v2](http://www.apache.org/licenses/LICENSE-2.0.html) or later.
+
+All comments, messages, pull requests, and other submissions received through CDC including this GitHub page may be subject to applicable federal law, including but not limited to the Federal Records Act, and may be archived. Learn more at [http://www.cdc.gov/other/privacy.html](http://www.cdc.gov/other/privacy.html).
 
 ## Project Admin
 
@@ -120,12 +135,6 @@ This repository is licensed under [ASL v2](http://www.apache.org/licenses/LICENS
 ## Privacy Standard Notice
 
 This repository contains only non-sensitive, publicly available data and information. All material and community participation is covered by the [Disclaimer](https://github.com/CDCgov/template/blob/master/DISCLAIMER.md) and [Code of Conduct](https://github.com/CDCgov/template/blob/master/code-of-conduct.md). For more information about CDC's privacy policy, please visit [http://www.cdc.gov/other/privacy.html](https://www.cdc.gov/other/privacy.html).
-
-## Contributing Standard Notice
-
-Anyone is encouraged to contribute to the repository by [forking](https://help.github.com/articles/fork-a-repo) and submitting a pull request. (If you are new to GitHub, you might start with a [basic tutorial](https://help.github.com/articles/set-up-git).) By contributing to this project, you grant a world-wide, royalty-free, perpetual, irrevocable, non-exclusive, transferable license to all users under the terms of the [Apache Software License v2](http://www.apache.org/licenses/LICENSE-2.0.html) or later.
-
-All comments, messages, pull requests, and other submissions received through CDC including this GitHub page may be subject to applicable federal law, including but not limited to the Federal Records Act, and may be archived. Learn more at [http://www.cdc.gov/other/privacy.html](http://www.cdc.gov/other/privacy.html).
 
 ## Records Management Standard Notice
 

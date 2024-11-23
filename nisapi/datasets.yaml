@@ -1,6 +1,7 @@
 - id: sw5n-wg2p
   url: https://data.cdc.gov/Flu-Vaccinations/Weekly-Influenza-Vaccination-Coverage-and-Intent-f/sw5n-wg2p/
   vaccine: flu
+  universe: 18+ years old
   start_date: 2021-10-02
   notes:
     - One row (national, Pacific Islander, 2023-04-29) has a suppression flag, a null sample size, but a non-null estimate. This row was dropped.
@@ -11,6 +12,7 @@
   url: https://data.cdc.gov/Vaccinations/Weekly-Cumulative-COVID-19-Vaccination-Coverage-an/ksfb-ug5d/about_data
   vaccine: covid
   start_date: 2021-10-02
+  universe: 18+ years old
   notes:
     - When demographic type is "overall"`, demographic value "18+ years". Clean data changes this value to "overall".
     - There are some rows that are duplicated, except for point estimate and CIs, which are rounded to different places. Clean data takes the mean over these rows.
