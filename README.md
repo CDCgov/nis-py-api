@@ -59,7 +59,7 @@ Rows that were suppressed in the raw data are dropped. This includes data with s
 ### `demographic_type`
 
 - There are multiple types, including `"overall"` and `"age"`
-- Note that "overall" might refer only to certain age groups (e.g., 18+)
+- Note that "overall" might refer only to certain age groups (e.g., 18+). See the dataset metadata for the relevant universe.
 
 ### `demographic_value`
 
@@ -68,7 +68,8 @@ Rows that were suppressed in the raw data are dropped. This includes data with s
 
 ### `indicator_type`
 
-- Always `"4-level vaccination and intent"`
+- In newer data, this is always `"4-level vaccination and intent"`
+- In historical COVID-19 data, there are a wide range of indicators
 
 ### `indicator_value`
 
