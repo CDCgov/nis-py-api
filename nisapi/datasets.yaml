@@ -17,4 +17,6 @@
     - There are some rows that are duplicated, except for point estimate and CIs, which are rounded to different places. Clean data takes the mean over these rows.
 - id: udsf-9v7b
   url: https://data.cdc.gov/Vaccinations/National-Immunization-Survey-Adult-COVID-Module-NI/udsf-9v7b/about_data
+  start_date: 2021-04-22
+  end_date: 2023-04-01
   vaccine: covid
