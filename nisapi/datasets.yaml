@@ -11,3 +11,6 @@
   url: https://data.cdc.gov/Vaccinations/Weekly-Cumulative-COVID-19-Vaccination-Coverage-an/ksfb-ug5d/about_data
   vaccine: covid
   start_date: 2021-10-02
+  notes:
+    - When demographic type is "overall"`, demographic value "18+ years". Clean data changes this value to "overall".
+    - There are some rows that are duplicated, except for point estimate and CIs, which are rounded to different places. Clean data takes the mean over these rows.
