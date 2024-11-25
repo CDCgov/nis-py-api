@@ -395,3 +395,31 @@ def enforce_columns(df: pl.LazyFrame, schema: pl.Schema = data_schema) -> pl.Laz
     if missing_columns != set():
         raise RuntimeError("Missing columns:", missing_columns)
     return df.select(needed_columns)
+
+
+def duplicated_rows(df: pl.DataFrame) -> pl.DataFrame:
+    """Return duplicated rows of an (eager) data frame
+
+    Args:
+        df (pl.DataFrame): input df
+
+    Returns:
+        pl.DataFrame: duplicated rows only
+    """
+    return df.filter(df.is_duplicated())
+
+
+def rows_with_any_null(df: pl.LazyFrame) -> pl.LazyFrame:
+    """Filter a data frame for rows with any null value
+
+    Args:
+        df (pl.LazyFrame): data frame
+
+    Returns:
+        pl.LazyFrame: rows with any null value
+    """
+    col_name = "any"
+    rows = df.select(pl.all().is_null()).select(
+        pl.any_horizontal(pl.all()).alias(col_name)
+    )[col_name]
+    return df.filter(rows)

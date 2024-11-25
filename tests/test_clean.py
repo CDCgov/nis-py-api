@@ -4,6 +4,7 @@ from nisapi.clean.helpers import (
     remove_near_duplicates,
     _mean_max_diff,
     is_valid_age_groups,
+    rows_with_any_null,
 )
 
 
@@ -93,3 +94,13 @@ def test_validate_age_groups():
 
     # fail if there are spaces
     assert not is_valid_age_groups(pl.Series(["18 - 49 years"]))
+
+
+def test_row_has_null():
+    df = pl.DataFrame(
+        {"id": [1, 2, 3, 4], "x": [None, None, 3, 4], "y": [1, None, None, 4]}
+    )
+    current = df.pipe(rows_with_any_null)
+    expected = df.filter(pl.col("id").is_in([1, 2, 3]))
+
+    polars.testing.assert_frame_equal(current, expected)
