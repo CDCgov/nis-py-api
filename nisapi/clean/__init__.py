@@ -61,13 +61,14 @@ class Validate:
             errors.append("Duplicated rows")
 
         # no duplicated values
-        if df.drop(["estimate", "ci_half_width_95pct"]).is_duplicated().any():
+        if df.drop(["estimate", "lci", "uci"]).is_duplicated().any():
             errors.append("Duplicated groups")
 
         # no null values
         if df.null_count().pipe(sum).item() > 0:
             errors.append("Null values")
 
+        # Vaccine -------------------------------------------------------------
         # `vaccine` must be in a certain set
         if not df["vaccine"].is_in(["flu", "covid"]).all():
             errors.append("Bad `vaccine` values")
@@ -99,12 +100,22 @@ class Validate:
         if not df["indicator_type"].is_in(["4-level vaccination and intent"]).all():
             errors.append("Bad indicator types")
 
+        # Times -------------------------------------------------------------------
+        if not df["time_type"].is_in(["week", "month"]).all():
+            errors.append("Bad time type")
+
+        if not (df["time_start"] <= df["time_end"]).all():
+            errors.append("Not all time starts are before time ends")
+
         # Metrics -----------------------------------------------------------------
-        # estimates must be percents
-        if not df["estimate"].is_between(0.0, 1.0).all():
-            errors.append("`estimate` is not in range 0-1")
-        # confidence intervals must be non-negative
-        if not (df["ci_half_width_95pct"] >= 0.0).all():
-            errors.append("`ci_half_width_95pct` is not in range 0-1")
+        # estimates and CIs must be proportions
+        for col in ["estimate", "lci", "uci"]:
+            if not df[col].is_between(0.0, 1.0).all():
+                bad_rows = df.filter(pl.col(col).is_between(0.0, 1.0).not_())
+                errors.append(f"`{col}` is not in range 0-1: {bad_rows}")
+
+        # confidence intervals must bracket estimate
+        if not ((df["lci"] <= df["estimate"]) & (df["estimate"] <= df["uci"])).all():
+            errors.append("confidence intervals do not bracket estimate")
 
         return errors

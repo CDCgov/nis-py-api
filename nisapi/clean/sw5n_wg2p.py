@@ -1,6 +1,5 @@
 import polars as pl
 from nisapi.clean.helpers import (
-    data_schema,
     drop_suppressed_rows,
     rename_indicator_columns,
     set_lowercase,
@@ -9,13 +8,17 @@ from nisapi.clean.helpers import (
     remove_near_duplicates,
     clean_4_level,
     replace_overall_demographic_value,
+    week_ending_to_times,
+    hci_to_cis,
+    enforce_columns,
 )
 
 
 def clean(df: pl.LazyFrame) -> pl.LazyFrame:
-    # this particular dataset has a bad column name
     return (
-        df.rename({"estimates": "estimate"})
+        df
+        # this particular dataset has a bad column name
+        .rename({"estimates": "estimate"})
         .pipe(drop_suppressed_rows)
         .pipe(rename_indicator_columns)
         .unique()
@@ -23,9 +26,9 @@ def clean(df: pl.LazyFrame) -> pl.LazyFrame:
         .pipe(cast_types)
         .pipe(clean_geography)
         .pipe(replace_overall_demographic_value)
-        # Find the rows that are *almost* duplicates: there are some rows that
-        # have nearly duplicate values
         .pipe(remove_near_duplicates, tolerance=1e-3, n_fold_duplication=2)
         .pipe(clean_4_level)
-        .select(data_schema.names())
+        .pipe(week_ending_to_times)
+        .pipe(hci_to_cis)
+        .pipe(enforce_columns)
     )

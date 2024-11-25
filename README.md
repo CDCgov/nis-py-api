@@ -76,11 +76,13 @@ Rows that were suppressed in the raw data are dropped. This includes data with s
 
 ### `time_type`
 
-- One of `"monthly"` or `"weekly"`
+- One of `"month"` or `"week"`
 
 ### `time_start` and `time_end`
 
 Period of time associated with the observation. Note that "monthly" and "weekly" observations do not always align with calendar weeks or months, so we specify the two dates explicitly.
+
+- Time start is always before time end
 
 ### `estimate`
 
@@ -88,7 +90,8 @@ Period of time associated with the observation. Note that "monthly" and "weekly"
 
 ### `lci` and `uci`
 
-The lower and upper limits of the 95% confidence interval, measured in the same units as `estimate`
+- The lower and upper limits of the 95% confidence interval, measured in the same units as `estimate`
+- Confidence interval always bracket the `estimate`
 
 ## Contributing
 
