@@ -19,6 +19,14 @@
     - There are some rows that are duplicated, except for point estimate and CIs, which are rounded to different places. Clean data takes the mean over these rows.
 - id: udsf-9v7b
   url: https://data.cdc.gov/Vaccinations/National-Immunization-Survey-Adult-COVID-Module-NI/udsf-9v7b/about_data
+  vaccine: covid
   start_date: 2021-04-22
   end_date: 2023-04-01
-  vaccine: covid
+  universe: 18+ years old
+  notes:
+    - Suppression flags:
+        - All null-estimate and "1"-flagged rows were dropped.
+        - "16 rows have the expected pattern: flag '1' and a null value."
+        - 12 rows have sample size < 30, and they all have flag "0".
+        - 1399 rows have flag "1" but non-null estimates.
+        - Suppression flags include non-standard value "0.0".

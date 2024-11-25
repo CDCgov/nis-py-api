@@ -104,6 +104,24 @@ def parse_time_period(df: pl.DataFrame) -> pl.DataFrame:
     )
 
 
+def enforce_overall_demography(df: pl.LazyFrame) -> pl.LazyFrame:
+    """
+    Replace overall demographic type ("All adults 18+") and value
+    ("All adults age 18+ years") with "overall"
+    """
+    return df.with_columns(
+        pl.when(pl.col("demographic_type") == pl.lit("All adults 18+"))
+        .then(pl.lit("overall"))
+        .otherwise(pl.col("demographic_type"))
+        .alias("demographic_type"),
+    ).with_columns(
+        pl.when(pl.col("demographic_type") == pl.lit("overall"))
+        .then(pl.lit("overall"))
+        .otherwise(pl.col("demographic_value"))
+        .alias("demographic_value")
+    )
+
+
 def clean(df: pl.LazyFrame) -> pl.LazyFrame:
     return (
         df.rename(
@@ -126,6 +144,11 @@ def clean(df: pl.LazyFrame) -> pl.LazyFrame:
             pl.col("time_type").replace_strict({"Monthly": "month", "Weekly": "week"})
         )
         .with_columns(pl.col("demographic_value").pipe(clean_age_group))
+        .pipe(enforce_overall_demography)
         .pipe(clean_geography)
         .pipe(enforce_columns)
+        # drop duplicate rows
+        .unique()
+        # drop rows with null estimates
+        .filter(pl.col("estimate").is_not_null())
     )

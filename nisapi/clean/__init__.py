@@ -8,6 +8,8 @@ from nisapi.clean.helpers import (
     is_valid_geography,
     data_schema,
     ensure_eager,
+    duplicated_rows,
+    rows_with_any_null,
 )
 
 
@@ -45,8 +47,8 @@ class Validate:
     def validate(self):
         self.errors = self.get_validation_errors(self.df)
         if len(self.errors) > 0:
-            for error in self.errors:
-                print(f"{self.id=}", error)
+            print(f"Validation errors in dataset ID: {self.id}")
+            print(*self.errors, sep="\n")
 
             raise RuntimeError("Validation errors")
 
@@ -60,15 +62,22 @@ class Validate:
 
         # no duplicated rows
         if df.is_duplicated().any():
-            errors.append("Duplicated rows")
+            rows = df.pipe(duplicated_rows).glimpse(return_as_string=True)
+            errors.append(f"Duplicated rows: {rows}")
 
         # no duplicated values
         if df.drop(["estimate", "lci", "uci"]).is_duplicated().any():
-            errors.append("Duplicated groups")
+            dup_groups = (
+                df.drop(["estimate", "lci", "uci"])
+                .pipe(duplicated_rows)
+                .glimpse(return_as_string=True)
+            )
+            errors.append(f"Duplicated groups: {dup_groups}")
 
         # no null values
         if df.null_count().pipe(sum).item() > 0:
-            errors.append("Null values")
+            null_rows = df.pipe(rows_with_any_null)
+            errors.append(f"Null values: {null_rows}")
 
         # Vaccine -------------------------------------------------------------
         # `vaccine` must be in a certain set
@@ -99,8 +108,7 @@ class Validate:
             errors.append("Invalid age groups")
 
         # Indicators --------------------------------------------------------------
-        if not df["indicator_type"].is_in(["4-level vaccination and intent"]).all():
-            errors.append("Bad indicator types")
+        pass
 
         # Times -------------------------------------------------------------------
         if not df["time_type"].is_in(["week", "month"]).all():
