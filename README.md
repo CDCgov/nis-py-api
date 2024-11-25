@@ -108,7 +108,7 @@ Period of time associated with the observation. Note that "monthly" and "weekly"
 5. Run `scripts/clean_demo.py`. This should cache the raw dataset, run the cleaning function, and fail on validation.
 6. Iteratively update the dataset-specific `clean()` function until validation passes.
    - Ideally, `clean()` should be a series of pipe functions.
-   - If a cleaning step is shared between datasets, move it into `helpers.py`.
+   - If a cleaning step is specific to a single dataset, keep that in the dataset-specific submodule. If a step is shared between datasets, move it into `helpers.py`.
    - If multiple indicators are redundant, validate that redundancy in code, and then pick only one indicator. (E.g., `ksfb-ug5d` and `sw5n-wg2p` drop the up-to-date indicator in favor of the 4-level vaccination intent indicator.)
    - If you find some dataset-specific anomaly or validation problem, make a note of it in `datasets.yaml`.
 7. Open a PR.
