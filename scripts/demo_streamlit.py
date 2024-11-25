@@ -4,24 +4,15 @@ import polars as pl
 import nisapi
 
 
-def column_values(df: pl.LazyFrame | pl.DataFrame, column: str) -> list:
-    values_df = df.select(pl.col(column).unique().sort())
-
-    if isinstance(values_df, pl.LazyFrame):
-        values_df = values_df.collect()
-
-    return values_df[column].to_list()
-
-
 def widget_filter(
-    df: pl.LazyFrame,
+    df: pl.DataFrame,
     column: str,
     options=None,
     default: str = None,
     n_radio_max: int = 5,
-) -> pl.LazyFrame:
+) -> pl.DataFrame:
     if options is None:
-        options = column_values(df, column)
+        options = df[column].unique().to_list()
 
     if len(options) <= n_radio_max:
         if default is not None and default in options:
@@ -54,6 +45,10 @@ if __name__ == "__main__":
         .pipe(widget_filter, "indicator_type", default="4-level vaccination and intent")
         .pipe(widget_filter, "indicator_value", default="received a vaccination")
     )
+
+    datasets = data["id"].unique().to_list()
+
+    st.text(f"Showing data from datasets: {datasets}")
 
     time_axis = alt.Axis(format="%Y-%b-%d", tickCount="month")
     points = (
