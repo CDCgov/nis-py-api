@@ -1,26 +1,33 @@
 import polars as pl
-import os.path
 import yaml
 import nisapi
+from nisapi.clean import Validate
+import nisapi.clean.udsf_9v7b
 import altair as alt
 
-tmp_path = "scripts/tmp_nis.parquet"
 dataset_id = "udsf-9v7b"
+clean_func = nisapi.clean.udsf_9v7b.clean
+clean_tmp_path = "scripts/tmp_clean.parquet"
 
-if not os.path.exists(tmp_path):
-    with open("scripts/secrets.yaml") as f:
-        app_token = yaml.safe_load(f)["app_token"]
+with open("scripts/secrets.yaml") as f:
+    app_token = yaml.safe_load(f)["app_token"]
 
-    nisapi.download_dataset(dataset_id, app_token=app_token).write_parquet(tmp_path)
+raw = nisapi._get_nis_raw(id=dataset_id, app_token=app_token)
 
-df = pl.read_parquet(tmp_path)
+# show the first few rows of the raw data
+raw.head().collect().glimpse()
 
-df.glimpse()
-df.tail().glimpse()
+# try to clean the data
+clean = clean_func(raw)
 
-clean = nisapi.clean_dataset(dataset_id, df)
-clean.glimpse()
-clean.tail().glimpse()
+# look at the first few rows of the partially cleaned data
+clean.head(10).collect().glimpse()
+
+# save a copy of the partially cleaned data
+clean.collect().write_parquet(clean_tmp_path)
+
+# this will fail until the dataset cleaning is complete
+Validate(id=dataset_id, df=clean)
 
 alt.Chart(
     clean.filter(

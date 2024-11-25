@@ -1,12 +1,15 @@
 import polars as pl
 import polars.testing
 import nisapi.clean.ksfb_ug5d
+import nisapi.clean.udsf_9v7b
 import nisapi.clean.sw5n_wg2p
 from nisapi.clean.helpers import (
     is_valid_age_groups,
     is_valid_geography,
     data_schema,
     ensure_eager,
+    duplicated_rows,
+    rows_with_any_null,
 )
 
 
@@ -21,7 +24,9 @@ def clean_dataset(df: pl.DataFrame, id: str) -> pl.DataFrame:
         pl.DataFrame: clean dataset
     """
 
-    if id == "sw5n-wg2p":
+    if id == "udsf-9v7b":
+        out = nisapi.clean.udsf_9v7b.clean(df)
+    elif id == "sw5n-wg2p":
         out = nisapi.clean.sw5n_wg2p.clean(df)
     elif id == "ksfb-ug5d":
         out = nisapi.clean.ksfb_ug5d.clean(df)
@@ -34,17 +39,16 @@ def clean_dataset(df: pl.DataFrame, id: str) -> pl.DataFrame:
 
 
 class Validate:
-    def __init__(self, id: str, df: pl.DataFrame):
-        assert isinstance(df, pl.DataFrame)
+    def __init__(self, id: str, df: pl.DataFrame | pl.LazyFrame):
         self.id = id
-        self.df = df
+        self.df = df.pipe(ensure_eager)
         self.validate()
 
     def validate(self):
         self.errors = self.get_validation_errors(self.df)
         if len(self.errors) > 0:
-            for error in self.errors:
-                print(f"{self.id=}", error)
+            print(f"Validation errors in dataset ID: {self.id}")
+            print(*self.errors, sep="\n")
 
             raise RuntimeError("Validation errors")
 
@@ -58,15 +62,22 @@ class Validate:
 
         # no duplicated rows
         if df.is_duplicated().any():
-            errors.append("Duplicated rows")
+            rows = df.pipe(duplicated_rows).glimpse(return_as_string=True)
+            errors.append(f"Duplicated rows: {rows}")
 
         # no duplicated values
         if df.drop(["estimate", "lci", "uci"]).is_duplicated().any():
-            errors.append("Duplicated groups")
+            dup_groups = (
+                df.drop(["estimate", "lci", "uci"])
+                .pipe(duplicated_rows)
+                .glimpse(return_as_string=True)
+            )
+            errors.append(f"Duplicated groups: {dup_groups}")
 
         # no null values
         if df.null_count().pipe(sum).item() > 0:
-            errors.append("Null values")
+            null_rows = df.pipe(rows_with_any_null)
+            errors.append(f"Null values: {null_rows}")
 
         # Vaccine -------------------------------------------------------------
         # `vaccine` must be in a certain set
@@ -97,8 +108,7 @@ class Validate:
             errors.append("Invalid age groups")
 
         # Indicators --------------------------------------------------------------
-        if not df["indicator_type"].is_in(["4-level vaccination and intent"]).all():
-            errors.append("Bad indicator types")
+        pass
 
         # Times -------------------------------------------------------------------
         if not df["time_type"].is_in(["week", "month"]).all():

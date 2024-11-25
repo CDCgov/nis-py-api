@@ -7,6 +7,7 @@ import nisapi.clean
 import nisapi.socrata
 from typing import Sequence
 import warnings
+import tempfile
 
 
 def get_nis(path: Path = None) -> pl.LazyFrame:
@@ -93,10 +94,12 @@ def _dataset_cache_path(root_path: str, type_: str, id: str) -> Path:
 def _get_nis_raw(id: str, app_token: str = None) -> pl.LazyFrame:
     root_path = _root_cache_path()
     dir_path = _dataset_cache_path(root_path=root_path, type_="raw", id=id)
+    path = dir_path / "part-0.parquet"
 
     if not dir_path.exists():
         dir_path.mkdir(parents=True)
-        path = dir_path / "part-0.parquet"
+
+    if not path.exists():
         data = _download_dataset(id=id, app_token=app_token)
         data.write_parquet(path)
 
@@ -113,6 +116,11 @@ def _download_dataset(id: str, app_token: str = None) -> pl.DataFrame:
     Returns:
         pl.DataFrame: raw dataset
     """
-    return pl.DataFrame(
-        sum(nisapi.socrata.download_dataset_pages(id, app_token=app_token), [])
-    )
+    with tempfile.TemporaryDirectory() as tmpdir:
+        pages = nisapi.socrata.download_dataset_pages(id, app_token=app_token)
+        for i, page in enumerate(pages):
+            path = f"part-{i}.parquet"
+            df = pl.DataFrame(page)
+            df.write_parquet(Path(tmpdir) / path)
+
+        return pl.read_parquet(tmpdir)
