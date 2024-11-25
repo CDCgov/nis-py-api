@@ -128,14 +128,16 @@ upload_blobs(
 # could download the definitive data locally
 print("Downloading blobs")
 with tempfile.TemporaryDirectory() as tmpdir:
-    data_path = Path(tmpdir, "nis")
     download_blobs(
         client=client,
         container_id=secrets["azure"]["container_id"],
         blob_root=secrets["azure"]["blob_root"],
-        local_dir=data_path,
+        local_dir=tmpdir,
     )
+
+    data_path = Path(tmpdir, "nis", "clean")
 
     # print the downloaded data, to show it's accessible
     df = pl.scan_parquet(str(data_path))
     print(df.head().collect())
+    print("Data shape:", df.collect().shape)
