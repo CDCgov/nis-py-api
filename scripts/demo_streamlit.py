@@ -59,7 +59,11 @@ if __name__ == "__main__":
     error_bars = (
         alt.Chart(data)
         .mark_errorbar()
-        .encode(x=alt.X("time_end", axis=time_axis), y="lci", y2="uci")
+        .encode(
+            x=alt.X("time_end", axis=time_axis),
+            y=alt.Y("lci", title="uptake", scale=alt.Scale(domain=[0.0, 1.0])),
+            y2="uci",
+        )
     )
 
     chart = points + error_bars
