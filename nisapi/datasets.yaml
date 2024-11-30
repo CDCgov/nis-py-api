@@ -30,3 +30,6 @@
         - 12 rows have sample size < 30, and they all have flag "0".
         - 1399 rows have flag "1" but non-null estimates.
         - Suppression flags include non-standard value "0.0".
+- id: vh55-3he6
+  url: https://data.cdc.gov/Flu-Vaccinations/Influenza-Vaccination-Coverage-for-All-Ages-6-Mont/vh55-3he6/about_data
+  vaccine: flu

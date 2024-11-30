@@ -2,11 +2,11 @@ import polars as pl
 import yaml
 import nisapi
 from nisapi.clean import Validate
-import nisapi.clean.udsf_9v7b
+import nisapi.clean.vh55_3he6
 import altair as alt
 
-dataset_id = "udsf-9v7b"
-clean_func = nisapi.clean.udsf_9v7b.clean
+dataset_id = "vh55-3he6"
+clean_func = nisapi.clean.vh55_3he6.clean
 clean_tmp_path = "scripts/tmp_clean.parquet"
 
 with open("scripts/secrets.yaml") as f:
