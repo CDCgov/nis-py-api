@@ -33,3 +33,5 @@
 - id: vh55-3he6
   url: https://data.cdc.gov/Flu-Vaccinations/Influenza-Vaccination-Coverage-for-All-Ages-6-Mont/vh55-3he6/about_data
   vaccine: flu
+  notes:
+    - County-level data are reported by survey year rather than influenza season.
