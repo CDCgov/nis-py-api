@@ -176,6 +176,27 @@ def _clean_age(x: pl.Expr) -> pl.Expr:
     return x.str.to_lowercase().str.replace(r">=(\d+)", "$1+").str.replace(r" - ", "-")
 
 
+def clean_estimate(x: pl.Expr) -> pl.Expr:
+    return pl.when(x == pl.lit("NR †"))
+
+
+def clean_ci(df: pl.LazyFrame, ci_column: str) -> pl.LazyFrame:
+    ci = _clean_ci_expr(pl.col(ci_column))
+    return df.with_columns(ci.struct[0].alias("lci"), ci.struct[1].alias("uci"))
+    # .drop(ci_column)
+
+
+def _clean_ci_expr(x: pl.Expr) -> pl.Expr:
+    return (
+        x.str.extract_groups(r"^(\d+\.\d+) to (\d+\.\d+)( ‡)?$")
+        .struct.rename_fields(["lci", "uci"])
+        .struct.with_fields(
+            pl.field("lci").cast(pl.Float64) / 100.0,
+            pl.field("uci").cast(pl.Float64) / 100.0,
+        )
+    )
+
+
 def clean(df: pl.LazyFrame) -> pl.LazyFrame:
     return (
         df.rename({"geography": "geography_name"})
@@ -185,10 +206,19 @@ def clean(df: pl.LazyFrame) -> pl.LazyFrame:
             name_column="geography_name",
             fips_column="fips",
         )
+        .rename(
+            {"geography_type": "geographic_type", "geography_name": "geographic_value"}
+        )
+        .with_columns(pl.lit("month").alias("time_type"))
         .pipe(clean_time, year_season_column="year_season", month_column="month")
         .pipe(
             clean_demography_indicator,
             type_column="dimension_type",
             value_column="dimension",
         )
+        # drop unreported estimates; convert to proportion
+        .rename({"coverage_estimate": "estimate"})
+        .filter(pl.col("estimate").str.starts_with("NR").not_())
+        .with_columns(pl.col("estimate").cast(pl.Float64) / 100)
+        .pipe(clean_ci, ci_column="_95_ci")
     )
