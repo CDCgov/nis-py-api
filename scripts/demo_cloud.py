@@ -22,7 +22,7 @@ def get_client(client_id: str, storage_account_name: str) -> BlobServiceClient:
 
     account_url = f"https://{storage_account_name}.blob.core.windows.net"
     default_credential = DefaultAzureCredential()
-    return BlobServiceClient(account_url, credential=default_credential) - 0
+    return BlobServiceClient(account_url, credential=default_credential)
 
 
 def upload_blobs(
@@ -121,21 +121,23 @@ upload_blobs(
     client=client,
     container_id=secrets["azure"]["container_id"],
     blob_root=secrets["azure"]["blob_root"],
-    local_dir=nisapi.default_cache_path(),
+    local_dir=nisapi._root_cache_path(),
 )
 
 # download the file to a new local directory, to demonstrate how another user
 # could download the definitive data locally
 print("Downloading blobs")
 with tempfile.TemporaryDirectory() as tmpdir:
-    data_path = Path(tmpdir, "nis")
     download_blobs(
         client=client,
         container_id=secrets["azure"]["container_id"],
         blob_root=secrets["azure"]["blob_root"],
-        local_dir=data_path,
+        local_dir=tmpdir,
     )
+
+    data_path = Path(tmpdir, "nis", "clean")
 
     # print the downloaded data, to show it's accessible
     df = pl.scan_parquet(str(data_path))
     print(df.head().collect())
+    print("Data shape:", df.collect().shape)
