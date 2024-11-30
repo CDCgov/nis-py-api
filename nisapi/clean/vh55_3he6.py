@@ -1,5 +1,6 @@
 import polars as pl
 from .helpers import admin1_values
+import uuid
 
 
 def _clean_geography_expr(type_: pl.Expr, name: pl.Expr, fips: pl.Expr) -> pl.Expr:
@@ -102,6 +103,79 @@ def _clean_time_season_expr(season: pl.Expr, month: pl.Expr) -> pl.Expr:
     return pl.date(year=year, month=month, day=1)
 
 
+def clean_demography_indicator(
+    df: pl.LazyFrame, type_column: str, value_column: str
+) -> pl.LazyFrame:
+    new_column_name = str(uuid.uuid1())
+
+    new_column = _clean_demography_indicator_expr(
+        pl.col(type_column), pl.col(value_column)
+    )
+    return (
+        df.with_columns(new_column.alias(new_column_name))
+        .drop([type_column, value_column])
+        .unnest(new_column_name)
+    )
+
+
+def _clean_demography_indicator_expr(type_: pl.Expr, value: pl.Expr) -> pl.Expr:
+    place_age_groups = [
+        "6 Months - 17 Years",
+        ">=18 Years",
+        "18-49 Years",
+        "18-64 Years",
+        "50-64 Years",
+    ]
+
+    # there are three kinds of "dimension_type": age groups (which signal that
+    # "dimension" is place of vaccination), the word "Age", and the phrase
+    # "Race and Ethnicity"
+    group = (
+        pl.when(type_ == pl.lit("Age"))
+        .then(pl.lit("age"))
+        .when(type_ == pl.lit("Race and Ethnicity"))
+        .then(pl.lit("race/ethnicity"))
+        .when(type_.is_in(place_age_groups))
+        .then(pl.lit("place"))
+    )
+
+    demography_type = group.replace_strict(
+        {"place": "age", "age": "age", "race/ethnicity": "race/ethnicity"}
+    )
+
+    demography_value = (
+        pl.when(group == pl.lit("place"))
+        .then(_clean_age(type_))
+        .when(group == pl.lit("age"))
+        .then(_clean_age(value))
+        .when(group == "race/ethnicity")
+        .then(value)
+    )
+
+    indicator_type = (
+        pl.when(group == pl.lit("place"))
+        .then(pl.lit("uptake at place of vaccination"))
+        .otherwise(pl.lit("uptake"))
+    )
+
+    indicator_value = (
+        pl.when(group == pl.lit("place"))
+        .then(value)
+        .otherwise(pl.lit("received a vaccination"))
+    )
+
+    return pl.struct(
+        demographic_type=demography_type,
+        demographic_value=demography_value,
+        indicator_type=indicator_type,
+        indicator_value=indicator_value,
+    )
+
+
+def _clean_age(x: pl.Expr) -> pl.Expr:
+    return x.str.to_lowercase().str.replace(r">=(\d+)", "$1+").str.replace(r" - ", "-")
+
+
 def clean(df: pl.LazyFrame) -> pl.LazyFrame:
     return (
         df.rename({"geography": "geography_name"})
@@ -112,4 +186,9 @@ def clean(df: pl.LazyFrame) -> pl.LazyFrame:
             fips_column="fips",
         )
         .pipe(clean_time, year_season_column="year_season", month_column="month")
+        .pipe(
+            clean_demography_indicator,
+            type_column="dimension_type",
+            value_column="dimension",
+        )
     )
