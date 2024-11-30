@@ -14,6 +14,7 @@ Python API to the National Immunization Survey (NIS) data.
   - `nisapi.delete_cache()` to clear the cache, if needed
 - See `scripts/demo_clean.py` for an example of a script that you could run while iteratively developing the cleaning code in `nisapi/clean/`.
 - See `scripts/demo_cloud.py` for a demo of how the data could be downloaded, cleaned, uploaded to Azure Blob Storage, and then downloaded from there. You will need to fill out the `azure:` keys in `secrets.yaml`.
+- run `streamlit run scripts/demo_streamlit.py` to quickly query and visualize the data with a [streamlit](https://streamlit.io/) app.
 
 ## Data dictionary
 
