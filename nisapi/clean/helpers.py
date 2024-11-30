@@ -303,15 +303,6 @@ def is_valid_geography(type_: pl.Series, value: pl.Series) -> bool:
     )
 
 
-def is_valid_age_groups(x: pl.Series) -> bool:
-    """Validate that a series of age groups is valid
-
-    Args:
-        x (pl.Series): series of age groups
-    """
-    return x.str.contains(r"^(\d+-\d+|\d+\+) years$").all()
-
-
 def week_ending_to_times(df: pl.LazyFrame) -> pl.LazyFrame:
     """Convert `week_ending` to time type, time start, and time end
 

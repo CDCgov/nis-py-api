@@ -173,17 +173,29 @@ def _clean_demography_indicator_expr(type_: pl.Expr, value: pl.Expr) -> pl.Expr:
 
 
 def _clean_age(x: pl.Expr) -> pl.Expr:
-    return x.str.to_lowercase().str.replace(r">=(\d+)", "$1+").str.replace(r" - ", "-")
+    return (
+        x.str.to_lowercase()
+        .str.replace(r">=(\d+)", "$1+")
+        .str.replace(r" - ", "-")
+        .replace(
+            {
+                "greater 65": "65+ years",
+                "greater than 18 years flu": "18+ years",
+                "greater than 6 months flu": "6+ months",
+            }
+        )
+    )
 
 
 def clean_estimate(x: pl.Expr) -> pl.Expr:
     return pl.when(x == pl.lit("NR †"))
 
 
-def clean_ci(df: pl.LazyFrame, ci_column: str) -> pl.LazyFrame:
+def clean_ci(df: pl.LazyFrame, ci_column: str, uci_clip: float = None) -> pl.LazyFrame:
     ci = _clean_ci_expr(pl.col(ci_column))
-    return df.with_columns(ci.struct[0].alias("lci"), ci.struct[1].alias("uci"))
-    # .drop(ci_column)
+    return df.with_columns(
+        ci.struct[0].alias("lci"), ci.struct[1].clip(upper_bound=uci_clip).alias("uci")
+    ).drop(ci_column)
 
 
 def _clean_ci_expr(x: pl.Expr) -> pl.Expr:
@@ -220,5 +232,5 @@ def clean(df: pl.LazyFrame) -> pl.LazyFrame:
         .rename({"coverage_estimate": "estimate"})
         .filter(pl.col("estimate").str.starts_with("NR").not_())
         .with_columns(pl.col("estimate").cast(pl.Float64) / 100)
-        .pipe(clean_ci, ci_column="_95_ci")
+        .pipe(clean_ci, ci_column="_95_ci", uci_clip=1.0)
     )

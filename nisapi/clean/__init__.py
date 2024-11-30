@@ -4,7 +4,6 @@ import nisapi.clean.ksfb_ug5d
 import nisapi.clean.udsf_9v7b
 import nisapi.clean.sw5n_wg2p
 from nisapi.clean.helpers import (
-    is_valid_age_groups,
     is_valid_geography,
     data_schema,
     ensure_eager,
@@ -52,8 +51,8 @@ class Validate:
 
             raise RuntimeError("Validation errors")
 
-    @staticmethod
-    def get_validation_errors(df: pl.DataFrame):
+    @classmethod
+    def get_validation_errors(cls, df: pl.DataFrame):
         errors = []
 
         # df must have expected column order and types
@@ -102,10 +101,14 @@ class Validate:
                 f"Bad overall demographic values: {overall_demographic_values}"
             )
         # age groups should have the form "18-49 years" or "65+ years"
-        if not is_valid_age_groups(
-            df.filter(pl.col("demographic_type") == pl.lit("age"))["demographic_value"]
-        ):
-            errors.append("Invalid age groups")
+        age_groups = df.filter(pl.col("demographic_type") == pl.lit("age"))[
+            "demographic_value"
+        ].unique()
+        invalid_age_groups = age_groups.filter(
+            cls.is_valid_age_group(age_groups).not_()
+        )
+        if len(invalid_age_groups) > 0:
+            errors.append(f"Invalid age groups: {invalid_age_groups}")
 
         # Indicators --------------------------------------------------------------
         pass
@@ -129,3 +132,15 @@ class Validate:
             errors.append("confidence intervals do not bracket estimate")
 
         return errors
+
+    @staticmethod
+    def is_valid_age_group(x: pl.Expr) -> pl.Expr:
+        """Which elements of an age group Expr/Series are valid?
+
+        Args:
+            x (pl.Expr): bool
+        """
+        regex1 = r"^\d+-\d+ years$"  # eg "18-49 years"
+        regex2 = r"^\d+\+ (years|months)$"  # eg "65+ years" or "6+ months"
+        regex3 = r"^\d+ months-\d+ years$"  # eg "6 months-17 years"
+        return x.str.contains(regex1) | x.str.contains(regex2) | x.str.contains(regex3)
