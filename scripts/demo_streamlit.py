@@ -16,7 +16,7 @@ def widget_filter(
 
     if len(options) <= n_radio_max:
         if default is not None and default in options:
-            options = [default] + [x for x in options if x != default]
+            options = [default] + sorted([x for x in options if x != default])
 
         value = st.radio(label=column, options=options)
     else:
@@ -37,7 +37,12 @@ if __name__ == "__main__":
 
     data = (
         nis.pipe(widget_filter, "vaccine", default="flu")
-        .pipe(widget_filter, "geographic_type", default="nation")
+        .pipe(
+            widget_filter,
+            "geographic_type",
+            default="nation",
+            options=["nation", "region", "admin1", "substate"],
+        )
         .pipe(widget_filter, "geographic_value")
         .pipe(widget_filter, "demographic_type", default="overall")
         .pipe(widget_filter, "demographic_value")
