@@ -127,6 +127,7 @@ def _clean_demography_indicator_expr(type_: pl.Expr, value: pl.Expr) -> pl.Expr:
         "18-49 Years",
         "18-64 Years",
         "50-64 Years",
+        ">=65 Years",
     ]
 
     # there are three kinds of "dimension_type": age groups (which signal that
@@ -198,16 +199,21 @@ def clean_estimate(x: pl.Expr) -> pl.Expr:
     return pl.when(x == pl.lit("NR †"))
 
 
-def clean_ci(df: pl.LazyFrame, ci_column: str, uci_clip: float = None) -> pl.LazyFrame:
+def clean_ci(
+    df: pl.LazyFrame, ci_column: str, lci_clip: float = None, uci_clip: float = None
+) -> pl.LazyFrame:
     ci = _clean_ci_expr(pl.col(ci_column))
     return df.with_columns(
-        ci.struct[0].alias("lci"), ci.struct[1].clip(upper_bound=uci_clip).alias("uci")
+        ci.struct[0].clip(lower_bound=lci_clip).alias("lci"),
+        ci.struct[1].clip(upper_bound=uci_clip).alias("uci"),
     ).drop(ci_column)
 
 
 def _clean_ci_expr(x: pl.Expr) -> pl.Expr:
     return (
-        x.str.extract_groups(r"^(\d+\.\d+) to (\d+\.\d+)( ‡)?$")
+        x.str.replace(r" â€¡$", "")
+        .str.replace(r" ‡$", "")
+        .str.extract_groups(r"^(-?\d+\.\d+) to (\d+\.\d+)$")
         .struct.rename_fields(["lci", "uci"])
         .struct.with_fields(
             pl.field("lci").cast(pl.Float64) / 100.0,
@@ -250,6 +256,6 @@ def clean(df: pl.LazyFrame) -> pl.LazyFrame:
         .rename({"coverage_estimate": "estimate"})
         .filter(pl.col("estimate").str.starts_with("NR").not_())
         .with_columns(pl.col("estimate").cast(pl.Float64) / 100)
-        .pipe(clean_ci, ci_column="_95_ci", uci_clip=1.0)
+        .pipe(clean_ci, ci_column="_95_ci", lci_clip=0.0, uci_clip=1.0)
         .pipe(enforce_columns)
     )
