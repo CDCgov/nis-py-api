@@ -119,8 +119,8 @@ def enforce_overall_domain(df: pl.LazyFrame) -> pl.LazyFrame:
     ).with_columns(
         pl.when(pl.col("domain_type") == pl.lit("overall"))
         .then(pl.lit("overall"))
-        .otherwise(pl.col("domain_value"))
-        .alias("domain_value")
+        .otherwise(pl.col("domain"))
+        .alias("domain")
     )
 
 
@@ -131,7 +131,7 @@ def clean(df: pl.LazyFrame) -> pl.LazyFrame:
                 "geography_type": "geography_type",
                 "geography": "geography",
                 "group_name": "domain_type",
-                "group_category": "domain_value",
+                "group_category": "domain",
                 "indicator_name": "indicator_type",
                 "indicator_category": "indicator",
             }
@@ -145,7 +145,7 @@ def clean(df: pl.LazyFrame) -> pl.LazyFrame:
         .with_columns(
             pl.col("time_type").replace_strict({"Monthly": "month", "Weekly": "week"})
         )
-        .with_columns(pl.col("domain_value").pipe(clean_age_group))
+        .with_columns(pl.col("domain").pipe(clean_age_group))
         .pipe(enforce_overall_domain)
         .pipe(clean_geography)
         .pipe(enforce_columns)

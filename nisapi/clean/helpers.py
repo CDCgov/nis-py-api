@@ -10,7 +10,7 @@ data_schema = pl.Schema(
         ("geography_type", pl.String),
         ("geography", pl.String),
         ("domain_type", pl.String),
-        ("domain_value", pl.String),
+        ("domain", pl.String),
         ("indicator_type", pl.String),
         ("indicator", pl.String),
         ("time_type", pl.String),
@@ -178,7 +178,7 @@ def rename_indicator_columns(df: pl.DataFrame) -> pl.DataFrame:
             "geographic_level": "geography_type",
             "geographic_name": "geography",
             "demographic_level": "domain_type",
-            "demographic_name": "domain_value",
+            "demographic_name": "domain",
             "indicator_label": "indicator_type",
             "indicator_category_label": "indicator",
         }
@@ -257,7 +257,7 @@ def remove_near_duplicates(
     return df.group_by(group_columns).agg(pl.col(value_columns).mean())
 
 
-def replace_overall_domain_value(df: pl.LazyFrame) -> pl.LazyFrame:
+def replace_overall_domain(df: pl.LazyFrame) -> pl.LazyFrame:
     return df.with_columns(pl.col("domain_type").replace({"overall": "age"}))
 
 

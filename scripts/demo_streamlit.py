@@ -46,7 +46,7 @@ if __name__ == "__main__":
         )
         .pipe(widget_filter, "geography")
         .pipe(widget_filter, "domain_type", default="age")
-        .pipe(widget_filter, "domain_value", default="18+ years")
+        .pipe(widget_filter, "domain", default="18+ years")
         .pipe(widget_filter, "time_type", default="week")
         .pipe(widget_filter, "indicator_type", default="4-level vaccination and intent")
         .pipe(widget_filter, "indicator", default="received a vaccination")

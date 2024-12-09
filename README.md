@@ -26,7 +26,7 @@ The data have these columns, in order, with these types:
 | `geography_type` | String  |
 | `geography`      | String  |
 | `domain_type`    | String  |
-| `domain_value`   | String  |
+| `domain`         | String  |
 | `indicator_type` | String  |
 | `indicator`      | String  |
 | `time_type`      | String  |
@@ -67,7 +67,7 @@ Rows that were suppressed in the raw data are dropped. This includes data with s
 
 - There are multiple types, including `"age"`
 
-### `domain_value`
+### `domain`
 
 - If `domain_type` is `"age"`, then this is the age group, with the form `"x-y years"` or `"x+ years"`
 

@@ -98,7 +98,7 @@ class Validate:
         # domains ------------------------------------------------------------
         # age groups should have the form "18-49 years" or "65+ years"
         age_groups = df.filter(pl.col("domain_type") == pl.lit("age"))[
-            "domain_value"
+            "domain"
         ].unique()
         invalid_age_groups = age_groups.filter(
             cls.is_valid_age_group(age_groups).not_()

@@ -147,7 +147,7 @@ def _clean_domain_indicator_expr(type_: pl.Expr, value: pl.Expr) -> pl.Expr:
 
     domain_type = group.replace({"place": "age"})
 
-    domain_value = (
+    domain = (
         pl.when(group == pl.lit("place"))
         .then(_clean_age(type_))
         .when(group.is_in(["age", "age_risk"]))
@@ -170,7 +170,7 @@ def _clean_domain_indicator_expr(type_: pl.Expr, value: pl.Expr) -> pl.Expr:
 
     return pl.struct(
         domain_type=domain_type,
-        domain_value=domain_value,
+        domain=domain,
         indicator_type=indicator_type,
         indicator=indicator,
     )
