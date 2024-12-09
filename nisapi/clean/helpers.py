@@ -258,19 +258,7 @@ def remove_near_duplicates(
 
 
 def replace_overall_demographic_value(df: pl.LazyFrame) -> pl.LazyFrame:
-    return df.with_columns(
-        _replace_overall_demographic_value_expr(
-            pl.col("demographic_type"), pl.col("demographic_value")
-        ).alias("demographic_value")
-    )
-
-
-def _replace_overall_demographic_value_expr(type_: pl.Expr, value: pl.Expr) -> pl.Expr:
-    return (
-        pl.when(pl.col("demographic_type") == pl.lit("overall"))
-        .then(pl.lit("overall"))
-        .otherwise(pl.col("demographic_value"))
-    )
+    return df.with_columns(pl.col("demographic_type").replace({"overall": "age"}))
 
 
 def _mean_max_diff(x: pl.Expr, tolerance: float) -> pl.Expr:

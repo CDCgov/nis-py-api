@@ -1,6 +1,7 @@
-import nisapi
-import yaml
 import polars as pl
+import yaml
+
+import nisapi
 
 # Load secrets from a top-level file `secrets.yaml` with key `app_token`.
 with open("scripts/secrets.yaml") as f:
@@ -11,7 +12,7 @@ with open("scripts/secrets.yaml") as f:
 nisapi.cache_all_datasets(app_token=app_token)
 
 # Pull a subset of the data that's currently available
-df = (
+(
     nisapi.get_nis()
     .filter(
         # national data
@@ -31,6 +32,5 @@ df = (
     # get the first few rows
     .head(10)
     .collect()
+    .glimpse()
 )
-
-print(df)
