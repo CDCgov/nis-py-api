@@ -233,15 +233,12 @@ def clean(df: pl.LazyFrame) -> pl.LazyFrame:
                 }
             )
         )
-        .rename({"geography": "geography_name"})
+        .rename({"geography_type": "geography_type", "geography_name": "geography"})
         .pipe(
             clean_geography,
             type_column="geography_type",
-            name_column="geography_name",
+            name_column="geography",
             fips_column="fips",
-        )
-        .rename(
-            {"geography_type": "geographic_type", "geography_name": "geographic_value"}
         )
         .with_columns(pl.lit("month").alias("time_type"))
         .pipe(clean_time, year_season_column="year_season", month_column="month")

@@ -20,21 +20,21 @@ Python API to the National Immunization Survey (NIS) data.
 
 The data have these columns, in order, with these types:
 
-| column             | type    |
-| ------------------ | ------- |
-| `vaccine`          | String  |
-| `geographic_type`  | String  |
-| `geographic_value` | String  |
-| `domain_type`      | String  |
-| `domain_value`     | String  |
-| `indicator_type`   | String  |
-| `indicator_value`  | String  |
-| `time_type`        | String  |
-| `time_start`       | Date    |
-| `time_end`         | Date    |
-| `estimate`         | Float64 |
-| `lci`              | Float64 |
-| `uci`              | Float64 |
+| column            | type    |
+| ----------------- | ------- |
+| `vaccine`         | String  |
+| `geography_type`  | String  |
+| `geography`       | String  |
+| `domain_type`     | String  |
+| `domain_value`    | String  |
+| `indicator_type`  | String  |
+| `indicator_value` | String  |
+| `time_type`       | String  |
+| `time_start`      | Date    |
+| `time_end`        | Date    |
+| `estimate`        | Float64 |
+| `lci`             | Float64 |
+| `uci`             | Float64 |
 
 Note the paired use of "type" and "value" columns.
 
@@ -44,7 +44,7 @@ Rows that were suppressed in the raw data are dropped. This includes data with s
 
 - One of `"flu"` or `"covid"`
 
-### `geographic_type`
+### `geography_type`
 
 - One of `"nation"`, `"region"`, `"admin1"`, `"substate"`, `"county"`
 - "Region" means HHS Region
@@ -55,9 +55,9 @@ Rows that were suppressed in the raw data are dropped. This includes data with s
   - Philadelphia and the rest of Pennsylvania
   - Bexar County, City of Houston, and the rest of Texas
 
-### `geographic_value`
+### `geography`
 
-- If `geographic_type` is `"nation"`, then this is `"nation"`
+- If `geography_type` is `"nation"`, then this is `"nation"`
 - If `"region"`, then a string of the form `"Region 1"`
 - If `"admin1"`, then the full name of the jurisdiction
 - If `"substate"`, no validation is currently applied

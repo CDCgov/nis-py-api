@@ -92,7 +92,7 @@ class Validate:
 
         # Geography ---------------------------------------------------------------
         errors += cls.validate_geography(
-            df, type_column="geographic_type", value_column="geographic_value"
+            df, type_column="geography_type", value_column="geography"
         )
 
         # domains ------------------------------------------------------------

@@ -7,8 +7,8 @@ import polars as pl
 data_schema = pl.Schema(
     [
         ("vaccine", pl.String),
-        ("geographic_type", pl.String),
-        ("geographic_value", pl.String),
+        ("geography_type", pl.String),
+        ("geography", pl.String),
         ("domain_type", pl.String),
         ("domain_value", pl.String),
         ("indicator_type", pl.String),
@@ -119,7 +119,7 @@ def set_lowercase(df: pl.LazyFrame) -> pl.LazyFrame:
         pl.col(
             [
                 "vaccine",
-                "geographic_type",
+                "geography_type",
                 "domain_type",
                 "indicator_value",
                 "indicator_type",
@@ -150,10 +150,10 @@ def clean_geography(df: pl.LazyFrame) -> pl.LazyFrame:
     # Change from "national" to "nation", so that types are nouns rather
     # than adjectives. (Otherwise we would need to change "region" to "regional")
     return df.with_columns(
-        pl.col("geographic_type").replace({"national": "nation"}),
-        pl.col("geographic_value").replace({"National": "nation"}),
+        pl.col("geography_type").replace({"national": "nation"}),
+        pl.col("geography").replace({"National": "nation"}),
     ).with_columns(
-        pl.col("geographic_type").replace_strict(
+        pl.col("geography_type").replace_strict(
             {
                 "nation": "nation",
                 "state": "admin1",
@@ -175,8 +175,8 @@ def rename_indicator_columns(df: pl.DataFrame) -> pl.DataFrame:
     """
     return df.rename(
         {
-            "geographic_level": "geographic_type",
-            "geographic_name": "geographic_value",
+            "geographic_level": "geography_type",
+            "geographic_name": "geography",
             "demographic_level": "domain_type",
             "demographic_name": "domain_value",
             "indicator_label": "indicator_type",

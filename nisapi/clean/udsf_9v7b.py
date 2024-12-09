@@ -32,18 +32,18 @@ def _clean_geography_expr(type_: pl.Expr, value: pl.Expr) -> pl.Expr:
         .then(value)
     )
 
-    return pl.struct(geographic_type=out_type, geographic_value=out_value)
+    return pl.struct(geography_type=out_type, geography=out_value)
 
 
 def clean_geography(df: pl.DataFrame) -> pl.DataFrame:
     geography_column = str(uuid.uuid1())
     return (
         df.with_columns(
-            _clean_geography_expr(
-                pl.col("geographic_type"), pl.col("geographic_value")
-            ).alias(geography_column)
+            _clean_geography_expr(pl.col("geography_type"), pl.col("geography")).alias(
+                geography_column
+            )
         )
-        .drop(["geographic_type", "geographic_value"])
+        .drop(["geography_type", "geography"])
         .unnest(geography_column)
     )
 
@@ -128,8 +128,8 @@ def clean(df: pl.LazyFrame) -> pl.LazyFrame:
     return (
         df.rename(
             {
-                "geography_type": "geographic_type",
-                "geography": "geographic_value",
+                "geography_type": "geography_type",
+                "geography": "geography",
                 "group_name": "domain_type",
                 "group_category": "domain_value",
                 "indicator_name": "indicator_type",

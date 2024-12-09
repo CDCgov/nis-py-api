@@ -40,11 +40,11 @@ if __name__ == "__main__":
         nis.pipe(widget_filter, "vaccine", default="flu")
         .pipe(
             widget_filter,
-            "geographic_type",
+            "geography_type",
             default="nation",
             options=["nation", "region", "admin1", "substate"],
         )
-        .pipe(widget_filter, "geographic_value")
+        .pipe(widget_filter, "geography")
         .pipe(widget_filter, "domain_type", default="age")
         .pipe(widget_filter, "domain_value", default="18+ years")
         .pipe(widget_filter, "time_type", default="week")

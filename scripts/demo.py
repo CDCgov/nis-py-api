@@ -16,7 +16,7 @@ nisapi.cache_all_datasets(app_token=app_token)
     nisapi.get_nis()
     .filter(
         # national data
-        pl.col("geographic_type") == pl.lit("nation"),
+        pl.col("geography_type") == pl.lit("nation"),
         # by age group
         pl.col("domain_type") == pl.lit("age"),
         # showing %vaccinated through time
