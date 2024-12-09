@@ -6,7 +6,7 @@
   notes:
     - One row (national, Pacific Islander, 2023-04-29) has a suppression flag, a null sample size, but a non-null estimate. This row was dropped.
     - "There is a typo column in column names: `estimates` rather than `estimate`"
-    - When demographic type is "overall"`, demographic value "18+ years". Clean data changes this value to "overall".
+    - When domain type is "overall"`, domain value is "18+ years". Clean data changes this value to "age".
     - There are some rows that are duplicated, except for point estimate and CIs, which are rounded to different places. Clean data takes the mean over these rows.
     - In some cases, the estimate minus the half 95% CI yields a value lower than 0. In those cases, the lower bound is replaced with zero.
 - id: ksfb-ug5d
@@ -15,7 +15,7 @@
   start_date: 2023-09-24
   universe: 18+ years old
   notes:
-    - When demographic type is "overall"`, demographic value "18+ years". Clean data changes this value to "overall".
+    - When domain type is "overall"`, domain value is "18+ years". Clean data changes this value to "age".
     - There are some rows that are duplicated, except for point estimate and CIs, which are rounded to different places. Clean data takes the mean over these rows.
 - id: udsf-9v7b
   url: https://data.cdc.gov/Vaccinations/National-Immunization-Survey-Adult-COVID-Module-NI/udsf-9v7b/about_data

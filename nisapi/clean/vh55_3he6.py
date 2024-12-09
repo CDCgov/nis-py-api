@@ -105,14 +105,12 @@ def _clean_time_season_expr(season: pl.Expr, month: pl.Expr) -> pl.Expr:
     return pl.date(year=year, month=month, day=1)
 
 
-def clean_demography_indicator(
+def clean_domain_indicator(
     df: pl.LazyFrame, type_column: str, value_column: str
 ) -> pl.LazyFrame:
     new_column_name = str(uuid.uuid1())
 
-    new_column = _clean_demography_indicator_expr(
-        pl.col(type_column), pl.col(value_column)
-    )
+    new_column = _clean_domain_indicator_expr(pl.col(type_column), pl.col(value_column))
     return (
         df.with_columns(new_column.alias(new_column_name))
         .drop([type_column, value_column])
@@ -120,7 +118,7 @@ def clean_demography_indicator(
     )
 
 
-def _clean_demography_indicator_expr(type_: pl.Expr, value: pl.Expr) -> pl.Expr:
+def _clean_domain_indicator_expr(type_: pl.Expr, value: pl.Expr) -> pl.Expr:
     place_age_groups = [
         "6 Months - 17 Years",
         ">=18 Years",
@@ -147,9 +145,9 @@ def _clean_demography_indicator_expr(type_: pl.Expr, value: pl.Expr) -> pl.Expr:
         .then(pl.lit("place"))
     )
 
-    demography_type = group.replace({"place": "age"})
+    domain_type = group.replace({"place": "age"})
 
-    demography_value = (
+    domain_value = (
         pl.when(group == pl.lit("place"))
         .then(_clean_age(type_))
         .when(group.is_in(["age", "age_risk"]))
@@ -171,8 +169,8 @@ def _clean_demography_indicator_expr(type_: pl.Expr, value: pl.Expr) -> pl.Expr:
     )
 
     return pl.struct(
-        demographic_type=demography_type,
-        demographic_value=demography_value,
+        domain_type=domain_type,
+        domain_value=domain_value,
         indicator_type=indicator_type,
         indicator_value=indicator_value,
     )
@@ -248,7 +246,7 @@ def clean(df: pl.LazyFrame) -> pl.LazyFrame:
         .with_columns(pl.lit("month").alias("time_type"))
         .pipe(clean_time, year_season_column="year_season", month_column="month")
         .pipe(
-            clean_demography_indicator,
+            clean_domain_indicator,
             type_column="dimension_type",
             value_column="dimension",
         )

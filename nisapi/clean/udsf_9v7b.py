@@ -1,6 +1,8 @@
-import polars as pl
-import uuid
 import calendar
+import uuid
+
+import polars as pl
+
 from nisapi.clean.helpers import admin1_values, drop_suppressed_rows, enforce_columns
 
 
@@ -104,21 +106,21 @@ def parse_time_period(df: pl.DataFrame) -> pl.DataFrame:
     )
 
 
-def enforce_overall_demography(df: pl.LazyFrame) -> pl.LazyFrame:
+def enforce_overall_domain(df: pl.LazyFrame) -> pl.LazyFrame:
     """
-    Replace overall demographic type ("All adults 18+") and value
+    Replace overall domain type ("All adults 18+") and value
     ("All adults age 18+ years") with "overall"
     """
     return df.with_columns(
-        pl.when(pl.col("demographic_type") == pl.lit("All adults 18+"))
+        pl.when(pl.col("domain_type") == pl.lit("All adults 18+"))
         .then(pl.lit("overall"))
-        .otherwise(pl.col("demographic_type"))
-        .alias("demographic_type"),
+        .otherwise(pl.col("domain_type"))
+        .alias("domain_type"),
     ).with_columns(
-        pl.when(pl.col("demographic_type") == pl.lit("overall"))
+        pl.when(pl.col("domain_type") == pl.lit("overall"))
         .then(pl.lit("overall"))
-        .otherwise(pl.col("demographic_value"))
-        .alias("demographic_value")
+        .otherwise(pl.col("domain_value"))
+        .alias("domain_value")
     )
 
 
@@ -128,8 +130,8 @@ def clean(df: pl.LazyFrame) -> pl.LazyFrame:
             {
                 "geography_type": "geographic_type",
                 "geography": "geographic_value",
-                "group_name": "demographic_type",
-                "group_category": "demographic_value",
+                "group_name": "domain_type",
+                "group_category": "domain_value",
                 "indicator_name": "indicator_type",
                 "indicator_category": "indicator_value",
             }
@@ -143,8 +145,8 @@ def clean(df: pl.LazyFrame) -> pl.LazyFrame:
         .with_columns(
             pl.col("time_type").replace_strict({"Monthly": "month", "Weekly": "week"})
         )
-        .with_columns(pl.col("demographic_value").pipe(clean_age_group))
-        .pipe(enforce_overall_demography)
+        .with_columns(pl.col("domain_value").pipe(clean_age_group))
+        .pipe(enforce_overall_domain)
         .pipe(clean_geography)
         .pipe(enforce_columns)
         # drop duplicate rows
