@@ -1,12 +1,10 @@
 # nis-py-api
 
-Python API to the National Immunization Survey (NIS) data.
-
-:construction: This tool is in alpha development. The API and data schema are not stable.
+Python API to access parts of the [National Immunization Survey](https://www.cdc.gov/nis/about/index.html) (NIS) data available via <https://data.cdc.gov/>. This package helps with data download, cleaning, and caching, ensuring quick access to data that have consistent field names and certain validations.
 
 ## Getting started
 
-- This a poetry-enabled project.
+- This a poetry-enabled project. Use `poetry install` to install.
 - Get a [Socrata app token](https://support.socrata.com/hc/en-us/articles/210138558-Generating-App-Tokens-and-API-Keys). Copy `scripts/secrets_template.yaml` to `scripts/secrets.yaml` and fill out the `app_token`.
 - See `scripts/demo.py` for an example of how to cache and query the data:
   - `nisapi.cache_all_datasets()` to download, clean, and cache data
@@ -14,7 +12,7 @@ Python API to the National Immunization Survey (NIS) data.
   - `nisapi.delete_cache()` to clear the cache, if needed
 - See `scripts/demo_clean.py` for an example of a script that you could run while iteratively developing the cleaning code in `nisapi/clean/`.
 - See `scripts/demo_cloud.py` for a demo of how the data could be downloaded, cleaned, uploaded to Azure Blob Storage, and then downloaded from there. You will need to fill out the `azure:` keys in `secrets.yaml`.
-- run `streamlit run scripts/demo_streamlit.py` to quickly query and visualize the data with a [streamlit](https://streamlit.io/) app.
+- Run `streamlit run scripts/demo_streamlit.py` to quickly query and visualize the data with a [streamlit](https://streamlit.io/) app.
 
 ## Data dictionary
 
@@ -36,7 +34,7 @@ The data have these columns, in order, with these types:
 | `lci`            | Float64 |
 | `uci`            | Float64 |
 
-Note the paired use of "type" and "value" columns.
+Note the pairs `geography_type` and `geography`, `domain_type` and `domain`, and `indicator_type` and `indicator`.
 
 Rows that were suppressed in the raw data are dropped. This includes data with suppression flag `"1"`, indicating small sample size, and data with flag `"."`, which may indicate that data were not collected.
 
@@ -48,11 +46,11 @@ Rows that were suppressed in the raw data are dropped. This includes data with s
 
 - One of `"nation"`, `"region"`, `"admin1"`, `"substate"`, `"county"`
 - "Region" means HHS Region
-- First-level administrative divisions include US states, territories, and the District of Columbia
+- First-level administrative divisions (`"admin1"`) include US states, territories, and the District of Columbia
 - "Substate" includes:
-  - Chicago and the rest of Illinois
-  - New York City and the rest of New York
-  - Philadelphia and the rest of Pennsylvania
+  - Chicago, and the rest of Illinois
+  - New York City, and the rest of New York
+  - Philadelphia, and the rest of Pennsylvania
   - Bexar County, City of Houston, and the rest of Texas
 
 ### `geography`
@@ -69,7 +67,7 @@ Rows that were suppressed in the raw data are dropped. This includes data with s
 
 ### `domain`
 
-- If `domain_type` is `"age"`, then this is the age group, with the form `"x-y years"` or `"x+ years"`
+- If `domain_type` is `"age"`, then this is the age group, with the form `"x-y years"`, `"x-y months"`, `"x+ years"`, `"x+ months"`, or `"x months-y years"`
 
 ### `indicator_type`
 
@@ -86,9 +84,9 @@ Rows that were suppressed in the raw data are dropped. This includes data with s
 
 ### `time_start` and `time_end`
 
-Period of time associated with the observation. Note that "monthly" and "weekly" observations do not always align with calendar weeks or months, so we specify the two dates explicitly.
-
-- Time start is always before time end
+- Period of time associated with the observation. Note that "monthly" and "weekly" observations do not always align with calendar weeks or months, so we specify the two dates explicitly.
+- Certain assumptions were made about `time_start` dates for datasets that provided "week ending" dates.
+- Time start is always before time end.
 
 ### `estimate`
 
@@ -119,15 +117,11 @@ Period of time associated with the observation. Note that "monthly" and "weekly"
 7. Open a PR.
    - Include any validations if you needed to correct an anomaly.
 
-### Standard Notice
-
-Anyone is encouraged to contribute to the repository by [forking](https://help.github.com/articles/fork-a-repo) and submitting a pull request. (If you are new to GitHub, you might start with a [basic tutorial](https://help.github.com/articles/set-up-git).) By contributing to this project, you grant a world-wide, royalty-free, perpetual, irrevocable, non-exclusive, transferable license to all users under the terms of the [Apache Software License v2](http://www.apache.org/licenses/LICENSE-2.0.html) or later.
-
-All comments, messages, pull requests, and other submissions received through CDC including this GitHub page may be subject to applicable federal law, including but not limited to the Federal Records Act, and may be archived. Learn more at [http://www.cdc.gov/other/privacy.html](http://www.cdc.gov/other/privacy.html).
-
 ## Project Admin
 
 - Scott Olesen <ulp7@cdc.gov> (CDC/CFA)
+
+---
 
 ## General Disclaimer
 
@@ -148,3 +142,9 @@ This repository contains only non-sensitive, publicly available data and informa
 ## Records Management Standard Notice
 
 This repository is not a source of government records but is a copy to increase collaboration and collaborative potential. All government records will be published through the [CDC web site](http://www.cdc.gov).
+
+## Standard Notice
+
+Anyone is encouraged to contribute to the repository by [forking](https://help.github.com/articles/fork-a-repo) and submitting a pull request. (If you are new to GitHub, you might start with a [basic tutorial](https://help.github.com/articles/set-up-git).) By contributing to this project, you grant a world-wide, royalty-free, perpetual, irrevocable, non-exclusive, transferable license to all users under the terms of the [Apache Software License v2](http://www.apache.org/licenses/LICENSE-2.0.html) or later.
+
+All comments, messages, pull requests, and other submissions received through CDC including this GitHub page may be subject to applicable federal law, including but not limited to the Federal Records Act, and may be archived. Learn more at [http://www.cdc.gov/other/privacy.html](http://www.cdc.gov/other/privacy.html).
