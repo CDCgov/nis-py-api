@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "nisapi"
-version = "1.0.0"
+version = "1.0.1"
 description = ""
 authors = ["Scott Olesen <ulp7@cdc.gov>"]
 readme = "README.md"
