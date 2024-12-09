@@ -36,4 +36,5 @@
   universe: 6 months and older
   notes:
     - Includes seasonal influenza and 2009 H1N1 monovalent vaccines.
+    - H1N1 vaccines had two age groups "25-64 years not in initial target group" and "25-64 years not in initial target group". These were collapsed into "at high risk" and "not at high risk", to be consistent with other age groups.
     - County-level data are reported by survey year rather than influenza season.

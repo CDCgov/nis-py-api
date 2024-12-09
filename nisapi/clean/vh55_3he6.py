@@ -133,7 +133,12 @@ def _clean_demography_indicator_expr(type_: pl.Expr, value: pl.Expr) -> pl.Expr:
     # "dimension" is place of vaccination), the word "Age", and the phrase
     # "Race and Ethnicity"
     group = (
-        pl.when(type_ == pl.lit("Age"))
+        pl.when(
+            (type_ == pl.lit("Age"))
+            & (value.str.to_lowercase().str.contains("(risk|target)"))
+        )
+        .then(pl.lit("age_risk"))
+        .when(type_ == pl.lit("Age"))
         .then(pl.lit("age"))
         .when(type_ == pl.lit("Race and Ethnicity"))
         .then(pl.lit("race/ethnicity"))
@@ -141,14 +146,12 @@ def _clean_demography_indicator_expr(type_: pl.Expr, value: pl.Expr) -> pl.Expr:
         .then(pl.lit("place"))
     )
 
-    demography_type = group.replace_strict(
-        {"place": "age", "age": "age", "race/ethnicity": "race/ethnicity"}
-    )
+    demography_type = group.replace({"place": "age"})
 
     demography_value = (
         pl.when(group == pl.lit("place"))
         .then(_clean_age(type_))
-        .when(group == pl.lit("age"))
+        .when(group.is_in(["age", "age_risk"]))
         .then(_clean_age(value))
         .when(group == "race/ethnicity")
         .then(value)
@@ -184,6 +187,8 @@ def _clean_age(x: pl.Expr) -> pl.Expr:
                 "greater 65": "65+ years",
                 "greater than 18 years flu": "18+ years",
                 "greater than 6 months flu": "6+ months",
+                "at high risk (initial target group)": "at high risk",
+                "not in initial target group": "not at high risk",
             }
         )
     )
