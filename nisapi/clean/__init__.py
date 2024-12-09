@@ -4,6 +4,7 @@ import polars.testing
 import nisapi.clean.ksfb_ug5d
 import nisapi.clean.sw5n_wg2p
 import nisapi.clean.udsf_9v7b
+import nisapi.clean.vh55_3he6
 from nisapi.clean.helpers import (
     admin1_values,
     data_schema,
@@ -30,6 +31,8 @@ def clean_dataset(df: pl.DataFrame, id: str) -> pl.DataFrame:
         out = nisapi.clean.sw5n_wg2p.clean(df)
     elif id == "ksfb-ug5d":
         out = nisapi.clean.ksfb_ug5d.clean(df)
+    elif id == "vh55-3he6":
+        out = nisapi.clean.vh55_3he6.clean(df)
     else:
         raise RuntimeError(f"No cleaning set up for dataset {id}")
 
