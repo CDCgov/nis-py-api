@@ -1,6 +1,7 @@
-import polars as pl
 import uuid
 from typing import Sequence
+
+import polars as pl
 
 """Data schema to be used for all datasets"""
 data_schema = pl.Schema(
@@ -287,29 +288,6 @@ def ensure_eager(df: pl.DataFrame | pl.LazyFrame) -> pl.DataFrame:
         return df.collect()
     else:
         raise RuntimeError(f"Cannot collect object of type {type(df)}")
-
-
-def is_valid_geography(type_: pl.Series, value: pl.Series) -> bool:
-    return (
-        # type must be in a certain set
-        type_.is_in(["nation", "region", "admin1", "substate"]).all()
-        # if type is "nation", value must also be "nation"
-        and (value.filter(type_ == "nation") == "nation").all()
-        # if type is "region", must be of the form "Region 1"
-        and value.filter(type_ == "region").str.contains(r"^Region \d+$").all()
-        # if type is "admin1", value must be in a specific list
-        and value.filter(type_ == "admin1").is_in(admin1_values).all()
-        # no validation applies to substate
-    )
-
-
-def is_valid_age_groups(x: pl.Series) -> bool:
-    """Validate that a series of age groups is valid
-
-    Args:
-        x (pl.Series): series of age groups
-    """
-    return x.str.contains(r"^(\d+-\d+|\d+\+) years$").all()
 
 
 def week_ending_to_times(df: pl.LazyFrame) -> pl.LazyFrame:

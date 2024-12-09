@@ -46,9 +46,14 @@ Rows that were suppressed in the raw data are dropped. This includes data with s
 
 ### `geographic_type`
 
-- One of `"nation"`, `"region"`, `"admin1"`, `"substate"`
+- One of `"nation"`, `"region"`, `"admin1"`, `"substate"`, `"county"`
 - "Region" means HHS Region
 - First-level administrative divisions include US states, territories, and the District of Columbia
+- "Substate" includes:
+  - Chicago and the rest of Illinois
+  - New York City and the rest of New York
+  - Philadelphia and the rest of Pennsylvania
+  - Bexar County, City of Houston, and the rest of Texas
 
 ### `geographic_value`
 
@@ -56,6 +61,7 @@ Rows that were suppressed in the raw data are dropped. This includes data with s
 - If `"region"`, then a string of the form `"Region 1"`
 - If `"admin1"`, then the full name of the jurisdiction
 - If `"substate"`, no validation is currently applied
+- If `"county"`, then the 5-digit FIPS code
 
 ### `demographic_type`
 
