@@ -1,9 +1,10 @@
 import polars as pl
 import polars.testing
+
+from nisapi.clean import Validate
 from nisapi.clean.helpers import (
-    remove_near_duplicates,
     _mean_max_diff,
-    is_valid_age_groups,
+    remove_near_duplicates,
     rows_with_any_null,
 )
 
@@ -80,20 +81,22 @@ def test_remove_near_duplicates_multiple_values():
 
 
 def test_validate_age_groups():
-    assert is_valid_age_groups(pl.Series(["18-49 years"]))
+    assert Validate.is_valid_age_group(
+        pl.Series(["18-49 years", "50-64 years", "65+ years"])
+    ).all()
 
-    assert is_valid_age_groups(pl.Series(["65+ years"]))
-
-    assert is_valid_age_groups(pl.Series(["18-49 years", "50-64 years", "65+ years"]))
-
-    # en dash should fail
-    assert not is_valid_age_groups(pl.Series(["18–49 years"]))
-
-    # missing "years" should fail
-    assert not is_valid_age_groups(pl.Series(["18-49"]))
-
-    # fail if there are spaces
-    assert not is_valid_age_groups(pl.Series(["18 - 49 years"]))
+    assert not Validate.is_valid_age_group(
+        pl.Series(
+            [
+                # en dash should fail
+                "18–49 years"
+                # missing "years" should fail
+                "18-49",
+                # fail if there are spaces
+                "18 - 49 years",
+            ]
+        )
+    ).any()
 
 
 def test_row_has_null():
