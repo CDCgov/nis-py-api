@@ -20,21 +20,21 @@ Python API to the National Immunization Survey (NIS) data.
 
 The data have these columns, in order, with these types:
 
-| column            | type    |
-| ----------------- | ------- |
-| `vaccine`         | String  |
-| `geography_type`  | String  |
-| `geography`       | String  |
-| `domain_type`     | String  |
-| `domain_value`    | String  |
-| `indicator_type`  | String  |
-| `indicator_value` | String  |
-| `time_type`       | String  |
-| `time_start`      | Date    |
-| `time_end`        | Date    |
-| `estimate`        | Float64 |
-| `lci`             | Float64 |
-| `uci`             | Float64 |
+| column           | type    |
+| ---------------- | ------- |
+| `vaccine`        | String  |
+| `geography_type` | String  |
+| `geography`      | String  |
+| `domain_type`    | String  |
+| `domain_value`   | String  |
+| `indicator_type` | String  |
+| `indicator`      | String  |
+| `time_type`      | String  |
+| `time_start`     | Date    |
+| `time_end`       | Date    |
+| `estimate`       | Float64 |
+| `lci`            | Float64 |
+| `uci`            | Float64 |
 
 Note the paired use of "type" and "value" columns.
 
@@ -76,7 +76,7 @@ Rows that were suppressed in the raw data are dropped. This includes data with s
 - In newer data, this is always `"4-level vaccination and intent"`
 - In historical COVID-19 and flu data, there are a wide range of indicators
 
-### `indicator_value`
+### `indicator`
 
 - The value of the indicator, e.g., `"received a vaccination"`
 

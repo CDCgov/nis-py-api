@@ -133,7 +133,7 @@ def clean(df: pl.LazyFrame) -> pl.LazyFrame:
                 "group_name": "domain_type",
                 "group_category": "domain_value",
                 "indicator_name": "indicator_type",
-                "indicator_category": "indicator_value",
+                "indicator_category": "indicator",
             }
         )
         .with_columns(vaccine=pl.lit("covid"))

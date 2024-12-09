@@ -20,7 +20,7 @@ nisapi.cache_all_datasets(app_token=app_token)
         # by age group
         pl.col("domain_type") == pl.lit("age"),
         # showing %vaccinated through time
-        pl.col("indicator_value") == pl.lit("received a vaccination"),
+        pl.col("indicator") == pl.lit("received a vaccination"),
     )
     # get the first few rows
     .head(10)

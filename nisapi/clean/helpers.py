@@ -12,7 +12,7 @@ data_schema = pl.Schema(
         ("domain_type", pl.String),
         ("domain_value", pl.String),
         ("indicator_type", pl.String),
-        ("indicator_value", pl.String),
+        ("indicator", pl.String),
         ("time_type", pl.String),
         ("time_start", pl.Date),
         ("time_end", pl.Date),
@@ -85,7 +85,7 @@ def clean_4_level(df: pl.LazyFrame) -> pl.LazyFrame:
     # Verify that indicator type "up-to-date" has only one value ("yes")
     assert (
         df.filter(pl.col("indicator_type") == pl.lit("up-to-date"))
-        .select((pl.col("indicator_value") == pl.lit("yes")).all())
+        .select((pl.col("indicator") == pl.lit("yes")).all())
         .pipe(ensure_eager)
         .item()
     )
@@ -93,10 +93,10 @@ def clean_4_level(df: pl.LazyFrame) -> pl.LazyFrame:
     # check that "Yes" and "Received a vaccination" are the same thing, so that
     # we can drop "Up to Date"
     assert (
-        df.filter(pl.col("indicator_value").is_in(["yes", "received a vaccination"]))
+        df.filter(pl.col("indicator").is_in(["yes", "received a vaccination"]))
         .drop("indicator_type")
         .pipe(ensure_eager)
-        .pivot(on="indicator_value", values=["estimate", "ci_half_width_95pct"])
+        .pivot(on="indicator", values=["estimate", "ci_half_width_95pct"])
         .select(
             (
                 (pl.col("estimate_yes") == pl.col("estimate_received a vaccination"))
@@ -121,7 +121,7 @@ def set_lowercase(df: pl.LazyFrame) -> pl.LazyFrame:
                 "vaccine",
                 "geography_type",
                 "domain_type",
-                "indicator_value",
+                "indicator",
                 "indicator_type",
             ]
         ).str.to_lowercase()
@@ -180,7 +180,7 @@ def rename_indicator_columns(df: pl.DataFrame) -> pl.DataFrame:
             "demographic_level": "domain_type",
             "demographic_name": "domain_value",
             "indicator_label": "indicator_type",
-            "indicator_category_label": "indicator_value",
+            "indicator_category_label": "indicator",
         }
     )
 

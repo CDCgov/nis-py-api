@@ -162,7 +162,7 @@ def _clean_domain_indicator_expr(type_: pl.Expr, value: pl.Expr) -> pl.Expr:
         .otherwise(pl.lit("uptake"))
     )
 
-    indicator_value = (
+    indicator = (
         pl.when(group == pl.lit("place"))
         .then(value)
         .otherwise(pl.lit("received a vaccination"))
@@ -172,7 +172,7 @@ def _clean_domain_indicator_expr(type_: pl.Expr, value: pl.Expr) -> pl.Expr:
         domain_type=domain_type,
         domain_value=domain_value,
         indicator_type=indicator_type,
-        indicator_value=indicator_value,
+        indicator=indicator,
     )
 
 
