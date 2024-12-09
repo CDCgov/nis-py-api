@@ -2,7 +2,7 @@
   url: https://data.cdc.gov/Flu-Vaccinations/Weekly-Influenza-Vaccination-Coverage-and-Intent-f/sw5n-wg2p/
   vaccine: flu
   universe: 18+ years old
-  start_date: 2021-10-02
+  start_date: 2023-09-24
   notes:
     - One row (national, Pacific Islander, 2023-04-29) has a suppression flag, a null sample size, but a non-null estimate. This row was dropped.
     - "There is a typo column in column names: `estimates` rather than `estimate`"
@@ -12,7 +12,7 @@
 - id: ksfb-ug5d
   url: https://data.cdc.gov/Vaccinations/Weekly-Cumulative-COVID-19-Vaccination-Coverage-an/ksfb-ug5d/about_data
   vaccine: covid
-  start_date: 2021-10-02
+  start_date: 2023-09-24
   universe: 18+ years old
   notes:
     - When demographic type is "overall"`, demographic value "18+ years". Clean data changes this value to "overall".
@@ -33,7 +33,8 @@
 - id: vh55-3he6
   url: https://data.cdc.gov/Flu-Vaccinations/Influenza-Vaccination-Coverage-for-All-Ages-6-Mont/vh55-3he6/about_data
   vaccine: flu
-  universe: 6 months and older
+  start_date: 2009-08-01
+  universe: 6+ months old
   notes:
     - Includes seasonal influenza and 2009 H1N1 monovalent vaccines.
     - H1N1 vaccines had two age groups "25-64 years not in initial target group" and "25-64 years not in initial target group". These were collapsed into "at high risk" and "not at high risk", to be consistent with other age groups.

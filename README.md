@@ -65,18 +65,16 @@ Rows that were suppressed in the raw data are dropped. This includes data with s
 
 ### `demographic_type`
 
-- There are multiple types, including `"overall"` and `"age"`
-- Note that "overall" might refer only to certain age groups (e.g., 18+). See the dataset metadata for the relevant universe.
+- There are multiple types, including `"age"`
 
 ### `demographic_value`
 
-- If `demographic_type` is `"overall"`, then this is `"overall"`
 - If `demographic_type` is `"age"`, then this is the age group, with the form `"x-y years"` or `"x+ years"`
 
 ### `indicator_type`
 
 - In newer data, this is always `"4-level vaccination and intent"`
-- In historical COVID-19 data, there are a wide range of indicators
+- In historical COVID-19 and flu data, there are a wide range of indicators
 
 ### `indicator_value`
 
@@ -108,7 +106,7 @@ Period of time associated with the observation. Note that "monthly" and "weekly"
 1. Find the dataset you want to clean on <https://data.cdc.gov/>.
 2. Add the dataset to `nisapi/datasets.yaml`.
    - At a minimum, you must include the dataset ID.
-   - It is helpful to also include URL, vaccine, date range, and universe (i.e., what "overall" demography means).
+   - It is helpful to also include URL, vaccine, date range, and universe.
 3. Create a dataset-specific module in `nisapi/clean/`. It should have a main function `clean()`.
    - Start with a `clean()` function that does nothing and just returns the input data frame.
 4. Add the `import` and `elif` statements for this dataset ID to `clean_dataset()` in `nisapi/clean/__init__.py`.
