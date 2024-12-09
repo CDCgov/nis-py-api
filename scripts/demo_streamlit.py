@@ -1,6 +1,7 @@
-import streamlit as st
 import altair as alt
 import polars as pl
+import streamlit as st
+
 import nisapi
 
 
@@ -44,8 +45,8 @@ if __name__ == "__main__":
             options=["nation", "region", "admin1", "substate"],
         )
         .pipe(widget_filter, "geographic_value")
-        .pipe(widget_filter, "demographic_type", default="overall")
-        .pipe(widget_filter, "demographic_value")
+        .pipe(widget_filter, "demographic_type", default="age")
+        .pipe(widget_filter, "demographic_value", default="18+ years")
         .pipe(widget_filter, "time_type", default="week")
         .pipe(widget_filter, "indicator_type", default="4-level vaccination and intent")
         .pipe(widget_filter, "indicator_value", default="received a vaccination")
