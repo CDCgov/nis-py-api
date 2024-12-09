@@ -1,12 +1,13 @@
+import altair as alt
 import polars as pl
 import yaml
-import nisapi
-from nisapi.clean import Validate
-import nisapi.clean.udsf_9v7b
-import altair as alt
 
-dataset_id = "udsf-9v7b"
-clean_func = nisapi.clean.udsf_9v7b.clean
+import nisapi
+import nisapi.clean.vh55_3he6
+from nisapi.clean import Validate
+
+dataset_id = "vh55-3he6"
+clean_func = nisapi.clean.vh55_3he6.clean
 clean_tmp_path = "scripts/tmp_clean.parquet"
 
 with open("scripts/secrets.yaml") as f:
@@ -29,10 +30,21 @@ clean.collect().write_parquet(clean_tmp_path)
 # this will fail until the dataset cleaning is complete
 Validate(id=dataset_id, df=clean)
 
+
+def date_to_season(date: pl.Expr) -> pl.Expr:
+    return (
+        pl.when(date.dt.month() < 6).then(date.dt.year() - 1).otherwise(date.dt.year())
+    )
+
+
 alt.Chart(
     clean.filter(
         pl.col("geographic_type") == pl.lit("nation"),
-        pl.col("demographic_type") == "overall",
+        pl.col("demographic_value") == "18+ years",
         pl.col("indicator_value") == "received a vaccination",
     )
-).encode(x="week_ending", y="estimate").mark_point().save("scripts/tmp_overall.png")
+    .with_columns(season=date_to_season(pl.col("time_end")))
+    .collect()
+).encode(x="time_end", y="estimate", color="season:N", row="vaccine").mark_line().save(
+    "scripts/tmp_overall.png"
+)
