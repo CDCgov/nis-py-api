@@ -18,16 +18,9 @@ nisapi.cache_all_datasets(app_token=app_token)
         # national data
         pl.col("geographic_type") == pl.lit("nation"),
         # by age group
-        pl.col("demographic_type") == pl.lit("age"),
+        pl.col("domain_type") == pl.lit("age"),
         # showing %vaccinated through time
         pl.col("indicator_value") == pl.lit("received a vaccination"),
-    )
-    .drop(
-        "geographic_type",
-        "geographic_value",
-        "demographic_type",
-        "indicator_type",
-        "indicator_value",
     )
     # get the first few rows
     .head(10)

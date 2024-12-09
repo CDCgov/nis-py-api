@@ -1,16 +1,17 @@
 import polars as pl
+
 from nisapi.clean.helpers import (
-    drop_suppressed_rows,
-    rename_indicator_columns,
-    set_lowercase,
     cast_types,
-    clean_geography,
     clean_4_level,
-    remove_near_duplicates,
-    replace_overall_demographic_value,
-    week_ending_to_times,
-    hci_to_cis,
+    clean_geography,
+    drop_suppressed_rows,
     enforce_columns,
+    hci_to_cis,
+    remove_near_duplicates,
+    rename_indicator_columns,
+    replace_overall_domain_value,
+    set_lowercase,
+    week_ending_to_times,
 )
 
 
@@ -27,5 +28,5 @@ def clean(df: pl.LazyFrame) -> pl.LazyFrame:
         .pipe(week_ending_to_times)
         .pipe(hci_to_cis)
         .pipe(enforce_columns)
-        .pipe(replace_overall_demographic_value)
+        .pipe(replace_overall_domain_value)
     )

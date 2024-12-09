@@ -20,21 +20,21 @@ Python API to the National Immunization Survey (NIS) data.
 
 The data have these columns, in order, with these types:
 
-| column              | type    |
-| ------------------- | ------- |
-| `vaccine`           | String  |
-| `geographic_type`   | String  |
-| `geographic_value`  | String  |
-| `demographic_type`  | String  |
-| `demographic_value` | String  |
-| `indicator_type`    | String  |
-| `indicator_value`   | String  |
-| `time_type`         | String  |
-| `time_start`        | Date    |
-| `time_end`          | Date    |
-| `estimate`          | Float64 |
-| `lci`               | Float64 |
-| `uci`               | Float64 |
+| column             | type    |
+| ------------------ | ------- |
+| `vaccine`          | String  |
+| `geographic_type`  | String  |
+| `geographic_value` | String  |
+| `domain_type`      | String  |
+| `domain_value`     | String  |
+| `indicator_type`   | String  |
+| `indicator_value`  | String  |
+| `time_type`        | String  |
+| `time_start`       | Date    |
+| `time_end`         | Date    |
+| `estimate`         | Float64 |
+| `lci`              | Float64 |
+| `uci`              | Float64 |
 
 Note the paired use of "type" and "value" columns.
 
@@ -63,13 +63,13 @@ Rows that were suppressed in the raw data are dropped. This includes data with s
 - If `"substate"`, no validation is currently applied
 - If `"county"`, then the 5-digit FIPS code
 
-### `demographic_type`
+### `domain_type`
 
 - There are multiple types, including `"age"`
 
-### `demographic_value`
+### `domain_value`
 
-- If `demographic_type` is `"age"`, then this is the age group, with the form `"x-y years"` or `"x+ years"`
+- If `domain_type` is `"age"`, then this is the age group, with the form `"x-y years"` or `"x+ years"`
 
 ### `indicator_type`
 
@@ -92,7 +92,7 @@ Period of time associated with the observation. Note that "monthly" and "weekly"
 
 ### `estimate`
 
-- Proportion (i.e., a number between 0 and 1) of the population (defined by geography and demography) that has the characteristic described by the indicator
+- Proportion (i.e., a number between 0 and 1) of the population (defined by geography and domain) that has the characteristic described by the indicator
 
 ### `lci` and `uci`
 

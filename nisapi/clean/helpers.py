@@ -9,8 +9,8 @@ data_schema = pl.Schema(
         ("vaccine", pl.String),
         ("geographic_type", pl.String),
         ("geographic_value", pl.String),
-        ("demographic_type", pl.String),
-        ("demographic_value", pl.String),
+        ("domain_type", pl.String),
+        ("domain_value", pl.String),
         ("indicator_type", pl.String),
         ("indicator_value", pl.String),
         ("time_type", pl.String),
@@ -120,7 +120,7 @@ def set_lowercase(df: pl.LazyFrame) -> pl.LazyFrame:
             [
                 "vaccine",
                 "geographic_type",
-                "demographic_type",
+                "domain_type",
                 "indicator_value",
                 "indicator_type",
             ]
@@ -171,14 +171,14 @@ def remove_duplicate_rows(df: pl.LazyFrame) -> pl.LazyFrame:
 def rename_indicator_columns(df: pl.DataFrame) -> pl.DataFrame:
     """
     Make "indicator" follow the same logic as "geography" and
-    "demographic", with "type" and "value" columns
+    "domain", with "type" and "value" columns
     """
     return df.rename(
         {
             "geographic_level": "geographic_type",
             "geographic_name": "geographic_value",
-            "demographic_level": "demographic_type",
-            "demographic_name": "demographic_value",
+            "demographic_level": "domain_type",
+            "demographic_name": "domain_value",
             "indicator_label": "indicator_type",
             "indicator_category_label": "indicator_value",
         }
@@ -257,8 +257,8 @@ def remove_near_duplicates(
     return df.group_by(group_columns).agg(pl.col(value_columns).mean())
 
 
-def replace_overall_demographic_value(df: pl.LazyFrame) -> pl.LazyFrame:
-    return df.with_columns(pl.col("demographic_type").replace({"overall": "age"}))
+def replace_overall_domain_value(df: pl.LazyFrame) -> pl.LazyFrame:
+    return df.with_columns(pl.col("domain_type").replace({"overall": "age"}))
 
 
 def _mean_max_diff(x: pl.Expr, tolerance: float) -> pl.Expr:
