@@ -76,7 +76,7 @@ def _get_dataset_ids() -> Sequence[str]:
 def _cache_clean_dataset(
     id: str, root_path: Path, app_token: str = None, overwrite: str = "warn"
 ) -> None:
-    raw_data = _get_nis_raw(id, app_token=app_token)
+    raw_data = _get_nis_raw(id, root_path=root_path, app_token=app_token)
     clean_data = nisapi.clean.clean_dataset(df=raw_data, id=id)
     clean_path_dir = _dataset_cache_path(root_path=root_path, type_="clean", id=id)
     clean_path = clean_path_dir / "part-0.parquet"
