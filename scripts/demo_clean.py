@@ -39,9 +39,9 @@ def date_to_season(date: pl.Expr) -> pl.Expr:
 
 alt.Chart(
     clean.filter(
-        pl.col("geographic_type") == pl.lit("nation"),
-        pl.col("domain_value") == "18+ years",
-        pl.col("indicator_value") == "received a vaccination",
+        pl.col("geography_type") == pl.lit("nation"),
+        pl.col("domain") == "18+ years",
+        pl.col("indicator") == "received a vaccination",
     )
     .with_columns(season=date_to_season(pl.col("time_end")))
     .collect()

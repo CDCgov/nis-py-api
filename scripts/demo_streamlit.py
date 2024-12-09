@@ -40,16 +40,16 @@ if __name__ == "__main__":
         nis.pipe(widget_filter, "vaccine", default="flu")
         .pipe(
             widget_filter,
-            "geographic_type",
+            "geography_type",
             default="nation",
             options=["nation", "region", "admin1", "substate"],
         )
-        .pipe(widget_filter, "geographic_value")
+        .pipe(widget_filter, "geography")
         .pipe(widget_filter, "domain_type", default="age")
-        .pipe(widget_filter, "domain_value", default="18+ years")
+        .pipe(widget_filter, "domain", default="18+ years")
         .pipe(widget_filter, "time_type", default="week")
         .pipe(widget_filter, "indicator_type", default="4-level vaccination and intent")
-        .pipe(widget_filter, "indicator_value", default="received a vaccination")
+        .pipe(widget_filter, "indicator", default="received a vaccination")
     )
 
     datasets = data["id"].unique().to_list()

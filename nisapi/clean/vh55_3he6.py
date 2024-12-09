@@ -147,7 +147,7 @@ def _clean_domain_indicator_expr(type_: pl.Expr, value: pl.Expr) -> pl.Expr:
 
     domain_type = group.replace({"place": "age"})
 
-    domain_value = (
+    domain = (
         pl.when(group == pl.lit("place"))
         .then(_clean_age(type_))
         .when(group.is_in(["age", "age_risk"]))
@@ -162,7 +162,7 @@ def _clean_domain_indicator_expr(type_: pl.Expr, value: pl.Expr) -> pl.Expr:
         .otherwise(pl.lit("uptake"))
     )
 
-    indicator_value = (
+    indicator = (
         pl.when(group == pl.lit("place"))
         .then(value)
         .otherwise(pl.lit("received a vaccination"))
@@ -170,9 +170,9 @@ def _clean_domain_indicator_expr(type_: pl.Expr, value: pl.Expr) -> pl.Expr:
 
     return pl.struct(
         domain_type=domain_type,
-        domain_value=domain_value,
+        domain=domain,
         indicator_type=indicator_type,
-        indicator_value=indicator_value,
+        indicator=indicator,
     )
 
 
@@ -233,15 +233,11 @@ def clean(df: pl.LazyFrame) -> pl.LazyFrame:
                 }
             )
         )
-        .rename({"geography": "geography_name"})
         .pipe(
             clean_geography,
             type_column="geography_type",
-            name_column="geography_name",
+            name_column="geography",
             fips_column="fips",
-        )
-        .rename(
-            {"geography_type": "geographic_type", "geography_name": "geographic_value"}
         )
         .with_columns(pl.lit("month").alias("time_type"))
         .pipe(clean_time, year_season_column="year_season", month_column="month")

@@ -32,18 +32,18 @@ def _clean_geography_expr(type_: pl.Expr, value: pl.Expr) -> pl.Expr:
         .then(value)
     )
 
-    return pl.struct(geographic_type=out_type, geographic_value=out_value)
+    return pl.struct(geography_type=out_type, geography=out_value)
 
 
 def clean_geography(df: pl.DataFrame) -> pl.DataFrame:
     geography_column = str(uuid.uuid1())
     return (
         df.with_columns(
-            _clean_geography_expr(
-                pl.col("geographic_type"), pl.col("geographic_value")
-            ).alias(geography_column)
+            _clean_geography_expr(pl.col("geography_type"), pl.col("geography")).alias(
+                geography_column
+            )
         )
-        .drop(["geographic_type", "geographic_value"])
+        .drop(["geography_type", "geography"])
         .unnest(geography_column)
     )
 
@@ -119,8 +119,8 @@ def enforce_overall_domain(df: pl.LazyFrame) -> pl.LazyFrame:
     ).with_columns(
         pl.when(pl.col("domain_type") == pl.lit("overall"))
         .then(pl.lit("overall"))
-        .otherwise(pl.col("domain_value"))
-        .alias("domain_value")
+        .otherwise(pl.col("domain"))
+        .alias("domain")
     )
 
 
@@ -128,12 +128,12 @@ def clean(df: pl.LazyFrame) -> pl.LazyFrame:
     return (
         df.rename(
             {
-                "geography_type": "geographic_type",
-                "geography": "geographic_value",
+                "geography_type": "geography_type",
+                "geography": "geography",
                 "group_name": "domain_type",
-                "group_category": "domain_value",
+                "group_category": "domain",
                 "indicator_name": "indicator_type",
-                "indicator_category": "indicator_value",
+                "indicator_category": "indicator",
             }
         )
         .with_columns(vaccine=pl.lit("covid"))
@@ -145,7 +145,7 @@ def clean(df: pl.LazyFrame) -> pl.LazyFrame:
         .with_columns(
             pl.col("time_type").replace_strict({"Monthly": "month", "Weekly": "week"})
         )
-        .with_columns(pl.col("domain_value").pipe(clean_age_group))
+        .with_columns(pl.col("domain").pipe(clean_age_group))
         .pipe(enforce_overall_domain)
         .pipe(clean_geography)
         .pipe(enforce_columns)

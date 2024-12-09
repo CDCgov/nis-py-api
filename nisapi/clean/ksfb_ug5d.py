@@ -9,7 +9,7 @@ from nisapi.clean.helpers import (
     hci_to_cis,
     remove_near_duplicates,
     rename_indicator_columns,
-    replace_overall_domain_value,
+    replace_overall_domain,
     set_lowercase,
     week_ending_to_times,
 )
@@ -28,5 +28,5 @@ def clean(df: pl.LazyFrame) -> pl.LazyFrame:
         .pipe(week_ending_to_times)
         .pipe(hci_to_cis)
         .pipe(enforce_columns)
-        .pipe(replace_overall_domain_value)
+        .pipe(replace_overall_domain)
     )

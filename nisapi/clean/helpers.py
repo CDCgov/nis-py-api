@@ -7,12 +7,12 @@ import polars as pl
 data_schema = pl.Schema(
     [
         ("vaccine", pl.String),
-        ("geographic_type", pl.String),
-        ("geographic_value", pl.String),
+        ("geography_type", pl.String),
+        ("geography", pl.String),
         ("domain_type", pl.String),
-        ("domain_value", pl.String),
+        ("domain", pl.String),
         ("indicator_type", pl.String),
-        ("indicator_value", pl.String),
+        ("indicator", pl.String),
         ("time_type", pl.String),
         ("time_start", pl.Date),
         ("time_end", pl.Date),
@@ -85,7 +85,7 @@ def clean_4_level(df: pl.LazyFrame) -> pl.LazyFrame:
     # Verify that indicator type "up-to-date" has only one value ("yes")
     assert (
         df.filter(pl.col("indicator_type") == pl.lit("up-to-date"))
-        .select((pl.col("indicator_value") == pl.lit("yes")).all())
+        .select((pl.col("indicator") == pl.lit("yes")).all())
         .pipe(ensure_eager)
         .item()
     )
@@ -93,10 +93,10 @@ def clean_4_level(df: pl.LazyFrame) -> pl.LazyFrame:
     # check that "Yes" and "Received a vaccination" are the same thing, so that
     # we can drop "Up to Date"
     assert (
-        df.filter(pl.col("indicator_value").is_in(["yes", "received a vaccination"]))
+        df.filter(pl.col("indicator").is_in(["yes", "received a vaccination"]))
         .drop("indicator_type")
         .pipe(ensure_eager)
-        .pivot(on="indicator_value", values=["estimate", "ci_half_width_95pct"])
+        .pivot(on="indicator", values=["estimate", "ci_half_width_95pct"])
         .select(
             (
                 (pl.col("estimate_yes") == pl.col("estimate_received a vaccination"))
@@ -119,9 +119,9 @@ def set_lowercase(df: pl.LazyFrame) -> pl.LazyFrame:
         pl.col(
             [
                 "vaccine",
-                "geographic_type",
+                "geography_type",
                 "domain_type",
-                "indicator_value",
+                "indicator",
                 "indicator_type",
             ]
         ).str.to_lowercase()
@@ -150,10 +150,10 @@ def clean_geography(df: pl.LazyFrame) -> pl.LazyFrame:
     # Change from "national" to "nation", so that types are nouns rather
     # than adjectives. (Otherwise we would need to change "region" to "regional")
     return df.with_columns(
-        pl.col("geographic_type").replace({"national": "nation"}),
-        pl.col("geographic_value").replace({"National": "nation"}),
+        pl.col("geography_type").replace({"national": "nation"}),
+        pl.col("geography").replace({"National": "nation"}),
     ).with_columns(
-        pl.col("geographic_type").replace_strict(
+        pl.col("geography_type").replace_strict(
             {
                 "nation": "nation",
                 "state": "admin1",
@@ -175,12 +175,12 @@ def rename_indicator_columns(df: pl.DataFrame) -> pl.DataFrame:
     """
     return df.rename(
         {
-            "geographic_level": "geographic_type",
-            "geographic_name": "geographic_value",
+            "geographic_level": "geography_type",
+            "geographic_name": "geography",
             "demographic_level": "domain_type",
-            "demographic_name": "domain_value",
+            "demographic_name": "domain",
             "indicator_label": "indicator_type",
-            "indicator_category_label": "indicator_value",
+            "indicator_category_label": "indicator",
         }
     )
 
@@ -257,7 +257,7 @@ def remove_near_duplicates(
     return df.group_by(group_columns).agg(pl.col(value_columns).mean())
 
 
-def replace_overall_domain_value(df: pl.LazyFrame) -> pl.LazyFrame:
+def replace_overall_domain(df: pl.LazyFrame) -> pl.LazyFrame:
     return df.with_columns(pl.col("domain_type").replace({"overall": "age"}))
 
 
