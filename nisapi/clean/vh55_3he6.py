@@ -1,6 +1,8 @@
-import polars as pl
-from .helpers import admin1_values
 import uuid
+
+import polars as pl
+
+from .helpers import admin1_values
 
 
 def _clean_geography_expr(type_: pl.Expr, name: pl.Expr, fips: pl.Expr) -> pl.Expr:
@@ -211,7 +213,18 @@ def _clean_ci_expr(x: pl.Expr) -> pl.Expr:
 
 def clean(df: pl.LazyFrame) -> pl.LazyFrame:
     return (
-        df.rename({"geography": "geography_name"})
+        df
+        # rename vaccines
+        .with_columns(
+            pl.col("vaccine").replace_strict(
+                {
+                    "Seasonal Influenza": "flu",
+                    "Any Influenza Vaccination, Seasonal or H1N1": "flu_seasonal_or_h1n1",
+                    "Influenza A (H1N1) 2009 Monovalent": "flu_h1n1",
+                }
+            )
+        )
+        .rename({"geography": "geography_name"})
         .pipe(
             clean_geography,
             type_column="geography_type",

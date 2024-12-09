@@ -1,13 +1,14 @@
 import polars as pl
 import polars.testing
+
 import nisapi.clean.ksfb_ug5d
-import nisapi.clean.udsf_9v7b
 import nisapi.clean.sw5n_wg2p
+import nisapi.clean.udsf_9v7b
 from nisapi.clean.helpers import (
-    is_valid_geography,
+    admin1_values,
     data_schema,
-    ensure_eager,
     duplicated_rows,
+    ensure_eager,
     rows_with_any_null,
 )
 
@@ -80,12 +81,12 @@ class Validate:
 
         # Vaccine -------------------------------------------------------------
         # `vaccine` must be in a certain set
-        if not df["vaccine"].is_in(["flu", "covid"]).all():
-            errors.append("Bad `vaccine` values")
+        errors += cls.validate_vaccine(df, column="vaccine")
 
         # Geography ---------------------------------------------------------------
-        if not is_valid_geography(df["geographic_type"], df["geographic_value"]):
-            errors.append("Invalid geography")
+        errors += cls.validate_geography(
+            df, type_column="geographic_type", value_column="geographic_value"
+        )
 
         # Demographics ------------------------------------------------------------
         # if `demographic_type` is "overall", `demographic_value` must also be "overall"
@@ -132,6 +133,92 @@ class Validate:
             errors.append("confidence intervals do not bracket estimate")
 
         return errors
+
+    @staticmethod
+    def validate_vaccine(df: pl.DataFrame, column: str) -> [str]:
+        bad_vaccines = set(df[column].to_list()) - {
+            "flu",
+            "covid",
+            "flu_h1n1",
+            "flu_seasonal_or_h1n1",
+        }
+        if len(bad_vaccines) > 0:
+            return [f"Bad `vaccine` values: {bad_vaccines}"]
+        else:
+            return []
+
+    @classmethod
+    def validate_geography(
+        cls, df: pl.DataFrame, type_column: str, value_column: str
+    ) -> [str]:
+        errors = []
+
+        # type must be in a certain set
+        errors += cls.bad_value_error(
+            type_column,
+            df[type_column],
+            ["nation", "region", "admin1", "substate", "county"],
+        )
+        # if type is "nation", value must also be "nation"
+        bad_nation_values = (
+            df.filter(
+                pl.col(type_column) == pl.lit("nation"),
+                pl.col(value_column) != pl.lit("nation"),
+            )
+            .get_column(value_column)
+            .unique()
+            .to_list()
+        )
+        if len(bad_nation_values) > 0:
+            errors.append(f"Bad nation values: {bad_nation_values}")
+        # if type is "region", must be of the form "Region 1"
+        bad_region_values = (
+            df.filter(
+                pl.col(type_column) == pl.lit("region"),
+                pl.col(value_column).str.contains(r"^Region \d+$").not_(),
+            )
+            .get_column(value_column)
+            .unique()
+            .to_list()
+        )
+        if len(bad_region_values) > 0:
+            errors.append(f"Bad region values: {bad_region_values}")
+        # if type is "admin1", value must be in a specific list
+        bad_admin1_values = (
+            df.filter(
+                pl.col(type_column) == pl.lit("admin1"),
+                pl.col(value_column).is_in(admin1_values).not_(),
+            )
+            .get_column(value_column)
+            .unique()
+            .to_list()
+        )
+        if len(bad_admin1_values) > 0:
+            errors.append(f"Bad admin1 values: {bad_admin1_values}")
+
+        bad_county_values = (
+            df.filter(
+                pl.col(type_column) == pl.lit("county"),
+                pl.col(value_column).str.contains(r"^\d{5}$").not_(),
+            )
+            .get_column(value_column)
+            .unique()
+            .to_list()
+        )
+        if len(bad_county_values) > 0:
+            errors.append(f"Bad county values: {bad_county_values}")
+
+        # no validation applies to substate
+
+        return errors
+
+    @staticmethod
+    def bad_value_error(column_name: str, values: pl.Series, expected: [str]) -> [str]:
+        bad_values = set(values.to_list()) - set(expected)
+        if len(bad_values) > 0:
+            return [f"Bad values in `{column_name}`: {bad_values}"]
+        else:
+            return []
 
     @staticmethod
     def is_valid_age_group(x: pl.Expr) -> pl.Expr:
