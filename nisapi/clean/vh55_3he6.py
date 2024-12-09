@@ -233,7 +233,6 @@ def clean(df: pl.LazyFrame) -> pl.LazyFrame:
                 }
             )
         )
-        .rename({"geography_type": "geography_type", "geography_name": "geography"})
         .pipe(
             clean_geography,
             type_column="geography_type",
