@@ -76,8 +76,12 @@ class Validate:
 
         # no null values
         if df.null_count().pipe(sum).item() > 0:
+            counts = df.null_count()
+            null_columns = counts.select(
+                col for col in counts.columns if (counts[col] > 0).any()
+            )
             null_rows = df.pipe(rows_with_any_null)
-            errors.append(f"Null values: {null_rows}")
+            errors.append(f"Null values: {null_columns} {null_rows}")
 
         # Vaccine -------------------------------------------------------------
         # `vaccine` must be in a certain set

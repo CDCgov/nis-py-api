@@ -2,7 +2,7 @@ import uuid
 
 import polars as pl
 
-from .helpers import admin1_values
+from .helpers import admin1_values, enforce_columns
 
 
 def _clean_geography_expr(type_: pl.Expr, name: pl.Expr, fips: pl.Expr) -> pl.Expr:
@@ -251,4 +251,5 @@ def clean(df: pl.LazyFrame) -> pl.LazyFrame:
         .filter(pl.col("estimate").str.starts_with("NR").not_())
         .with_columns(pl.col("estimate").cast(pl.Float64) / 100)
         .pipe(clean_ci, ci_column="_95_ci", uci_clip=1.0)
+        .pipe(enforce_columns)
     )
