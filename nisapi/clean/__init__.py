@@ -48,15 +48,18 @@ class Validate:
         self.validate()
 
     def validate(self):
-        self.errors = self.get_validation_errors(self.df)
-        if len(self.errors) > 0:
+        self.problems = self.get_validation_problems(self.df)
+        if len(self.problems["warnings"]) > 0:
+            print(f"Validation warnings in dataset ID: {self.id}")
+            print(*self.problems["warnings"], sep="\n")
+        if len(self.problems["errors"]) > 0:
             print(f"Validation errors in dataset ID: {self.id}")
-            print(*self.errors, sep="\n")
+            print(*self.problems["errors"], sep="\n")
 
             raise RuntimeError("Validation errors")
 
     @classmethod
-    def get_validation_errors(cls, df: pl.DataFrame):
+    def get_validation_problems(cls, df: pl.DataFrame):
         errors = []
         warnings = []
 
@@ -131,7 +134,7 @@ class Validate:
         if not ((df["lci"] <= df["estimate"]) & (df["estimate"] <= df["uci"])).all():
             errors.append("confidence intervals do not bracket estimate")
 
-        return errors
+        return {"errors": errors, "warnings": warnings}
 
     @staticmethod
     def validate_vaccine(df: pl.DataFrame, column: str) -> [str]:
