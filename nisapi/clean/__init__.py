@@ -58,6 +58,7 @@ class Validate:
     @classmethod
     def get_validation_errors(cls, df: pl.DataFrame):
         errors = []
+        warnings = []
 
         # df must have expected column order and types
         if not df.schema == data_schema:
@@ -118,10 +119,13 @@ class Validate:
 
         # Metrics -----------------------------------------------------------------
         # estimates and CIs must be proportions
-        for col in ["estimate", "lci", "uci"]:
+        if not df["estimate"].is_between(0.0, 1.0).all():
+            bad_rows = df.filter(pl.col("estimate").is_between(0.0, 1.0).not_())
+            errors.append(f"`Estimate` is not in range 0-1: {bad_rows}")
+        for col in ["lci", "uci"]:
             if not df[col].is_between(0.0, 1.0).all():
                 bad_rows = df.filter(pl.col(col).is_between(0.0, 1.0).not_())
-                errors.append(f"`{col}` is not in range 0-1: {bad_rows}")
+                warnings.append(f"`{col}` is not in range 0-1: {bad_rows}")
 
         # confidence intervals must bracket estimate
         if not ((df["lci"] <= df["estimate"]) & (df["estimate"] <= df["uci"])).all():
