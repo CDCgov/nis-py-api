@@ -3,7 +3,12 @@ import uuid
 
 import polars as pl
 
-from nisapi.clean.helpers import admin1_values, drop_suppressed_rows, enforce_columns
+from nisapi.clean.helpers import (
+    admin1_values,
+    clamp_ci,
+    drop_suppressed_rows,
+    enforce_columns,
+)
 
 
 def _clean_geography_expr(type_: pl.Expr, value: pl.Expr) -> pl.Expr:
@@ -141,6 +146,7 @@ def clean(df: pl.LazyFrame) -> pl.LazyFrame:
         .drop("sample_size")
         .pipe(parse_coninf_95)
         .with_columns(pl.col(["estimate", "lci", "uci"]).cast(pl.Float64) / 100)
+        .pipe(clamp_ci)
         .pipe(parse_time_period)
         .with_columns(
             pl.col("time_type").replace_strict({"Monthly": "month", "Weekly": "week"})

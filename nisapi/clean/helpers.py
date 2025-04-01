@@ -389,3 +389,10 @@ def rows_with_any_null(df: pl.LazyFrame) -> pl.LazyFrame:
         pl.any_horizontal(pl.all()).alias(col_name)
     )[col_name]
     return df.filter(rows)
+
+
+def clamp_ci(
+    df: pl.LazyFrame, lci: pl.Expr = pl.col("lci"), uci: pl.Expr = pl.col("uci")
+) -> pl.LazyFrame:
+    """Clamp the confidence intervals `lci` and `uci` to be within [0, 1]"""
+    return df.with_columns(lci.clip(lower_bound=0.0), uci.clip(upper_bound=1.0))

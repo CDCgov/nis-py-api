@@ -2,6 +2,7 @@ import polars as pl
 
 from nisapi.clean.helpers import (
     cast_types,
+    clamp_ci,
     clean_4_level,
     clean_geography,
     drop_suppressed_rows,
@@ -31,5 +32,6 @@ def clean(df: pl.LazyFrame) -> pl.LazyFrame:
         .pipe(clean_4_level)
         .pipe(week_ending_to_times)
         .pipe(hci_to_cis)
+        .pipe(clamp_ci)
         .pipe(enforce_columns)
     )

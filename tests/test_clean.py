@@ -4,6 +4,7 @@ import polars.testing
 from nisapi.clean import Validate
 from nisapi.clean.helpers import (
     _mean_max_diff,
+    clamp_ci,
     remove_near_duplicates,
     rows_with_any_null,
 )
@@ -106,4 +107,11 @@ def test_row_has_null():
     current = df.pipe(rows_with_any_null)
     expected = df.filter(pl.col("id").is_in([1, 2, 3]))
 
+    polars.testing.assert_frame_equal(current, expected)
+
+
+def test_clamp_ci():
+    df = pl.DataFrame({"lci": [-0.1, 0.1, 0.2], "uci": [0.9, 1.0, 1.1]})
+    current = df.pipe(clamp_ci)
+    expected = pl.DataFrame({"lci": [0.0, 0.1, 0.2], "uci": [0.9, 1.0, 1.0]})
     polars.testing.assert_frame_equal(current, expected)
