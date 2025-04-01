@@ -37,6 +37,9 @@ def cache_all_datasets(path: Path = None, app_token: str = None) -> None:
             default location.
         app_token (str): Socrata developer API token
     """
+    if path is None:
+        path = _root_cache_path()
+
     for id in _get_dataset_ids():
         _cache_clean_dataset(id, root_path=path, app_token=app_token)
 
@@ -45,8 +48,8 @@ def delete_cache(path: str = None, confirm: bool = True) -> None:
     """Delete cache
 
     Args:
-        path (str, optional): Path to cache. If None (default), get
-          path from `_root_cache_path()`.
+        path (str, optional): Path to cache. If None (default), use
+            default location.
         confirm (bool, optional): If True (the default), get interactive
           confirmation before deleting
     """
@@ -119,9 +122,6 @@ def _dataset_cache_path(root_path: str, type_: str, id: str) -> Path:
 def _get_nis_raw(
     id: str, root_path: Path = None, app_token: str = None
 ) -> pl.LazyFrame:
-    if root_path is None:
-        root_path = _root_cache_path()
-
     dir_path = _dataset_cache_path(root_path=root_path, type_="raw", id=id)
     path = dir_path / "part-0.parquet"
 
