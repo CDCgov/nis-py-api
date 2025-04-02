@@ -24,13 +24,14 @@
   end_date: 2023-06-30
   universe: 18+ years old
   notes:
-    - This appears to be a replacement for udsf-9v7b, which had these notes
-      - Suppression flags
-          - All null-estimate and "1"-flagged rows were dropped.
-          - "16 rows have the expected pattern; flag '1' and a null value."
-          - 12 rows have sample size < 30, and they all have flag "0".
-          - 1399 rows have flag "1" but non-null estimates.
-          - Suppression flags include non-standard value "0.0".
+    - This appears to be a replacement for udsf-9v7b
+    - udsf-9v7b had these suppression flags notes:
+      - All null-estimate and "1"-flagged rows were dropped.
+      - "16 rows have the expected pattern; flag '1' and a null value."
+      - 12 rows have sample size < 30, and they all have flag "0".
+      - 1399 rows have flag "1" but non-null estimates.
+      - Suppression flags include non-standard value "0.0".
+    - Two rows had estimates of zero and no CIs (despite having nonzero sample size); North Dakota and Alaska in Nov 28-Dec 31. These CIs were writted as null. Maybe also West Virginia for 2022-01.
 - id: vh55-3he6
   url: https://data.cdc.gov/Flu-Vaccinations/Influenza-Vaccination-Coverage-for-All-Ages-6-Mont/vh55-3he6/about_data
   vaccine: flu

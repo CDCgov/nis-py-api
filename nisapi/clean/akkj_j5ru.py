@@ -62,13 +62,20 @@ def clean_region(x: pl.Expr) -> pl.Expr:
 
 
 def parse_coninf_95(df: pl.DataFrame) -> pl.DataFrame:
-    df_split = df.with_columns(
-        pl.col("coninf_95")
-        .str.split_exact(" - ", 1)
-        .struct.rename_fields(["lci", "uci"])
+    """
+    Parse a column like `1 - 2` into two columns `lci` and `uci`, replacing NA
+    values with null.
+    """
+    return (
+        df.with_columns(
+            pl.col("coninf_95")
+            .str.split_exact(" - ", 1)
+            .struct.rename_fields(["lci", "uci"])
+        )
+        .unnest("coninf_95")
+        # "NA" should end up as null
+        .with_columns(pl.col(["lci", "uci"]).replace({"NA": None}))
     )
-
-    return df_split.unnest("coninf_95")
 
 
 def month_name_to_number(x: pl.Expr) -> pl.Expr:
@@ -131,7 +138,8 @@ def enforce_overall_domain(df: pl.LazyFrame) -> pl.LazyFrame:
 
 def clean(df: pl.LazyFrame) -> pl.LazyFrame:
     return (
-        df.rename(
+        df.with_row_index()
+        .rename(
             {
                 "geography_type": "geography_type",
                 "geography": "geography",
@@ -149,7 +157,9 @@ def clean(df: pl.LazyFrame) -> pl.LazyFrame:
         .pipe(clamp_ci)
         .pipe(parse_time_period)
         .with_columns(
-            pl.col("time_type").replace_strict({"Monthly": "month", "Weekly": "week"})
+            pl.col("time_type").replace_strict(
+                {"Monthly": "month", "Weekly": "week", "Weekly ": "week"}
+            )
         )
         .with_columns(pl.col("domain").pipe(clean_age_group))
         .pipe(enforce_overall_domain)
