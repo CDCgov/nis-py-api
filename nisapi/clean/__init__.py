@@ -42,24 +42,39 @@ def clean_dataset(df: pl.DataFrame, id: str) -> pl.DataFrame:
 
 
 class Validate:
-    def __init__(self, id: str, df: pl.DataFrame | pl.LazyFrame):
+    modes = ["warn", "fail", "ignore"]
+
+    def __init__(self, id: str, df: pl.DataFrame | pl.LazyFrame, mode: str = "warn"):
         self.id = id
         self.df = df.pipe(ensure_eager)
+
+        if mode not in self.modes:
+            raise RuntimeError(f"Unknown mode {mode}. Must be one of: {self.modes}.")
+
+        self.mode = mode
+
         self.validate()
 
     def validate(self):
-        self.problems = self.get_validation_problems(self.df)
-        if len(self.problems["warnings"]) > 0:
-            print(f"Validation warnings in dataset ID: {self.id}")
-            print(*self.problems["warnings"], sep="\n")
-        if len(self.problems["errors"]) > 0:
-            print(f"Validation errors in dataset ID: {self.id}")
-            print(*self.problems["errors"], sep="\n")
+        problems = self.get_problems(self.df)
+        self.errors = problems["errors"]
+        self.warnings = problems["warnings"]
 
+        message = "\n".join(
+            [f"❌ id={self.id}: {x}" for x in self.errors]
+            + [f"⚠️ id={self.id}: {x}" for x in self.warnings]
+        )
+
+        if self.mode == "ignore":
+            pass
+        elif self.mode == "warn":
+            print(message)
+        elif self.mode == "fail":
+            print(message)
             raise RuntimeError("Validation errors")
 
     @classmethod
-    def get_validation_problems(cls, df: pl.DataFrame):
+    def get_problems(cls, df: pl.DataFrame):
         errors = []
         warnings = []
 
