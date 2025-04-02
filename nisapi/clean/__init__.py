@@ -42,7 +42,7 @@ def clean_dataset(df: pl.DataFrame, id: str) -> pl.DataFrame:
 
 
 class Validate:
-    modes = ["warn", "fail", "ignore"]
+    modes = ["warn", "error", "ignore"]
 
     def __init__(self, id: str, df: pl.DataFrame | pl.LazyFrame, mode: str = "warn"):
         """Set up for validation
@@ -50,9 +50,9 @@ class Validate:
         Args:
             id (str): dataset ID, used for validation problem messaging
             df (pl.DataFrame | pl.LazyFrame): dataset to validate
-            mode (str): validation mode. One of "warn", "fail", "ignore". If ignore, do
+            mode (str): validation mode. One of "warn", "error", "ignore". If ignore, do
                 nothing on validation problems. If "warn", print a warning message. If
-                fail, raise an error.
+                error, raise an error.
         """
         self.id = id
         self.df = df.pipe(ensure_eager)
@@ -70,7 +70,7 @@ class Validate:
         if len(self.problems) > 0 and self.mode != "ignore":
             print("\n".join([f"❌ id={self.id}: {x}" for x in self.problems]))
 
-            if self.mode == "fail":
+            if self.mode == "error":
                 raise RuntimeError("Validation problems")
 
     @classmethod
