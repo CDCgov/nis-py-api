@@ -193,13 +193,7 @@ def _clean_age(x: pl.Expr) -> pl.Expr:
     )
 
 
-def clean_estimate(x: pl.Expr) -> pl.Expr:
-    return pl.when(x == pl.lit("NR †"))
-
-
-def clean_ci(
-    df: pl.LazyFrame, ci_column: str, lci_clip: float = None, uci_clip: float = None
-) -> pl.LazyFrame:
+def clean_ci(df: pl.LazyFrame, ci_column: str) -> pl.LazyFrame:
     ci = _clean_ci_expr(pl.col(ci_column))
     return df.with_columns(ci.struct[0].alias("lci"), ci.struct[1].alias("uci")).drop(
         ci_column
