@@ -12,6 +12,6 @@ if __name__ == "__main__":
     if args.subcommand == "cache_all":
         nisapi.cache_all_datasets()
     elif args.subcommand == "delete":
-        nisapi.clean_all_datasets()
+        nisapi.delete_cache()
     else:
         p.print_help()
