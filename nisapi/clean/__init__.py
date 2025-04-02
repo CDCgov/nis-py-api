@@ -45,6 +45,15 @@ class Validate:
     modes = ["warn", "fail", "ignore"]
 
     def __init__(self, id: str, df: pl.DataFrame | pl.LazyFrame, mode: str = "warn"):
+        """Set up for validation
+
+        Args:
+            id (str): dataset ID, used for validation problem messaging
+            df (pl.DataFrame | pl.LazyFrame): dataset to validate
+            mode (str): validation mode. One of "warn", "fail", "ignore". If ignore, do
+                nothing on validation problems. If "warn", print a warning message. If
+                fail, raise an error.
+        """
         self.id = id
         self.df = df.pipe(ensure_eager)
 
@@ -56,36 +65,26 @@ class Validate:
         self.validate()
 
     def validate(self):
-        problems = self.get_problems(self.df)
-        self.errors = problems["errors"]
-        self.warnings = problems["warnings"]
+        self.problems = self.get_problems(self.df)
 
-        message = "\n".join(
-            [f"❌ id={self.id}: {x}" for x in self.errors]
-            + [f"⚠️ id={self.id}: {x}" for x in self.warnings]
-        )
+        if len(self.problems) > 0 and self.mode != "ignore":
+            print("\n".join([f"❌ id={self.id}: {x}" for x in self.problems]))
 
-        if self.mode == "ignore":
-            pass
-        elif self.mode == "warn":
-            print(message)
-        elif self.mode == "fail":
-            print(message)
-            raise RuntimeError("Validation errors")
+            if self.mode == "fail":
+                raise RuntimeError("Validation problems")
 
     @classmethod
     def get_problems(cls, df: pl.DataFrame):
-        errors = []
-        warnings = []
+        problems = []
 
         # df must have expected column order and types
         if not df.schema == data_schema:
-            errors.append(f"Bad schema: {df.schema}")
+            problems.append(f"Bad schema: {df.schema}")
 
         # no duplicated rows
         if df.is_duplicated().any():
             rows = df.pipe(duplicated_rows).glimpse(return_as_string=True)
-            errors.append(f"Duplicated rows: {rows}")
+            problems.append(f"Duplicated rows: {rows}")
 
         # no duplicated values
         if df.drop(["estimate", "lci", "uci"]).is_duplicated().any():
@@ -94,7 +93,7 @@ class Validate:
                 .pipe(duplicated_rows)
                 .glimpse(return_as_string=True)
             )
-            errors.append(f"Duplicated groups: {dup_groups}")
+            problems.append(f"Duplicated groups: {dup_groups}")
 
         # no null values
         if df.null_count().pipe(sum).item() > 0:
@@ -103,14 +102,14 @@ class Validate:
                 col for col in counts.columns if (counts[col] > 0).any()
             )
             null_rows = df.pipe(rows_with_any_null)
-            errors.append(f"Null values: {null_columns} {null_rows}")
+            problems.append(f"Null values: {null_columns} {null_rows}")
 
         # Vaccine -------------------------------------------------------------
         # `vaccine` must be in a certain set
-        errors += cls.validate_vaccine(df, column="vaccine")
+        problems += cls.validate_vaccine(df, column="vaccine")
 
         # Geography ---------------------------------------------------------------
-        errors += cls.validate_geography(
+        problems += cls.validate_geography(
             df, type_column="geography_type", value_column="geography"
         )
 
@@ -123,33 +122,33 @@ class Validate:
             cls.is_valid_age_group(age_groups).not_()
         ).to_list()
         if len(invalid_age_groups) > 0:
-            errors.append(f"Invalid age groups: {invalid_age_groups}")
+            problems.append(f"Invalid age groups: {invalid_age_groups}")
 
         # Indicators --------------------------------------------------------------
         pass
 
         # Times -------------------------------------------------------------------
         if not df["time_type"].is_in(["week", "month"]).all():
-            errors.append("Bad time type")
+            problems.append("Bad time type")
 
         if not (df["time_start"] <= df["time_end"]).all():
-            errors.append("Not all time starts are before time ends")
+            problems.append("Not all time starts are before time ends")
 
         # Metrics -----------------------------------------------------------------
         # estimates and CIs must be proportions
         if not df["estimate"].is_between(0.0, 1.0).all():
             bad_rows = df.filter(pl.col("estimate").is_between(0.0, 1.0).not_())
-            errors.append(f"`Estimate` is not in range 0-1: {bad_rows}")
+            problems.append(f"`Estimate` is not in range 0-1: {bad_rows}")
         for col in ["lci", "uci"]:
             if not df[col].is_between(0.0, 1.0).all():
                 bad_rows = df.filter(pl.col(col).is_between(0.0, 1.0).not_())
-                warnings.append(f"`{col}` is not in range 0-1: {bad_rows}")
+                problems.append(f"`{col}` is not in range 0-1: {bad_rows}")
 
         # confidence intervals must bracket estimate
         if not ((df["lci"] <= df["estimate"]) & (df["estimate"] <= df["uci"])).all():
-            errors.append("confidence intervals do not bracket estimate")
+            problems.append("confidence intervals do not bracket estimate")
 
-        return {"errors": errors, "warnings": warnings}
+        return problems
 
     @staticmethod
     def validate_vaccine(df: pl.DataFrame, column: str) -> [str]:
