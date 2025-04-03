@@ -1,11 +1,12 @@
-import yaml
 import os
+import tempfile
+from pathlib import Path
+
+import polars as pl
 from azure.identity import DefaultAzureCredential
 from azure.storage.blob import BlobServiceClient
-from pathlib import Path
+
 import nisapi
-import tempfile
-import polars as pl
 
 
 def get_client(client_id: str, storage_account_name: str) -> BlobServiceClient:
@@ -105,13 +106,9 @@ assert (
     == "nis/id=foo/bar.csv"
 )
 
-# get the service principal, etc.
-with open("scripts/secrets.yaml") as f:
-    secrets = yaml.safe_load(f)
-
 # set up and authenticate the client
 client = get_client(
-    secrets["azure"]["client_id"], secrets["azure"]["storage_account_name"]
+    os.environ["AZURE_CLIENT_ID"], os.environ["AZURE_STORAGE_ACCOUNT_NAME"]
 )
 
 # upload the blobs from local storage to remote, to demonstrate how a definitive
@@ -119,8 +116,8 @@ client = get_client(
 print("Uploading blobs")
 upload_blobs(
     client=client,
-    container_id=secrets["azure"]["container_id"],
-    blob_root=secrets["azure"]["blob_root"],
+    container_id=os.environ["AZURE_CONTAINER_ID"],
+    blob_root=os.environ["AZURE_BLOB_ROOT"],
     local_dir=nisapi._root_cache_path(),
 )
 
@@ -130,8 +127,8 @@ print("Downloading blobs")
 with tempfile.TemporaryDirectory() as tmpdir:
     download_blobs(
         client=client,
-        container_id=secrets["azure"]["container_id"],
-        blob_root=secrets["azure"]["blob_root"],
+        container_id=os.environ["AZURE_CONTAINER_ID"],
+        blob_root=os.environ["AZURE_BLOB_ROOT"],
         local_dir=tmpdir,
     )
 

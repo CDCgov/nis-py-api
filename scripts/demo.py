@@ -1,15 +1,17 @@
+import os
+
 import polars as pl
-import yaml
 
 import nisapi
 
-# Load secrets from a top-level file `secrets.yaml` with key `app_token`.
-with open("scripts/secrets.yaml") as f:
-    app_token = yaml.safe_load(f)["app_token"]
-
-# Clear and rebuild
+# Clear cache if needed
 # nisapi.delete_cache()
-nisapi.cache_all_datasets(app_token=app_token)
+
+# Check that the app token is present
+if "SOCRATA_APP_TOKEN" not in os.environ:
+    raise ValueError("SOCRATA_APP_TOKEN environment variable not found")
+
+nisapi.cache_all_datasets(app_token=os.environ["SOCRATA_APP_TOKEN"])
 
 # Pull a subset of the data that's currently available
 (
