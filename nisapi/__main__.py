@@ -32,7 +32,7 @@ if __name__ == "__main__":
     )
     args = p.parse_args()
 
-    if args.subcommand == "cache_all":
+    if args.subcommand == "cache":
         nisapi.cache_all_datasets(
             path=args.path,
             app_token=args.app_token,
@@ -42,4 +42,5 @@ if __name__ == "__main__":
     elif args.subcommand == "delete":
         nisapi.delete_cache(path=args.path, confirm=not args.force)
     else:
+        print(f"Unknown subcommand: {args.subcommand}")
         p.print_help()
