@@ -14,12 +14,13 @@ from nisapi.clean.helpers import (
 )
 
 
-def clean_dataset(df: pl.DataFrame, id: str) -> pl.DataFrame:
+def clean_dataset(df: pl.LazyFrame, id: str, validation_mode: str) -> pl.DataFrame:
     """Clean a raw dataset, applying dataset-specific cleaning rules
 
     Args:
         df (pl.DataFrame): raw dataset
         id (str): dataset ID
+        validation_mode (str): validation mode
 
     Returns:
         pl.DataFrame: clean dataset
@@ -37,14 +38,14 @@ def clean_dataset(df: pl.DataFrame, id: str) -> pl.DataFrame:
         raise RuntimeError(f"No cleaning set up for dataset {id}")
 
     out = out.pipe(ensure_eager)
-    Validate(id=id, df=out)
+    Validate(id=id, df=out, mode=validation_mode)
     return out
 
 
 class Validate:
     modes = ["warn", "error", "ignore"]
 
-    def __init__(self, id: str, df: pl.DataFrame | pl.LazyFrame, mode: str = "warn"):
+    def __init__(self, id: str, df: pl.DataFrame | pl.LazyFrame, mode: str):
         """Set up for validation
 
         Args:
@@ -87,7 +88,9 @@ class Validate:
             problems.append(f"Duplicated rows: {rows}")
 
         # no duplicated values
-        if df.drop(["estimate", "lci", "uci"]).is_duplicated().any():
+        if not {"estimate", "lci", "uci"}.issubset(df.columns):
+            problems.append("Missing columns: `estimate`, `lci`, or `uci`")
+        elif df.drop(["estimate", "lci", "uci"]).is_duplicated().any():
             dup_groups = (
                 df.drop(["estimate", "lci", "uci"])
                 .pipe(duplicated_rows)
@@ -115,31 +118,25 @@ class Validate:
 
         # domains ------------------------------------------------------------
         # age groups should have the form "18-49 years" or "65+ years"
-        age_groups = df.filter(pl.col("domain_type") == pl.lit("age"))[
-            "domain"
-        ].unique()
-        invalid_age_groups = age_groups.filter(
-            cls.is_valid_age_group(age_groups).not_()
-        ).to_list()
-        if len(invalid_age_groups) > 0:
-            problems.append(f"Invalid age groups: {invalid_age_groups}")
+        problems += cls.validate_age_groups(df)
 
         # Indicators --------------------------------------------------------------
         pass
 
         # Times -------------------------------------------------------------------
-        if not df["time_type"].is_in(["week", "month"]).all():
+        if "time_type" not in df.columns:
+            problems.append("Missing column `time_type`")
+        elif not df["time_type"].is_in(["week", "month"]).all():
             problems.append("Bad time type")
 
-        if not (df["time_start"] <= df["time_end"]).all():
+        if not {"time_start", "time_end"}.issubset(df.columns):
+            problems.append("Missing columns `time_start` or `time_end`")
+        elif not (df["time_start"] <= df["time_end"]).all():
             problems.append("Not all time starts are before time ends")
 
         # Metrics -----------------------------------------------------------------
         # estimates and CIs must be proportions
-        if not df["estimate"].is_between(0.0, 1.0).all():
-            bad_rows = df.filter(pl.col("estimate").is_between(0.0, 1.0).not_())
-            problems.append(f"`Estimate` is not in range 0-1: {bad_rows}")
-        for col in ["lci", "uci"]:
+        for col in ["estimate", "lci", "uci"]:
             if not df[col].is_between(0.0, 1.0).all():
                 bad_rows = df.filter(pl.col(col).is_between(0.0, 1.0).not_())
                 problems.append(f"`{col}` is not in range 0-1: {bad_rows}")
@@ -152,6 +149,9 @@ class Validate:
 
     @staticmethod
     def validate_vaccine(df: pl.DataFrame, column: str) -> [str]:
+        if column not in df.columns:
+            return [f"Missing column `{column}`"]
+
         bad_vaccines = set(df[column].to_list()) - {
             "flu",
             "covid",
@@ -167,6 +167,9 @@ class Validate:
     def validate_geography(
         cls, df: pl.DataFrame, type_column: str, value_column: str
     ) -> [str]:
+        if not {type_column, value_column}.issubset(df.columns):
+            return [f"Missing columns `{type_column}` or `{value_column}`"]
+
         errors = []
 
         # type must be in a certain set
@@ -227,6 +230,23 @@ class Validate:
         # no validation applies to substate
 
         return errors
+
+    @classmethod
+    def validate_age_groups(cls, df) -> [str]:
+        if "domain_type" not in df.columns:
+            return ["Missing column `domain_type`"]
+
+        age_groups = df.filter(pl.col("domain_type") == pl.lit("age"))[
+            "domain"
+        ].unique()
+        invalid_age_groups = age_groups.filter(
+            cls.is_valid_age_group(age_groups).not_()
+        ).to_list()
+
+        if len(invalid_age_groups) > 0:
+            return [f"Invalid age groups: {invalid_age_groups}"]
+
+        return []
 
     @staticmethod
     def bad_value_error(column_name: str, values: pl.Series, expected: [str]) -> [str]:
