@@ -243,7 +243,7 @@ def clean(df: pl.LazyFrame) -> pl.LazyFrame:
         .rename({"coverage_estimate": "estimate"})
         .filter(pl.col("estimate").str.starts_with("NR").not_())
         .with_columns(pl.col("estimate").cast(pl.Float64) / 100)
-        .pipe(clean_ci, ci_column="_95_ci", lci_clip=0.0, uci_clip=1.0)
+        .pipe(clean_ci, ci_column="_95_ci")
         .pipe(clamp_ci)
         .pipe(enforce_columns)
     )

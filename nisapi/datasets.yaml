@@ -17,19 +17,21 @@
   notes:
     - When domain type is "overall"`, domain value is "18+ years". Clean data changes this value to "age".
     - There are some rows that are duplicated, except for point estimate and CIs, which are rounded to different places. Clean data takes the mean over these rows.
-- id: udsf-9v7b
-  url: https://data.cdc.gov/Vaccinations/National-Immunization-Survey-Adult-COVID-Module-NI/udsf-9v7b/about_data
+- id: akkj-j5ru
+  url: https://data.cdc.gov/Vaccinations/National-Immunization-Survey-Adult-COVID-Module-NI/akkj-j5ru/about_data
   vaccine: covid
   start_date: 2021-04-22
-  end_date: 2023-04-01
+  end_date: 2023-06-30
   universe: 18+ years old
   notes:
-    - Suppression flags:
-        - All null-estimate and "1"-flagged rows were dropped.
-        - "16 rows have the expected pattern: flag '1' and a null value."
-        - 12 rows have sample size < 30, and they all have flag "0".
-        - 1399 rows have flag "1" but non-null estimates.
-        - Suppression flags include non-standard value "0.0".
+    - This appears to be a replacement for udsf-9v7b
+    - udsf-9v7b had these suppression flags notes:
+      - All null-estimate and "1"-flagged rows were dropped.
+      - "16 rows have the expected pattern; flag '1' and a null value."
+      - 12 rows have sample size < 30, and they all have flag "0".
+      - 1399 rows have flag "1" but non-null estimates.
+      - Suppression flags include non-standard value "0.0".
+    - Two rows had estimates of zero and no CIs (despite having nonzero sample size); North Dakota and Alaska in Nov 28-Dec 31. These CIs were writted as null. Maybe also West Virginia for 2022-01.
 - id: vh55-3he6
   url: https://data.cdc.gov/Flu-Vaccinations/Influenza-Vaccination-Coverage-for-All-Ages-6-Mont/vh55-3he6/about_data
   vaccine: flu
