@@ -3,7 +3,7 @@ import shutil
 import tempfile
 import warnings
 from pathlib import Path
-from typing import Sequence
+from typing import Optional, Sequence
 
 import platformdirs
 import polars as pl
@@ -13,7 +13,7 @@ import nisapi.clean
 import nisapi.socrata
 
 
-def get_nis(path: Path = None) -> pl.LazyFrame:
+def get_nis(path: Optional[Path] = None) -> pl.LazyFrame:
     """Get the cleaned NIS dataset
 
     Args:
@@ -29,26 +29,41 @@ def get_nis(path: Path = None) -> pl.LazyFrame:
     return pl.scan_parquet(path)
 
 
-def cache_all_datasets(path: Path = None, app_token: str = None) -> None:
+def cache_all_datasets(
+    path: Optional[Path] = None,
+    app_token: Optional[str] = None,
+    overwrite: str = "warn",
+    validation_mode: str = "warn",
+) -> None:
     """Download all raw datasets known in the metadata, and clean them
 
     Args:
         path (Path, optional): Path to cache. If None (default), use
             default location.
         app_token (str): Socrata developer API token
+        overwrite (str): Overwrite existing datasets? Default ("warn")
+            will not overwrite but will print a warning.
+        validation_mode (str): How should validation problems be handled?
+            Default ("warn") will print a warning and continue.
     """
     if path is None:
         path = _root_cache_path()
 
     for id in _get_dataset_ids():
-        _cache_clean_dataset(id, root_path=path, app_token=app_token)
+        _cache_clean_dataset(
+            id,
+            root_path=path,
+            app_token=app_token,
+            overwrite=overwrite,
+            validation_mode=validation_mode,
+        )
 
 
-def delete_cache(path: str = None, confirm: bool = True) -> None:
+def delete_cache(path: Optional[Path] = None, confirm: bool = True) -> None:
     """Delete cache
 
     Args:
-        path (str, optional): Path to cache. If None (default), use
+        path (Path, optional): Path to cache. If None (default), use
             default location.
         confirm (bool, optional): If True (the default), get interactive
           confirmation before deleting
@@ -77,10 +92,16 @@ def _get_dataset_ids() -> Sequence[str]:
 
 
 def _cache_clean_dataset(
-    id: str, root_path: Path, app_token: str = None, overwrite: str = "warn"
+    id: str,
+    root_path: Path,
+    app_token: Optional[str],
+    overwrite: str,
+    validation_mode: str,
 ) -> None:
     raw_data = _get_nis_raw(id, root_path=root_path, app_token=app_token)
-    clean_data = nisapi.clean.clean_dataset(df=raw_data, id=id)
+    clean_data = nisapi.clean.clean_dataset(
+        df=raw_data, id=id, validation_mode=validation_mode
+    )
     clean_path_dir = _dataset_cache_path(root_path=root_path, type_="clean", id=id)
     clean_path = clean_path_dir / "part-0.parquet"
 
@@ -102,14 +123,14 @@ def _root_cache_path() -> Path:
     return Path(platformdirs.user_cache_dir("nisapi"))
 
 
-def _dataset_cache_path(root_path: str, type_: str, id: str) -> Path:
+def _dataset_cache_path(root_path: Path, type_: str, id: str) -> Path:
     """Construct path to a particular dataset in the cache
 
     Cache starts at the "root", goes through either "raw" or "clean",
     and then has a subdirectory for each dataset ID.
 
     Args:
-        root_path (str): Top-level cache directory
+        root_path (Path): Top-level cache directory
         type_ (str): Either "raw" or "clean"
         id (str): Dataset ID
 
@@ -119,9 +140,7 @@ def _dataset_cache_path(root_path: str, type_: str, id: str) -> Path:
     return Path(root_path, type_, f"id={id}")
 
 
-def _get_nis_raw(
-    id: str, root_path: Path = None, app_token: str = None
-) -> pl.LazyFrame:
+def _get_nis_raw(id: str, root_path: Path, app_token: Optional[str]) -> pl.LazyFrame:
     dir_path = _dataset_cache_path(root_path=root_path, type_="raw", id=id)
     path = dir_path / "part-0.parquet"
 
@@ -135,12 +154,12 @@ def _get_nis_raw(
     return pl.scan_parquet(dir_path)
 
 
-def _download_dataset(id: str, app_token: str = None) -> pl.DataFrame:
+def _download_dataset(id: str, app_token: Optional[str]) -> pl.DataFrame:
     """Download a raw NIS dataset
 
     Args:
         id (str): dataset ID
-        app_token (str, optional): Socrata developer API token
+        app_token (str, optional): Socrata developer API token, or None
 
     Returns:
         pl.DataFrame: raw dataset

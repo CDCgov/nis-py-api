@@ -14,12 +14,13 @@ from nisapi.clean.helpers import (
 )
 
 
-def clean_dataset(df: pl.DataFrame, id: str) -> pl.DataFrame:
+def clean_dataset(df: pl.LazyFrame, id: str, validation_mode: str) -> pl.DataFrame:
     """Clean a raw dataset, applying dataset-specific cleaning rules
 
     Args:
         df (pl.DataFrame): raw dataset
         id (str): dataset ID
+        validation_mode (str): validation mode
 
     Returns:
         pl.DataFrame: clean dataset
@@ -37,14 +38,14 @@ def clean_dataset(df: pl.DataFrame, id: str) -> pl.DataFrame:
         raise RuntimeError(f"No cleaning set up for dataset {id}")
 
     out = out.pipe(ensure_eager)
-    Validate(id=id, df=out)
+    Validate(id=id, df=out, mode=validation_mode)
     return out
 
 
 class Validate:
     modes = ["warn", "error", "ignore"]
 
-    def __init__(self, id: str, df: pl.DataFrame | pl.LazyFrame, mode: str = "warn"):
+    def __init__(self, id: str, df: pl.DataFrame | pl.LazyFrame, mode: str):
         """Set up for validation
 
         Args:

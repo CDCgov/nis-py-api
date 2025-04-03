@@ -1,11 +1,14 @@
-import requests
 import math
-from typing import Sequence
+from typing import Iterable, List, Optional
+
+import requests
 
 domain = "data.cdc.gov"
 
 
-def n_dataset_rows(id: str, app_token: str = None, domain: str = domain) -> int:
+def n_dataset_rows(
+    id: str, app_token: Optional[str] = None, domain: str = domain
+) -> int:
     url = f"https://{domain}/resource/{id}.json?$select=count(:id)"
     r = _get_request(url, app_token=app_token)
 
@@ -19,7 +22,7 @@ def download_dataset_records(
     id: str,
     start_record: int,
     end_record: int,
-    app_token: str = None,
+    app_token: Optional[str],
     domain: str = domain,
 ) -> list[dict]:
     """Download a specific range of rows of a data.cdc.gov dataset
@@ -28,7 +31,7 @@ def download_dataset_records(
         id (str): dataset ID
         start_record (int): first row (zero-indexed)
         end_record (int): last row (zero-indexed)
-        app_token (str, optional): Socrata developer app token. Defaults to None.
+        app_token (str, optional): Socrata developer app token, or None
         domain (str, optional): defaults to "data.cdc.gov"
 
     Returns:
@@ -44,7 +47,7 @@ def download_dataset_records(
     return r.json()
 
 
-def _get_request(url: str, app_token: str = None) -> requests.Request:
+def _get_request(url: str, app_token: Optional[str]) -> requests.Response:
     payload = {}
     if app_token is not None:
         payload["X-App-token"] = app_token
@@ -59,14 +62,14 @@ def _get_request(url: str, app_token: str = None) -> requests.Request:
 
 
 def download_dataset_pages(
-    id: str, page_size: int = int(1e5), app_token: str = None, verbose: bool = True
-) -> Sequence[list[dict]]:
+    id: str, app_token: Optional[str], page_size: int = int(1e5), verbose: bool = True
+) -> Iterable[List[dict]]:
     """Download a dataset page by page
 
     Args:
         id (str): dataset ID
+        app_token (str, optional): Socrata developer app token, or None
         page_size (int, optional): Page size. Defaults to 1 million.
-        app_token (str, optional): Socrata developer app token. Defaults to None.
         verbose (bool): If True (default), print progress
 
     Yields:
