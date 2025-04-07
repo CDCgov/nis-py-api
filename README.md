@@ -4,14 +4,17 @@ Python API to access parts of the [National Immunization Survey](https://www.cdc
 
 ## Getting started
 
-- This a poetry-enabled project. Use `poetry install` to install.
-- Get a [Socrata app token](https://support.socrata.com/hc/en-us/articles/210138558-Generating-App-Tokens-and-API-Keys). Copy `scripts/secrets_template.yaml` to `scripts/secrets.yaml` and fill out the `app_token`.
-- See `scripts/demo.py` for an example of how to cache and query the data:
-  - `python -m nisapi cache app_token={SOCRATA_APP_TOKEN}` or `nisapi.cache_all_datasets(app_token={SOCRATA_APP_TOKEN})` to download, clean, and cache data
-  - `nisapi.get_nis()` to get a lazy data frame pointing to that locally cached, clean data
-  - `python -m nisapi delete` or `nisapi.delete_cache()` to delete the cache, if needed
+1. This a poetry-enabled project. Use `poetry install` to install.
+2. [*optional*] Get a [Socrata app token](https://support.socrata.com/hc/en-us/articles/210138558-Generating-App-Tokens-and-API-Keys). This may speed up your downloads.
+3. See `scripts/demo.py` for an example of how to cache and query the data:
+   - `python -m nisapi cache` or `nisapi.cache_all_datasets()` to download, clean, and cache data. Add the command line or function argument `app_token={SOCRATA_APP_TOKEN}` to use the token.
+   - `nisapi.get_nis()` to get a lazy data frame pointing to that locally cached, clean data.
+   - `python -m nisapi delete` or `nisapi.delete_cache()` to delete the cache, if needed.
+
+Some more experimental options include:
+
 - See `scripts/demo_clean.py` for an example of a script that you could run while iteratively developing the cleaning code in `nisapi/clean/`.
-- See `scripts/demo_cloud.py` for a demo of how the data could be downloaded, cleaned, uploaded to Azure Blob Storage, and then downloaded from there. You will need to fill out the `azure:` keys in `secrets.yaml`.
+- See `scripts/demo_cloud.py` for a demo of how the data could be downloaded, cleaned, uploaded to Azure Blob Storage, and then downloaded from there. You will need to set up the environmental variables `AZURE_CLIENT_ID`, `AZURE_STORAGE_ACCOUNT_NAME`, `AZURE_CONTAINER_ID`, and `AZURE_BLOB_ROOT`.
 - Run `streamlit run scripts/demo_streamlit.py` to quickly query and visualize the data with a [streamlit](https://streamlit.io/) app.
 
 ## Data dictionary
