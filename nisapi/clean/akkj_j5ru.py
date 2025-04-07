@@ -40,7 +40,7 @@ def _clean_geography_expr(type_: pl.Expr, value: pl.Expr) -> pl.Expr:
     return pl.struct(geography_type=out_type, geography=out_value)
 
 
-def clean_geography(df: pl.DataFrame) -> pl.DataFrame:
+def clean_geography(df: pl.LazyFrame) -> pl.LazyFrame:
     geography_column = str(uuid.uuid1())
     return (
         df.with_columns(
@@ -61,7 +61,7 @@ def clean_region(x: pl.Expr) -> pl.Expr:
     return x.str.extract("^(Region \\d+): ", 1)
 
 
-def parse_coninf_95(df: pl.DataFrame) -> pl.DataFrame:
+def parse_coninf_95(df: pl.LazyFrame) -> pl.LazyFrame:
     """
     Parse a column like `1 - 2` into two columns `lci` and `uci`, replacing NA
     values with null.
@@ -105,7 +105,7 @@ def _parse_time_period_expr(time_year: pl.Expr, time_period: pl.Expr) -> pl.Expr
     return pl.struct(time_start=date1, time_end=date2)
 
 
-def parse_time_period(df: pl.DataFrame) -> pl.DataFrame:
+def parse_time_period(df: pl.LazyFrame) -> pl.LazyFrame:
     column_name = str(uuid.uuid1())
     return (
         df.with_columns(

@@ -72,7 +72,7 @@ def download_blobs(
     """
     container_client = client.get_container_client(container_id)
     for blob in container_client.list_blobs(name_starts_with=blob_root):
-        blob_client = container_client.get_blob_client(blob)
+        blob_client = container_client.get_blob_client(str(blob))
         local_path = Path(local_dir, blob.name)
 
         # ensure the parent directory exists
@@ -129,7 +129,7 @@ with tempfile.TemporaryDirectory() as tmpdir:
         client=client,
         container_id=os.environ["AZURE_CONTAINER_ID"],
         blob_root=os.environ["AZURE_BLOB_ROOT"],
-        local_dir=tmpdir,
+        local_dir=Path(tmpdir),
     )
 
     data_path = Path(tmpdir, "nis", "clean")

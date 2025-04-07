@@ -1,5 +1,6 @@
-import nisapi
 from pathlib import Path
+
+import nisapi
 
 
 def test_default_cache_path():
@@ -8,5 +9,7 @@ def test_default_cache_path():
 
 
 def test_dataset_cache_path():
-    path = nisapi._dataset_cache_path(root_path="fake_root", type_="raw", id="1234")
+    path = nisapi._dataset_cache_path(
+        root_path=Path("fake_root"), type_="raw", id="1234"
+    )
     assert path == Path("fake_root", "raw", "id=1234")

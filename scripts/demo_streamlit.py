@@ -1,3 +1,5 @@
+from typing import Optional
+
 import altair as alt
 import polars as pl
 import streamlit as st
@@ -9,7 +11,7 @@ def widget_filter(
     df: pl.DataFrame,
     column: str,
     options=None,
-    default: str = None,
+    default: Optional[str] = None,
     n_radio_max: int = 5,
 ) -> pl.DataFrame:
     if options is None:

@@ -1,5 +1,6 @@
+from typing import List
+
 import polars as pl
-import polars.testing
 
 import nisapi.clean.akkj_j5ru
 import nisapi.clean.ksfb_ug5d
@@ -99,13 +100,9 @@ class Validate:
             problems.append(f"Duplicated groups: {dup_groups}")
 
         # no null values
-        if df.null_count().pipe(sum).item() > 0:
-            counts = df.null_count()
-            null_columns = counts.select(
-                col for col in counts.columns if (counts[col] > 0).any()
-            )
-            null_rows = df.pipe(rows_with_any_null)
-            problems.append(f"Null values: {null_columns} {null_rows}")
+        null_rows = df.pipe(rows_with_any_null)
+        if null_rows.shape[0] > 0:
+            problems.append(f"Null values in rows: {null_rows}")
 
         # Vaccine -------------------------------------------------------------
         # `vaccine` must be in a certain set
@@ -148,7 +145,7 @@ class Validate:
         return problems
 
     @staticmethod
-    def validate_vaccine(df: pl.DataFrame, column: str) -> [str]:
+    def validate_vaccine(df: pl.DataFrame, column: str) -> List[str]:
         if column not in df.columns:
             return [f"Missing column `{column}`"]
 
@@ -166,7 +163,7 @@ class Validate:
     @classmethod
     def validate_geography(
         cls, df: pl.DataFrame, type_column: str, value_column: str
-    ) -> [str]:
+    ) -> List[str]:
         if not {type_column, value_column}.issubset(df.columns):
             return [f"Missing columns `{type_column}` or `{value_column}`"]
 
@@ -232,7 +229,7 @@ class Validate:
         return errors
 
     @classmethod
-    def validate_age_groups(cls, df) -> [str]:
+    def validate_age_groups(cls, df) -> List[str]:
         if "domain_type" not in df.columns:
             return ["Missing column `domain_type`"]
 
@@ -249,7 +246,9 @@ class Validate:
         return []
 
     @staticmethod
-    def bad_value_error(column_name: str, values: pl.Series, expected: [str]) -> [str]:
+    def bad_value_error(
+        column_name: str, values: pl.Series, expected: List[str]
+    ) -> List[str]:
         bad_values = set(values.to_list()) - set(expected)
         if len(bad_values) > 0:
             return [f"Bad values in `{column_name}`: {bad_values}"]

@@ -1,5 +1,5 @@
 import uuid
-from typing import Sequence
+from typing import Iterable, Optional, Sequence
 
 import polars as pl
 
@@ -165,10 +165,10 @@ def clean_geography(df: pl.LazyFrame) -> pl.LazyFrame:
 
 
 def remove_duplicate_rows(df: pl.LazyFrame) -> pl.LazyFrame:
-    return df.filter(df.is_duplicated().not_())
+    return df.filter(df.collect().is_duplicated().not_())
 
 
-def rename_indicator_columns(df: pl.DataFrame) -> pl.DataFrame:
+def rename_indicator_columns(df: pl.LazyFrame) -> pl.LazyFrame:
     """
     Make "indicator" follow the same logic as "geography" and
     "domain", with "type" and "value" columns
@@ -188,9 +188,9 @@ def rename_indicator_columns(df: pl.DataFrame) -> pl.DataFrame:
 def remove_near_duplicates(
     df: pl.LazyFrame,
     tolerance: float,
-    n_fold_duplication: int = None,
+    n_fold_duplication: Optional[int] = None,
     value_columns: Sequence[str] = ["estimate", "ci_half_width_95pct"],
-    group_columns: Sequence[str] = None,
+    group_columns: Optional[Iterable[str]] = None,
 ) -> pl.LazyFrame:
     """Remove near-duplicate rows
 
@@ -265,7 +265,8 @@ def _mean_max_diff(x: pl.Expr, tolerance: float) -> pl.Expr:
     return (x - x.mean()).abs().max() < tolerance
 
 
-def drop_suppressed_rows(df: pl.DataFrame) -> pl.DataFrame:
+def drop_suppressed_rows(df: pl.LazyFrame) -> pl.LazyFrame:
+    """Drop rows with suppression flag `"0"`"""
     return df.filter(pl.col("suppression_flag") == pl.lit("0")).drop("suppression_flag")
 
 
@@ -375,7 +376,7 @@ def duplicated_rows(df: pl.DataFrame) -> pl.DataFrame:
     return df.filter(df.is_duplicated())
 
 
-def rows_with_any_null(df: pl.LazyFrame) -> pl.LazyFrame:
+def rows_with_any_null(df: pl.DataFrame) -> pl.DataFrame:
     """Filter a data frame for rows with any null value
 
     Args:
@@ -384,11 +385,7 @@ def rows_with_any_null(df: pl.LazyFrame) -> pl.LazyFrame:
     Returns:
         pl.LazyFrame: rows with any null value
     """
-    col_name = "any"
-    rows = df.select(pl.all().is_null()).select(
-        pl.any_horizontal(pl.all()).alias(col_name)
-    )[col_name]
-    return df.filter(rows)
+    return df.filter(pl.any_horizontal(pl.all().is_null()))
 
 
 def clamp_ci(

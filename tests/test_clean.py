@@ -42,12 +42,16 @@ def test_remove_near_duplicates_one_value():
         }
     )
 
-    current_df = input_df.pipe(
-        remove_near_duplicates,
-        value_columns=["value1", "value2"],
-        group_columns=["group"],
-        tolerance=0.1,
-        n_fold_duplication=2,
+    current_df = (
+        input_df.lazy()
+        .pipe(
+            remove_near_duplicates,
+            value_columns=["value1", "value2"],
+            group_columns=["group"],
+            tolerance=0.1,
+            n_fold_duplication=2,
+        )
+        .collect()
     )
     expected_df = pl.DataFrame(
         {"group": [1, 2], "value1": [0.05, 1.05], "value2": [2.05, 3.05]}
@@ -66,12 +70,16 @@ def test_remove_near_duplicates_multiple_values():
         }
     )
 
-    current_df = input_df.pipe(
-        remove_near_duplicates,
-        value_columns=["value1", "value2"],
-        group_columns=["group"],
-        tolerance=0.1,
-        n_fold_duplication=2,
+    current_df = (
+        input_df.lazy()
+        .pipe(
+            remove_near_duplicates,
+            value_columns=["value1", "value2"],
+            group_columns=["group"],
+            tolerance=0.1,
+            n_fold_duplication=2,
+        )
+        .collect()
     )
     expected_df = pl.DataFrame(
         {"group": [1, 2], "value1": [0.11, 1.11], "value2": [2.005, 3.005]}
@@ -82,22 +90,28 @@ def test_remove_near_duplicates_multiple_values():
 
 
 def test_validate_age_groups():
-    assert Validate.is_valid_age_group(
-        pl.Series(["18-49 years", "50-64 years", "65+ years"])
-    ).all()
+    assert (
+        pl.DataFrame({"age_group": ["18-49 years", "50-64 years", "65+ years"]})
+        .select(Validate.is_valid_age_group(pl.col("age_group")).all())
+        .item()
+    )
 
-    assert not Validate.is_valid_age_group(
-        pl.Series(
-            [
-                # en dash should fail
-                "18–49 years"
-                # missing "years" should fail
-                "18-49",
-                # fail if there are spaces
-                "18 - 49 years",
-            ]
+    assert (
+        not pl.DataFrame(
+            {
+                "age_group": [
+                    # en dash should fail
+                    "18–49 years"
+                    # missing "years" should fail
+                    "18-49",
+                    # fail if there are spaces
+                    "18 - 49 years",
+                ]
+            }
         )
-    ).any()
+        .select(Validate.is_valid_age_group(pl.col("age_group")).any())
+        .item()
+    )
 
 
 def test_row_has_null():
@@ -112,6 +126,6 @@ def test_row_has_null():
 
 def test_clamp_ci():
     df = pl.DataFrame({"lci": [-0.1, 0.1, 0.2], "uci": [0.9, 1.0, 1.1]})
-    current = df.pipe(clamp_ci)
+    current = df.lazy().pipe(clamp_ci).collect()
     expected = pl.DataFrame({"lci": [0.0, 0.1, 0.2], "uci": [0.9, 1.0, 1.0]})
     polars.testing.assert_frame_equal(current, expected)
