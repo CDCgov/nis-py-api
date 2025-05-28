@@ -5,6 +5,7 @@ import polars as pl
 import nisapi.clean.akkj_j5ru
 import nisapi.clean.ksfb_ug5d
 import nisapi.clean.sw5n_wg2p
+import nisapi.clean.vdz4_qrri
 import nisapi.clean.vh55_3he6
 from nisapi.clean.helpers import (
     admin1_values,
@@ -35,6 +36,8 @@ def clean_dataset(df: pl.LazyFrame, id: str, validation_mode: str) -> pl.DataFra
         out = nisapi.clean.ksfb_ug5d.clean(df)
     elif id == "vh55-3he6":
         out = nisapi.clean.vh55_3he6.clean(df)
+    elif id == "vdz4-qrri":
+        out = nisapi.clean.vdz4_qrri.clean(df)
     else:
         raise RuntimeError(f"No cleaning set up for dataset {id}")
 
@@ -154,6 +157,8 @@ class Validate:
             "covid",
             "flu_h1n1",
             "flu_seasonal_or_h1n1",
+            "nirsevimab",
+            "rsv_maternal",
         }
         if len(bad_vaccines) > 0:
             return [f"Bad `vaccine` values: {bad_vaccines}"]

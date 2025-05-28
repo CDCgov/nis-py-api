@@ -26,11 +26,11 @@
   notes:
     - This appears to be a replacement for udsf-9v7b
     - udsf-9v7b had these suppression flags notes:
-      - All null-estimate and "1"-flagged rows were dropped.
-      - "16 rows have the expected pattern; flag '1' and a null value."
-      - 12 rows have sample size < 30, and they all have flag "0".
-      - 1399 rows have flag "1" but non-null estimates.
-      - Suppression flags include non-standard value "0.0".
+        - All null-estimate and "1"-flagged rows were dropped.
+        - "16 rows have the expected pattern; flag '1' and a null value."
+        - 12 rows have sample size < 30, and they all have flag "0".
+        - 1399 rows have flag "1" but non-null estimates.
+        - Suppression flags include non-standard value "0.0".
     - Two rows had estimates of zero and no CIs (despite having nonzero sample size); North Dakota and Alaska in Nov 28-Dec 31. These CIs were writted as null. Maybe also West Virginia for 2022-01.
 - id: vh55-3he6
   url: https://data.cdc.gov/Flu-Vaccinations/Influenza-Vaccination-Coverage-for-All-Ages-6-Mont/vh55-3he6/about_data
@@ -41,3 +41,8 @@
     - Includes seasonal influenza and 2009 H1N1 monovalent vaccines.
     - H1N1 vaccines had two age groups "25-64 years not in initial target group" and "25-64 years not in initial target group". These were collapsed into "at high risk" and "not at high risk", to be consistent with other age groups.
     - County-level data are reported by survey year rather than influenza season.
+- id: vdz4-qrri
+  url: https://data.cdc.gov/Pregnancy-Vaccination/Infant-Protection-Against-Respiratory-Syncytial-Vi/vdz4-qrri/about_data
+  vaccine: nirsevimab and RSV maternal vaccination
+  start_date: 2024-08-18
+  universe: adult females aged 18-49 years with infants under the age of 8 months during the RSV season (born since April 1, 2024)

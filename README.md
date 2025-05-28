@@ -43,7 +43,11 @@ Rows that were suppressed in the raw data are dropped. This includes data with s
 
 ### `vaccine`
 
-- One of `"flu"` or `"covid"`
+- One of:
+  - `"flu"`
+  - `"covid"`
+  - `"nirsevimab"`
+  - `"rsv_maternal"`
 
 ### `geography_type`
 
