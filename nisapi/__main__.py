@@ -10,7 +10,7 @@ if __name__ == "__main__":
     p.add_argument("--path", type=Path, help=f"Path to cache. Default: {default_cache}")
     sp = p.add_subparsers(dest="subcommand", required=True)
     sp_cache = sp.add_parser("cache", help="Cache all datasets")
-    sp_cache.add_argument("--app_token", type=str, help="Socrata developer API token")
+    sp_cache.add_argument("--app-token", type=str, help="Socrata developer API token")
     sp_cache.add_argument(
         "--overwrite",
         default="warn",
