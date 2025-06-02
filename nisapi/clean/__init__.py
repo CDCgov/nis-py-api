@@ -3,6 +3,7 @@ from typing import List
 import polars as pl
 
 import nisapi.clean.akkj_j5ru
+import nisapi.clean.ker6_gs6z
 import nisapi.clean.ksfb_ug5d
 import nisapi.clean.sw5n_wg2p
 import nisapi.clean.vdz4_qrri
@@ -38,6 +39,8 @@ def clean_dataset(df: pl.LazyFrame, id: str, validation_mode: str) -> pl.DataFra
         out = nisapi.clean.vh55_3he6.clean(df)
     elif id == "vdz4-qrri":
         out = nisapi.clean.vdz4_qrri.clean(df)
+    elif id == "ker6-gs6z":
+        out = nisapi.clean.ker6_gs6z.clean(df)
     else:
         raise RuntimeError(f"No cleaning set up for dataset {id}")
 
