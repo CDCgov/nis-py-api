@@ -168,6 +168,7 @@ class Validate:
             "flu_seasonal_or_h1n1",
             "nirsevimab",
             "rsv_maternal",
+            "rsv",
         }
         if len(bad_vaccines) > 0:
             return [f"Bad `vaccine` values: {bad_vaccines}"]
