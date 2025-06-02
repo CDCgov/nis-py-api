@@ -6,7 +6,7 @@ import nisapi
 import nisapi.clean.ker6_gs6z
 from nisapi.clean import Validate
 
-dataset_id = "ker6_gs6z"
+dataset_id = "ker6-gs6z"
 clean_func = nisapi.clean.ker6_gs6z.clean
 clean_tmp_path = "scripts/tmp_clean.parquet"
 
