@@ -62,3 +62,10 @@
   notes:
     - The 'vaccine' column is totally blank, so "flu" must be filled in
     - There are 98 rows representing Guam and the U.S. Virgin Islands that have "null" estimates and must be dropped
+- id: k4cb-dxd7
+  url: https://data.cdc.gov/Vaccinations/Weekly-Cumulative-RSV-Vaccination-Coverage-and-Int/k4cb-dxd7/about_data
+  vaccine: rsv
+  start_date: 2024-08-24
+  universe: 75+ years and 60-74 years old with high risk conditions
+  notes:
+
