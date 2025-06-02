@@ -61,3 +61,4 @@
   universe: 6 months - 17 years old
   notes:
     - The 'vaccine' column is totally blank, so "flu" must be filled in
+    - There are 98 rows representing Guam and the U.S. Virgin Islands that have "null" estimates and must be dropped
