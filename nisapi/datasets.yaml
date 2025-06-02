@@ -70,4 +70,5 @@
   notes:
     - The column "suppression_flag" is misspelled as "suppresion_flag"
     - The columns that are usually named "geographic_type" and "geographic_level" are instead "geography_type" and "geography_level"
+    - Currently, it seems there are 4880 duplicated rows - can that be right?
 
