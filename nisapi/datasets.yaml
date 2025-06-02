@@ -51,3 +51,6 @@
   vaccine: covid
   start_date: 2023-09-30
   universe: 6 months - 17 years old
+  notes:
+    - Dates in the "week_ending" column have no times, requiring a version of the `cast_types` helper specific to this dataset
+    - Contains two unnecessary columns, "month_week" and "unweighted_sample_size," which must be dropped
