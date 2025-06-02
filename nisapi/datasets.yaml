@@ -54,3 +54,9 @@
   notes:
     - Dates in the "week_ending" column have no times, requiring a version of the `cast_types` helper specific to this dataset
     - Contains two unnecessary columns, "month_week" and "unweighted_sample_size," which must be dropped
+- id: vncy-2ds7
+  url: https://data.cdc.gov/Child-Vaccinations/Weekly-Cumulative-Influenza-Vaccination-Coverage-b/vncy-2ds7/about_data
+  vaccine: flu
+  start_date: 2019-10-05
+  universe: 6 months - 17 years old
+  notes:

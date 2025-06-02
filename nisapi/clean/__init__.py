@@ -8,6 +8,7 @@ import nisapi.clean.ksfb_ug5d
 import nisapi.clean.sw5n_wg2p
 import nisapi.clean.vdz4_qrri
 import nisapi.clean.vh55_3he6
+import nisapi.clean.vncy_2ds7
 from nisapi.clean.helpers import (
     admin1_values,
     data_schema,
@@ -41,6 +42,8 @@ def clean_dataset(df: pl.LazyFrame, id: str, validation_mode: str) -> pl.DataFra
         out = nisapi.clean.vdz4_qrri.clean(df)
     elif id == "ker6-gs6z":
         out = nisapi.clean.ker6_gs6z.clean(df)
+    elif id == "vncy-2ds7":
+        out = nisapi.clean.vncy_2ds7.clean(df)
     else:
         raise RuntimeError(f"No cleaning set up for dataset {id}")
 
