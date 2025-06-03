@@ -281,9 +281,11 @@ class Validate:
         regex2 = r"^\d+\+ (years|months)$"  # eg "65+ years" or "6+ months"
         regex3 = r"^\d+ months-\d+ years$"  # eg "6 months-17 years"
         regex4 = r"^\d+-\d+ months$"  # eg "6-23 months"
+        regex5 = r"^\d+-\d+ years \(high risk\)$"  # eg "18-49 years"
         return (
             x.str.contains(regex1)
             | x.str.contains(regex2)
             | x.str.contains(regex3)
             | x.str.contains(regex4)
+            | x.str.contains(regex5)
         )
