@@ -14,7 +14,7 @@ with open("scripts/secrets.yaml") as f:
     app_token = yaml.safe_load(f)["app_token"]
 
 raw = nisapi._get_nis_raw(
-    id=dataset_id, app_token=app_token, root_path=nisapi._root_cache_path()
+    id=dataset_id, app_token=app_token, root_path=nisapi.root_cache_path()
 )
 
 # show the first few rows of the raw data
