@@ -24,7 +24,7 @@ def get_nis(path: Optional[Path] = None) -> pl.LazyFrame:
         pl.LazyFrame: _description_
     """
     if path is None:
-        path = Path(_root_cache_path(), "clean")
+        path = Path(root_cache_path(), "clean")
 
     return pl.scan_parquet(path)
 
@@ -47,7 +47,7 @@ def cache_all_datasets(
             Default ("warn") will print a warning and continue.
     """
     if path is None:
-        path = _root_cache_path()
+        path = root_cache_path()
 
     for id in _get_dataset_ids():
         _cache_clean_dataset(
@@ -69,7 +69,7 @@ def delete_cache(path: Optional[Path] = None, confirm: bool = True) -> None:
           confirmation before deleting
     """
     if path is None:
-        path = _root_cache_path()
+        path = root_cache_path()
 
     if not Path(path).exists():
         warnings.warn(f"Cache path {path} does not exist")
@@ -119,7 +119,7 @@ def _cache_clean_dataset(
     clean_data.write_parquet(clean_path)
 
 
-def _root_cache_path() -> Path:
+def root_cache_path() -> Path:
     return Path(platformdirs.user_cache_dir("nisapi"))
 
 

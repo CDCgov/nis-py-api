@@ -118,7 +118,7 @@ upload_blobs(
     client=client,
     container_id=os.environ["AZURE_CONTAINER_ID"],
     blob_root=os.environ["AZURE_BLOB_ROOT"],
-    local_dir=nisapi._root_cache_path(),
+    local_dir=nisapi.root_cache_path(),
 )
 
 # download the file to a new local directory, to demonstrate how another user
