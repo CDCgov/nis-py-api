@@ -24,7 +24,7 @@ def get_nis(path: Optional[Path] = None) -> pl.LazyFrame:
         pl.LazyFrame: _description_
     """
     if path is None:
-        path = Path(_root_cache_path(), "clean")
+        path = Path(root_cache_path(), "clean")
 
     return pl.scan_parquet(path)
 
@@ -47,7 +47,7 @@ def cache_all_datasets(
             Default ("warn") will print a warning and continue.
     """
     if path is None:
-        path = _root_cache_path()
+        path = root_cache_path()
 
     for id in _get_dataset_ids():
         _cache_clean_dataset(
@@ -69,7 +69,7 @@ def delete_cache(path: Optional[Path] = None, confirm: bool = True) -> None:
           confirmation before deleting
     """
     if path is None:
-        path = _root_cache_path()
+        path = root_cache_path()
 
     if not Path(path).exists():
         warnings.warn(f"Cache path {path} does not exist")
@@ -102,7 +102,7 @@ def _cache_clean_dataset(
     clean_data = nisapi.clean.clean_dataset(
         df=raw_data, id=id, validation_mode=validation_mode
     )
-    clean_path_dir = _dataset_cache_path(root_path=root_path, type_="clean", id=id)
+    clean_path_dir = dataset_cache_path(root_path=root_path, type_="clean", id=id)
     clean_path = clean_path_dir / "part-0.parquet"
 
     if clean_path.exists():
@@ -119,11 +119,11 @@ def _cache_clean_dataset(
     clean_data.write_parquet(clean_path)
 
 
-def _root_cache_path() -> Path:
+def root_cache_path() -> Path:
     return Path(platformdirs.user_cache_dir("nisapi"))
 
 
-def _dataset_cache_path(root_path: Path, type_: str, id: str) -> Path:
+def dataset_cache_path(root_path: Path, type_: str, id: str) -> Path:
     """Construct path to a particular dataset in the cache
 
     Cache starts at the "root", goes through either "raw" or "clean",
@@ -141,7 +141,7 @@ def _dataset_cache_path(root_path: Path, type_: str, id: str) -> Path:
 
 
 def _get_nis_raw(id: str, root_path: Path, app_token: Optional[str]) -> pl.LazyFrame:
-    dir_path = _dataset_cache_path(root_path=root_path, type_="raw", id=id)
+    dir_path = dataset_cache_path(root_path=root_path, type_="raw", id=id)
     path = dir_path / "part-0.parquet"
 
     if not dir_path.exists():
