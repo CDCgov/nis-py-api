@@ -3,11 +3,11 @@ import polars as pl
 import yaml
 
 import nisapi
-import nisapi.clean.k4cb_dxd7
+import nisapi.clean.vncy_2ds7
 from nisapi.clean import Validate
 
-dataset_id = "k4cb-dxd7"
-clean_func = nisapi.clean.k4cb_dxd7.clean
+dataset_id = "vncy-2ds7"
+clean_func = nisapi.clean.vncy_2ds7.clean
 clean_tmp_path = "scripts/tmp_clean.parquet"
 
 with open("scripts/secrets.yaml") as f:

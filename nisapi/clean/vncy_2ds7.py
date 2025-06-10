@@ -20,7 +20,7 @@ def clean(df: pl.LazyFrame) -> pl.LazyFrame:
         .pipe(rename_indicator_columns)
         .pipe(set_lowercase)
         .pipe(cast_types)
-        .drop_nulls()
+        .filter(pl.col("estimate").is_not_null())
         .pipe(clean_geography)
         .pipe(week_ending_to_times)
         .pipe(hci_to_cis)

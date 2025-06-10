@@ -188,7 +188,7 @@ class Validate:
         errors += cls.bad_value_error(
             type_column,
             df[type_column],
-            ["nation", "region", "admin1", "substate", "county"],
+            ["nation", "region", "admin1", "substate", "county", "local"],
         )
         # if type is "nation", value must also be "nation"
         bad_nation_values = (

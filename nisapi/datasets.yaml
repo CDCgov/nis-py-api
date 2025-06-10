@@ -61,7 +61,8 @@
   universe: 6 months - 17 years old
   notes:
     - The 'vaccine' column is totally blank, so "flu" must be filled in
-    - There are 98 rows representing Guam and the U.S. Virgin Islands that have "null" estimates and must be dropped
+    - There are 585 with geographic_level "Local" (e.g. City of Chicago). This is new, but permitted by validation.
+    - There are 2580 rows with "null" estimates that must be dropped.
 - id: k4cb-dxd7
   url: https://data.cdc.gov/Vaccinations/Weekly-Cumulative-RSV-Vaccination-Coverage-and-Int/k4cb-dxd7/about_data
   vaccine: rsv
