@@ -43,6 +43,5 @@ def clean(df: pl.LazyFrame) -> pl.LazyFrame:
         .pipe(week_ending_to_times)
         .pipe(hci_to_cis)
         .pipe(clamp_ci)
-        .drop(["unweighted_sample_size", "month_week"])
         .pipe(enforce_columns)
     )
