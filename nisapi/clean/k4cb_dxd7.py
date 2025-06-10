@@ -35,21 +35,14 @@ def merge_age_groups(df: pl.LazyFrame) -> pl.LazyFrame:
     """
     Make the "age_group" column part of the "domain" and "domain_type" columns.
     """
-    return (
-        df.with_columns(
-            domain_type=("age & " + pl.col("domain_type")),
-            domain=pl.concat_str(["age_group", "domain"], separator=" & "),
-        )
-        .with_columns(
-            domain_type=pl.when(pl.col("domain_type") == "age & age")
-            .then(pl.lit("age"))
-            .otherwise(pl.col("domain_type")),
-            domain=pl.when(pl.col("domain_type") == "age & age")
-            .then(pl.col("age_group"))
-            .otherwise(pl.col("domain")),
-        )
-        .drop("age_group")
-    )
+    return df.with_columns(
+        domain_type=pl.when(pl.col("domain_type") == pl.lit("age"))
+        .then(pl.lit("age"))
+        .otherwise("age & " + pl.col("domain_type")),
+        domain=pl.when(pl.col("domain_type") == pl.lit("age"))
+        .then(pl.col("age_group"))
+        .otherwise(pl.concat_str(["age_group", "domain"], separator=" & ")),
+    ).drop("age_group")
 
 
 def clean(df: pl.LazyFrame) -> pl.LazyFrame:
