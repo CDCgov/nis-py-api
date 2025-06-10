@@ -46,3 +46,29 @@
   vaccine: nirsevimab and RSV maternal vaccination
   start_date: 2024-08-18
   universe: adult females aged 18-49 years with infants under the age of 8 months during the RSV season (born since April 1, 2024)
+- id: ker6-gs6z
+  url: https://data.cdc.gov/Child-Vaccinations/Weekly-Parental-Intent-for-Vaccination-and-Cumulat/ker6-gs6z/about_data
+  vaccine: covid
+  start_date: 2023-09-30
+  universe: 6 months - 17 years old
+  notes:
+    - Dates in the "week_ending" column have no times, requiring a version of the `cast_types` helper specific to this dataset
+    - Contains two unnecessary columns, "month_week" and "unweighted_sample_size," which must be dropped
+- id: vncy-2ds7
+  url: https://data.cdc.gov/Child-Vaccinations/Weekly-Cumulative-Influenza-Vaccination-Coverage-b/vncy-2ds7/about_data
+  vaccine: flu
+  start_date: 2019-10-05
+  universe: 6 months - 17 years old
+  notes:
+    - The 'vaccine' column is totally blank, so "flu" must be filled in
+    - There are 585 with geographic_level "Local" (e.g. City of Chicago). This is new, but permitted by validation.
+    - There are 2580 rows with "null" estimates that must be dropped.
+- id: k4cb-dxd7
+  url: https://data.cdc.gov/Vaccinations/Weekly-Cumulative-RSV-Vaccination-Coverage-and-Int/k4cb-dxd7/about_data
+  vaccine: rsv
+  start_date: 2024-08-24
+  universe: 75+ years and 60-74 years old with high risk conditions
+  notes:
+    - The column "suppression_flag" is misspelled as "suppresion_flag"
+    - The columns that are usually named "geographic_type" and "geographic_level" are instead "geography_type" and "geography_level"
+    - An "age_group" column, divides every entry into "60-74 years (high risk)" vs. "75+ years" even when "domain_type" is not "overall" i.e. age

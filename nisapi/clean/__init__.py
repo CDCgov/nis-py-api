@@ -3,10 +3,13 @@ from typing import List
 import polars as pl
 
 import nisapi.clean.akkj_j5ru
+import nisapi.clean.k4cb_dxd7
+import nisapi.clean.ker6_gs6z
 import nisapi.clean.ksfb_ug5d
 import nisapi.clean.sw5n_wg2p
 import nisapi.clean.vdz4_qrri
 import nisapi.clean.vh55_3he6
+import nisapi.clean.vncy_2ds7
 from nisapi.clean.helpers import (
     admin1_values,
     data_schema,
@@ -38,6 +41,12 @@ def clean_dataset(df: pl.LazyFrame, id: str, validation_mode: str) -> pl.DataFra
         out = nisapi.clean.vh55_3he6.clean(df)
     elif id == "vdz4-qrri":
         out = nisapi.clean.vdz4_qrri.clean(df)
+    elif id == "ker6-gs6z":
+        out = nisapi.clean.ker6_gs6z.clean(df)
+    elif id == "vncy-2ds7":
+        out = nisapi.clean.vncy_2ds7.clean(df)
+    elif id == "k4cb-dxd7":
+        out = nisapi.clean.k4cb_dxd7.clean(df)
     else:
         raise RuntimeError(f"No cleaning set up for dataset {id}")
 
@@ -159,6 +168,7 @@ class Validate:
             "flu_seasonal_or_h1n1",
             "nirsevimab",
             "rsv_maternal",
+            "rsv",
         }
         if len(bad_vaccines) > 0:
             return [f"Bad `vaccine` values: {bad_vaccines}"]
@@ -178,7 +188,7 @@ class Validate:
         errors += cls.bad_value_error(
             type_column,
             df[type_column],
-            ["nation", "region", "admin1", "substate", "county"],
+            ["nation", "region", "admin1", "substate", "county", "local"],
         )
         # if type is "nation", value must also be "nation"
         bad_nation_values = (
@@ -267,7 +277,13 @@ class Validate:
         Args:
             x (pl.Expr): bool
         """
-        regex1 = r"^\d+-\d+ years$"  # eg "18-49 years"
+        regex1 = r"^\d+-\d+ (months|years)$"  # eg "18-49 years"
         regex2 = r"^\d+\+ (years|months)$"  # eg "65+ years" or "6+ months"
         regex3 = r"^\d+ months-\d+ years$"  # eg "6 months-17 years"
-        return x.str.contains(regex1) | x.str.contains(regex2) | x.str.contains(regex3)
+        regex4 = r"^\d+-\d+ years \(high risk\)$"  # eg "18-49 years"
+        return (
+            x.str.contains(regex1)
+            | x.str.contains(regex2)
+            | x.str.contains(regex3)
+            | x.str.contains(regex4)
+        )
