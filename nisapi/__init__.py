@@ -2,8 +2,9 @@ import importlib.resources
 import shutil
 import tempfile
 import warnings
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Optional, Sequence
+from typing import Literal, Optional
 
 import platformdirs
 import polars as pl
@@ -99,7 +100,7 @@ def _cache_clean_dataset(
     validation_mode: str,
 ) -> None:
     raw_data_path = get_data_path(path=cache_path, type_="raw", id=id)
-    raw_data = _get_nis_raw(id=id, data_path=raw_data_path, app_token=app_token)
+    raw_data = _get_nis_raw(id=id, raw_data_path=raw_data_path, app_token=app_token)
     clean_data = nisapi.clean.clean_dataset(
         df=raw_data, id=id, validation_mode=validation_mode
     )
@@ -122,7 +123,7 @@ def _cache_clean_dataset(
 
 def get_data_path(
     path: Optional[Path] = None,
-    type_: str = "clean",
+    type_: Literal["clean", "raw"] = "clean",
     id: Optional[str] = None,
 ) -> Path:
     """
@@ -161,16 +162,19 @@ def default_cache_path() -> Path:
     return Path(platformdirs.user_cache_dir("nisapi"))
 
 
-def _get_nis_raw(id: str, data_path: Path, app_token: Optional[str]) -> pl.LazyFrame:
+def _get_nis_raw(
+    id: str, raw_data_path: Path, app_token: Optional[str]
+) -> pl.LazyFrame:
     """
     Args:
         id (str): dataset ID
-        path (Path): path to the raw dataset directory
+        raw_data_path (Path): path to the raw dataset directory
+        app_token (str, optional): Socrata developer API token, or None
     """
-    filepath = data_path / "part-0.parquet"
+    filepath = raw_data_path / "part-0.parquet"
 
-    if not data_path.exists():
-        data_path.mkdir(parents=True)
+    if not raw_data_path.exists():
+        raw_data_path.mkdir(parents=True)
 
     if not filepath.exists():
         data = _download_dataset(id=id, app_token=app_token)
