@@ -4,7 +4,7 @@ from pathlib import Path
 import nisapi
 
 if __name__ == "__main__":
-    default_cache = nisapi._root_cache_path()
+    default_cache = nisapi.root_cache_path()
 
     p = argparse.ArgumentParser()
     p.add_argument("--path", type=Path, help=f"Path to cache. Default: {default_cache}")
