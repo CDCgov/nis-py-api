@@ -24,10 +24,8 @@ def get_nis(path: Optional[Path] = None) -> pl.LazyFrame:
     Returns:
         pl.LazyFrame: _description_
     """
-    if path is None:
-        path = default_cache_path()
-
-    return pl.scan_parquet(path)
+    # read the clean data
+    return pl.scan_parquet(get_data_path(path=path))
 
 
 def cache_all_datasets(
