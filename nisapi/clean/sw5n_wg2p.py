@@ -23,7 +23,7 @@ def clean(df: pl.LazyFrame) -> pl.LazyFrame:
         .rename({"estimates": "estimate"})
         .pipe(drop_suppressed_rows)
         .pipe(rename_indicator_columns)
-        .unique()
+        .unique(maintain_order=True)
         .pipe(set_lowercase)
         .pipe(cast_types)
         .pipe(clean_geography)
