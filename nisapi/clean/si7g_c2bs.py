@@ -24,14 +24,24 @@ def rename_columns(df: pl.LazyFrame) -> pl.LazyFrame:
 
 
 def cast_numeric_types(df: pl.LazyFrame) -> pl.LazyFrame:
-    out = df.with_columns(
-        pl.col("estimate").cast(pl.Float64),
-        lci=pl.col("_95_ci").str.split("-").arr.first().cast(pl.Float64),
-        uci=pl.col("_95_ci").str.split("-").arr.last().cast(pl.Float64),
-    ).with_columns(
-        pl.col("estimate") / 100.0,
-        pl.col("lci") / 100.0,
-        pl.col("uci") / 100.0,
+    out = (
+        df.with_columns(
+            pl.col("estimate").cast(pl.Float64),
+            lci=pl.col("_95_ci")
+            .str.extract(r"^(.*?)-")
+            .str.strip_chars()
+            .cast(pl.Float64),
+            uci=pl.col("_95_ci")
+            .str.extract(r"-(.*)", 1)
+            .str.strip_chars()
+            .cast(pl.Float64),
+        )
+        .with_columns(
+            pl.col("estimate") / 100.0,
+            pl.col("lci") / 100.0,
+            pl.col("uci") / 100.0,
+        )
+        .drop("_95_ci")
     )
 
     return out
@@ -40,14 +50,8 @@ def cast_numeric_types(df: pl.LazyFrame) -> pl.LazyFrame:
 def cast_date_types(df: pl.LazyFrame) -> pl.LazyFrame:
     out = (
         df.with_columns(
-            time_start=pl.col("time_period")
-            .str.split("-")
-            .arr.first()
-            .str.strip_chars_end(),
-            time_end=pl.col("time_period")
-            .str.split("-")
-            .arr.last()
-            .str.strip_chars_end(),
+            time_start=pl.col("time_period").str.extract(r"^(.*?)-").str.strip_chars(),
+            time_end=pl.col("time_period").str.extract(r"^(.*?)-").str.strip_chars(),
             time_type=pl.lit("month"),
         )
         .with_columns(
@@ -72,7 +76,7 @@ def clean(df: pl.LazyFrame) -> pl.LazyFrame:
         .pipe(cast_numeric_types)
         .pipe(cast_date_types)
         .pipe(clean_geography)
-        # .pipe(clean_4_level)
+        .pipe(clean_4_level)
         .pipe(clamp_ci)
         .pipe(enforce_columns)
         .pipe(replace_overall_domain)
