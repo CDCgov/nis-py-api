@@ -160,6 +160,7 @@ def clean_geography(df: pl.LazyFrame) -> pl.LazyFrame:
                 "region": "region",
                 "substate": "substate",
                 "local": "local",
+                "hhs region": "region",
             }
         )
     )
