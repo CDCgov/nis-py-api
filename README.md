@@ -115,7 +115,7 @@ Rows that were suppressed in the raw data are dropped. This includes data with s
 3. Create a dataset-specific module in `nisapi/clean/`. It should have a main function `clean()`.
    - Start with a `clean()` function that does nothing and just returns the input data frame.
 4. Add the `import` and `elif` statements for this dataset ID to `clean_dataset()` in `nisapi/clean/__init__.py`.
-5. Run `scripts/demo_clean.py`, after substituting the name of the dataset you are adding in Lines 6, 9, and 10. This should cache the raw dataset, run the cleaning function, and fail on validation.
+5. Run `scripts/demo_clean.py`, after substituting the name of the dataset you are adding in Lines 9, 12, and 13. This should cache the raw dataset, run the cleaning function, and fail on validation.
 6. Iteratively update the dataset-specific `clean()` function until validation passes.
    - Ideally, `clean()` should be a series of pipe functions.
    - If a cleaning step is specific to a single dataset, keep that in the dataset-specific submodule. If a step is shared between datasets, move it into `helpers.py`.
