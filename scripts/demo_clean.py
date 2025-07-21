@@ -31,6 +31,9 @@ raw.head().collect().glimpse()
 # try to clean the data
 clean = clean_func(raw)
 
+# TEMPORARY - Check schema
+print(clean.schema)
+
 # look at the first few rows of the partially cleaned data
 clean.head(10).collect().glimpse()
 
