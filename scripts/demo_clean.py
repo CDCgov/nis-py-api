@@ -6,11 +6,11 @@ import polars as pl
 import yaml
 
 import nisapi
-import nisapi.clean.vh55_3he6
+import nisapi.clean.si7g_c2bs
 from nisapi.clean import Validate
 
-dataset_id = "vh55-3he6"
-clean_func = nisapi.clean.vh55_3he6.clean
+dataset_id = "si7g-c2bs"
+clean_func = nisapi.clean.si7g_c2bs.clean
 
 td = tempfile.TemporaryDirectory()
 
