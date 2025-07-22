@@ -2,7 +2,6 @@ import polars as pl
 
 from nisapi.clean.helpers import (
     clamp_ci,
-    clean_4_level,
     clean_geography,
     drop_suppressed_rows,
     enforce_columns,
@@ -126,7 +125,6 @@ def clean(df: pl.LazyFrame) -> pl.LazyFrame:
         .pipe(clean_geography)
         .pipe(clean_regions)
         .pipe(clean_vaccine_names)
-        # .pipe(clean_4_level)
         .pipe(clamp_ci)
         .pipe(enforce_columns)
         .pipe(remove_duplicate_rows)
