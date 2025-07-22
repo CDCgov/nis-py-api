@@ -41,7 +41,6 @@ def cast_numeric_types(df: pl.LazyFrame) -> pl.LazyFrame:
             pl.col("lci") / 100.0,
             pl.col("uci") / 100.0,
         )
-        .with_columns(ci_half_width_95pct=(pl.col("uci") - pl.col("estimate")))
         .drop("_95_ci")
     )
 
