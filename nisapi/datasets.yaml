@@ -72,3 +72,11 @@
     - The column "suppression_flag" is misspelled as "suppresion_flag"
     - The columns that are usually named "geographic_type" and "geographic_level" are instead "geography_type" and "geography_level"
     - An "age_group" column, divides every entry into "60-74 years (high risk)" vs. "75+ years" even when "domain_type" is not "overall" i.e. age
+- id: si7g-c2bs
+  url: https://data.cdc.gov/Vaccinations/National-Immunization-Survey-Adult-COVID-Module-NI/si7g-c2bs/about_data
+  vaccine: covid, flu, and rsv
+  start_date: 2024-09-01
+  universe: 18+ years old
+  notes:
+  - The data is monthly but includes the full cross of state-level geography and adult age groups for all three vaccinations, for 2024-25
+  
