@@ -109,7 +109,9 @@ def clean_geography_type(df: pl.LazyFrame, colname: str) -> pl.LazyFrame:
             {
                 "national": "nation",
                 "nation": "nation",
+                "national estimates": "nation",
                 "state": "admin1",
+                "jurisdictional estimates": "admin1",
                 "region": "region",
                 "hhs region": "region",
                 "substate": "substate",
@@ -130,6 +132,12 @@ def clean_geography(df: pl.LazyFrame, colname: str) -> pl.LazyFrame:
     df = df.with_columns(
         pl.col("geography").str.strip_chars().replace({"National": "nation"})
     )
+    df = df.with_columns(
+        geography_type=pl.when(
+            (pl.col("geography_type") == "admin1")
+            & (~pl.col("geography").is_in(admin1_values))
+        ).then(pl.lit("substate"))
+    )
 
     return df
 
@@ -141,8 +149,11 @@ def clean_domain_type(df: pl.LazyFrame, colname: str) -> pl.LazyFrame:
     """
     df.rename({colname: "domain_type"})
     df = df.with_columns(
-        pl.col("domain_type").str.to_lowercase().str.strip_chars()
-    ).with_columns(pl.col("domain_type").replace({"overall": "age"}))
+        pl.col("domain_type")
+        .str.to_lowercase()
+        .str.strip_chars()
+        .replace({"overall": "age"})
+    )
 
     return df
 
@@ -150,9 +161,12 @@ def clean_domain_type(df: pl.LazyFrame, colname: str) -> pl.LazyFrame:
 def clean_domain(df: pl.LazyFrame, colname: str) -> pl.LazyFrame:
     """
     Domain is the specific demographic group.
+    Add to the `replace` dictionary as necessary to standardize verbiage.
     """
     df.rename({colname: "domain"})
-    df = df.with_columns(pl.col("domain").str.strip_chars())
+    df = df.with_columns(
+        pl.col("domain").str.strip_chars().replace({"All adults 18+": "18+ years"})
+    )
 
     return df
 
@@ -204,14 +218,28 @@ def clean_indicator(
 
 
 def clean_vaccine(
-    df: pl.LazyFrame, colname: str, domain_phrases: Optional[List[str]] = None
+    df: pl.LazyFrame,
+    colname: str | None,
+    literal: Optional[str] = None,
+    domain_phrases: Optional[List[str]] = None,
 ) -> pl.LazyFrame:
     """
     Vaccine is the target pathogen plus any formulation information.
+    If there is no column with this information, provide it as 'literal'.
     Move extraneous information about eligibilty, etc. to the 'domain'
-    column as necessary by specifying the extraneous phrases
+    column as necessary by specifying the extraneous phrases.
+
     """
-    df.rename({colname: "vaccine"})
+    if colname is not None:
+        if literal is not None:
+            warnings.warn("A vaccine column is given; no need for a literal entry.")
+        df.rename({colname: "vaccine"})
+    else:
+        if literal is None:
+            raise RuntimeError(
+                "If there is no vaccine column, a literal entry is required."
+            )
+        df = df.with_columns(vaccine=pl.lit(literal))
     df = df.with_columns(pl.col("vaccine").str.to_lowercase())
     if domain_phrases is not None:
         for phrase in domain_phrases:
@@ -226,12 +254,24 @@ def clean_vaccine(
     return df
 
 
-def clean_time_type(df: pl.LazyFrame, time_type: str) -> pl.LazyFrame:
+def clean_time_type(
+    df: pl.LazyFrame, colname: str | None, literal: Optional[str] = None
+) -> pl.LazyFrame:
     """
-    Time type is the interval between report dates, e.g. 'month' or 'week'
-    This is specified directly, as it is only in the data description.
+    Time type is the interval between report dates, e.g. 'month' or 'week'.
+    If there is no column with this information, provide it as 'literal'.
     """
-    df = df.with_columns(time_type=pl.lit(time_type))
+    if colname is not None:
+        if literal is not None:
+            warnings.warn("A time_type column is given; no need for a literal entry.")
+        df.rename({colname: "time_type"})
+        df = df.with_columns(pl.col("time_type").str.replace("ly", ""))
+    else:
+        if literal is None:
+            raise RuntimeError(
+                "If there is no time_type column, a literal entry is required."
+            )
+        df = df.with_columns(time_type=pl.lit(literal))
 
     return df
 
@@ -241,7 +281,6 @@ def clean_time_start_end(
     column: str | List[str],
     col_format: str = "end",
     time_format: str = "%Y-%m-%dT%H:%M:%S%.f",
-    time_type: str = "week",
 ) -> pl.LazyFrame:
     """
     Time start is the date on which phone surveys began for the reported estimate.
@@ -249,7 +288,6 @@ def clean_time_start_end(
     A list of columns may be given if month-day is in one column and year in another.
     Column format is "start", "end", or "both" depending on which times are given.
     Time format is the date format string describing the format of the (first) column.
-    Time type is the interval between report dates, e.g. 'month' or 'week'
     """
     if not isinstance(column, list):
         column = [column]
@@ -259,12 +297,23 @@ def clean_time_start_end(
             .str.strptime(pl.Datetime, time_format)
             .dt.truncate("1d")
         )
-        if time_type == "week":
-            df = df.with_columns(time_start=pl.col("time_end").dt.offset_by("-6d"))
-        elif time_type == "month":
-            df = df.with_columns(time_start=pl.col("time_end").dt.offset_by("-1mo"))
-        else:
-            raise RuntimeError("Time type {time_type} is not recognized.")
+        df = df.with_columns(
+            time_start=pl.when(pl.col("time_type") == "week")
+            .then(pl.col("time_end").dt.offset_by("-6d"))
+            .when(pl.col("time_type") == "month")
+            .then(pl.col("time_end").dt.offset_by("-1mo"))
+        )
+        if (
+            df.filter(~pl.col("time_type").is_in(["week", "month"])).collect().shape[0]
+            > 0
+        ):
+            odd_time_type = (
+                df.filter(~pl.col("time_type").is_in(["week", "month"]))
+                .collect()
+                .select("time_type")
+                .unique()
+            )
+            raise RuntimeError("Time type not recognized:", odd_time_type)
     elif col_format == "both":
         df = df.with_columns(
             time_start=pl.col(column[0]).str.extract(r"^(.*?)-").str.strip_chars(),
@@ -302,11 +351,10 @@ def clean_estimate(df: pl.LazyFrame, column: str) -> pl.LazyFrame:
 
 
 def clean_lci_uci(
-    df: pl.LazyFrame, column: str, col_format: str = "end"
+    df: pl.LazyFrame, column: str, col_format: str = "half"
 ) -> pl.LazyFrame:
     """
     LCI and UCI are the lower & upper 95% confidence intervals on the estimate.
-    A list of columns may be given if month-day is in one column and year in another.
     Column format is "half" or "full" depending on whether the CI half-width or
     full range is given.
     """
