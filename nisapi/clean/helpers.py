@@ -1,6 +1,5 @@
 import uuid
 import warnings
-from datetime import timedelta
 from typing import Iterable, List, Optional, Sequence
 
 import polars as pl
@@ -103,7 +102,9 @@ def clean_geography_type(df: pl.LazyFrame, colname: str) -> pl.LazyFrame:
     Add to the `replace_strict` dictonary as necessary to standardize verbiage.
     """
     df.rename({colname: "geography_type"})
-    df = df.with_columns(pl.col("geography_type").str.to_lowercase()).with_columns(
+    df = df.with_columns(
+        pl.col("geography_type").str.to_lowercase().str.strip_chars()
+    ).with_columns(
         pl.col("geography_type").replace_strict(
             {
                 "national": "nation",
@@ -126,7 +127,9 @@ def clean_geography(df: pl.LazyFrame, colname: str) -> pl.LazyFrame:
     Add to the `replace` dictionary as necessary to standardize verbiage.
     """
     df.rename({colname: "geography"})
-    df = df.with_columns(pl.col("geography").replace({"National": "nation"}))
+    df = df.with_columns(
+        pl.col("geography").str.strip_chars().replace({"National": "nation"})
+    )
 
     return df
 
@@ -137,9 +140,9 @@ def clean_domain_type(df: pl.LazyFrame, colname: str) -> pl.LazyFrame:
     Add to the `replace` dictionary as necessary to standardize verbiage.
     """
     df.rename({colname: "domain_type"})
-    df = df.with_columns(pl.col("domain_type").str.to_lowercase()).with_columns(
-        pl.col("domain_type").replace({"overall": "age"})
-    )
+    df = df.with_columns(
+        pl.col("domain_type").str.to_lowercase().str.strip_chars()
+    ).with_columns(pl.col("domain_type").replace({"overall": "age"}))
 
     return df
 
@@ -149,6 +152,7 @@ def clean_domain(df: pl.LazyFrame, colname: str) -> pl.LazyFrame:
     Domain is the specific demographic group.
     """
     df.rename({colname: "domain"})
+    df = df.with_columns(pl.col("domain").str.strip_chars())
 
     return df
 
@@ -158,7 +162,7 @@ def clean_indicator_type(df: pl.LazyFrame, colname: str) -> pl.LazyFrame:
     Indicator type is the survey question that was asked.
     """
     df.rename({colname: "indicator_type"})
-    df = df.with_columns(pl.col("indicator_type").str.to_lowercase())
+    df = df.with_columns(pl.col("indicator_type").str.to_lowercase().str.strip_chars())
 
     return df
 
@@ -168,6 +172,7 @@ def clean_indicator(df: pl.LazyFrame, colname: str) -> pl.LazyFrame:
     Indicator is the specific answer to the survey question.
     """
     df.rename({colname: "indicator"})
+    df = df.with_columns(pl.col("indicator").str.strip_chars())
 
     return df
 
@@ -190,6 +195,7 @@ def clean_vaccine(
                 .otherwise(pl.col("domain")),
                 vaccine=pl.col("vaccine").str.replace("phrase", ""),
             )
+    df = df.with_columns(pl.col("vaccine").str.strip_chars())
 
     return df
 
