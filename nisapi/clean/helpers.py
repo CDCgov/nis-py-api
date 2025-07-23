@@ -20,6 +20,7 @@ data_schema = pl.Schema(
         ("estimate", pl.Float64),
         ("lci", pl.Float64),
         ("uci", pl.Float64),
+        ("sample_size", pl.UInt32),
     ]
 )
 
@@ -264,7 +265,7 @@ def clean_time_start_end(
         elif time_type == "month":
             df = df.with_columns(time_start=pl.col("time_end").dt.offset_by("-1mo"))
         else:
-            raise ValueError("Time type {time_type} is not recognized.")
+            raise RuntimeError("Time type {time_type} is not recognized.")
     elif col_format == "both":
         df = df.with_columns(
             time_start=pl.col(column[0]).str.extract(r"^(.*?)-").str.strip_chars(),
@@ -282,7 +283,7 @@ def clean_time_start_end(
             pl.col("time_end").str.strptime(pl.Datetime, time_format).dt.truncate("1d"),
         )
     else:
-        raise ValueError("Column format {col_format} is not recognized.")
+        raise RuntimeError("Column format {col_format} is not recognized.")
 
     return df
 
@@ -337,7 +338,7 @@ def clean_lci_uci(
             / 100.0,
         ).drop(column)
     else:
-        raise ValueError("Column format {col_format} is not recognized.")
+        raise RuntimeError("Column format {col_format} is not recognized.")
 
     return df
 
@@ -349,93 +350,33 @@ def clean_sample_size(df: pl.LazyFrame, column: str) -> pl.LazyFrame:
     return df
 
 
-def remove_duplicate_rows(df: pl.LazyFrame) -> pl.LazyFrame:
-    return df.filter(df.collect().is_duplicated().not_())
-
-
-def remove_near_duplicates(
-    df: pl.LazyFrame,
-    tolerance: float,
-    n_fold_duplication: Optional[int] = None,
-    value_columns: Sequence[str] = ["estimate", "ci_half_width_95pct"],
-    group_columns: Optional[Iterable[str]] = None,
-) -> pl.LazyFrame:
-    """Remove near-duplicate rows
-
-    Rows are "near-duplicate" if they have the same grouping variables
-    (e.g., everything other than estimate and CI) and have estimate and CI
-    values that are within some tolerance of one another.
-
-    This function removes duplicates by
-      1. Grouping by group columns
-      2. Summarizing the value columns using the mean value
-      3. Checking that the difference between the raw values and the
-        summarized values is below some tolerance
-
-    Args:
-        df (pl.DataFrame): Input data frame
-        tolerance (float): Greatest permissible difference between summarized
-          value and input value
-        n_fold_duplication (int, optional): For each set of grouping values,
-          assert there are exactly this number of near-duplicate rows. If
-          None (default), do not do this check.
-        value_columns (Sequence[str]): names of the value columns. Defaults to
-          `["estimate", "ci_half_width_95pct"]`.
-        group_columns (Sequence[str]): names of the grouping columns. If None
-          (the default), uses all columns in `df` that are not in `value_columns`.
-
-    Returns:
-        pl.DataFrame: data frame with columns `group_columns` and `value_columns`
-          and at most as many rows as in `df`
+def remove_duplicates(df: pl.LazyFrame, tolerance: float = 0.001) -> pl.LazyFrame:
     """
-    columns = df.collect_schema().names()
+    Rows are duplicates if they are within some tolerance for value columns
+    (estimate, lci, & uci) and identical for group columns (all others).
+    To find duplicates, group by group columns and get mean of value columns.
+    Then verify that the difference between the raw and mean values < tolerance.
+    If duplicate rows are found, average their values together.
+    If duplicate groups have clashing values, raise an error.
+    """
+    value_columns = {"estimate", "lci", "uci"}
+    group_columns = data_schema.keys() - value_columns
 
-    if group_columns is None:
-        group_columns = set(columns) - set(value_columns)
-
-    assert set(group_columns).issubset(columns)
-    assert set(value_columns).issubset(columns)
-
-    if n_fold_duplication is not None:
-        # ensure we have a group size column without collisions
-        group_size_col = str(uuid.uuid1())
-        assert group_size_col not in group_columns
-
-        # all groups that aren't of size 1 should be the "fold" duplication size
-        assert (
-            df.group_by(group_columns)
-            .len(name=group_size_col)
-            .filter(pl.col(group_size_col) > 1)
-            .select((pl.col(group_size_col) == n_fold_duplication).all())
-            .pipe(ensure_eager)
-            .item()
-        )
-
-    # check that the difference between summarized values and input values is
-    # less than the tolerance
-    out_spread = df.group_by(group_columns).agg(
-        pl.col(value_columns).pipe(_mean_max_diff, tolerance=tolerance)
+    bad_groups = (
+        df.group_by(group_columns)
+        .agg(pl.col(value_columns).pipe(_mean_max_diff, tolerance=tolerance))
+        .filter(pl.all_horizontal(value_columns).not_())
+        .collect()
     )
-    out_spread_bad = out_spread.filter(pl.all_horizontal(value_columns).not_()).pipe(
-        ensure_eager
-    )
-    if out_spread_bad.shape[0] > 0:
-        raise RuntimeError("Some groups violate tolerance:", out_spread_bad)
+
+    if bad_groups.shape[0] > 0:
+        raise RuntimeError("Some identical groups have clashing values:", bad_groups)
 
     return df.group_by(group_columns).agg(pl.col(value_columns).mean())
 
 
 def _mean_max_diff(x: pl.Expr, tolerance: float) -> pl.Expr:
     return (x - x.mean()).abs().max() < tolerance
-
-
-def ensure_eager(df: pl.DataFrame | pl.LazyFrame) -> pl.DataFrame:
-    if isinstance(df, pl.DataFrame):
-        return df
-    elif isinstance(df, pl.LazyFrame):
-        return df.collect()
-    else:
-        raise RuntimeError(f"Cannot collect object of type {type(df)}")
 
 
 def enforce_columns(df: pl.LazyFrame, schema: pl.Schema = data_schema) -> pl.LazyFrame:
@@ -461,6 +402,15 @@ def enforce_columns(df: pl.LazyFrame, schema: pl.Schema = data_schema) -> pl.Laz
     return df.select(needed_columns)
 
 
+def ensure_eager(df: pl.DataFrame | pl.LazyFrame) -> pl.DataFrame:
+    if isinstance(df, pl.DataFrame):
+        return df
+    elif isinstance(df, pl.LazyFrame):
+        return df.collect()
+    else:
+        raise RuntimeError(f"Cannot collect object of type {type(df)}")
+
+
 def duplicated_rows(df: pl.DataFrame) -> pl.DataFrame:
     """Return duplicated rows of an (eager) data frame
 
@@ -483,10 +433,3 @@ def rows_with_any_null(df: pl.DataFrame) -> pl.DataFrame:
         pl.LazyFrame: rows with any null value
     """
     return df.filter(pl.any_horizontal(pl.all().is_null()))
-
-
-def clamp_ci(
-    df: pl.LazyFrame, lci: pl.Expr = pl.col("lci"), uci: pl.Expr = pl.col("uci")
-) -> pl.LazyFrame:
-    """Clamp the confidence intervals `lci` and `uci` to be within [0, 1]"""
-    return df.with_columns(lci.clip(lower_bound=0.0), uci.clip(upper_bound=1.0))
