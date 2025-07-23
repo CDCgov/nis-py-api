@@ -379,26 +379,18 @@ def _mean_max_diff(x: pl.Expr, tolerance: float) -> pl.Expr:
     return (x - x.mean()).abs().max() < tolerance
 
 
-def enforce_columns(df: pl.LazyFrame, schema: pl.Schema = data_schema) -> pl.LazyFrame:
-    """Enforce columns from the data schema
-
-    Check that input data frame has all the needed columns, then select only those
-    column
-
-    Args:
-        df (pl.LazyFrame): input data frame
-        schema (pl.Schema): data schema. Defaults to `nisapi.clean.helpers.data_schema`.
-
-    Returns:
-        pl.LazyFrame: `df`, but with only the columns in the data schema
+def enforce_schema(df: pl.LazyFrame, schema: pl.Schema = data_schema) -> pl.LazyFrame:
     """
-    # Include a clause to remove leading/trailing whitespace, str.strip_chars, from all string cols
-    # Include a message about which columns were removed
+    Enforce that the standardized schema is followed. Remove extra columns.
+    """
     current_columns = df.collect_schema().names()
     needed_columns = schema.names()
     missing_columns = set(needed_columns) - set(current_columns)
+    extra_columns = set(current_columns) - set(needed_columns)
     if missing_columns != set():
         raise RuntimeError("Missing columns:", missing_columns)
+    if extra_columns != set():
+        warnings.warn("Dropped columns: {extra_columns}")
     return df.select(needed_columns)
 
 
