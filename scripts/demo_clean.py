@@ -19,8 +19,8 @@ with open("scripts/secrets.yaml") as f:
 
 raw = nisapi._get_nis_raw(
     id=dataset_id,
+    raw_data_path=Path(td.name),
     app_token=app_token,
-    data_path=Path(td.name),
 )
 
 print(f"Raw data saved to {td.name}")
