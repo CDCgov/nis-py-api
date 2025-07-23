@@ -1,6 +1,5 @@
-import uuid
 import warnings
-from typing import Iterable, List, Optional, Sequence, Tuple
+from typing import List, Optional, Tuple
 
 import polars as pl
 
