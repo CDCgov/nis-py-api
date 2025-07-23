@@ -1,6 +1,6 @@
 import uuid
 import warnings
-from typing import Iterable, List, Optional, Sequence
+from typing import Iterable, List, Optional, Sequence, Tuple
 
 import polars as pl
 
@@ -167,12 +167,38 @@ def clean_indicator_type(df: pl.LazyFrame, colname: str) -> pl.LazyFrame:
     return df
 
 
-def clean_indicator(df: pl.LazyFrame, colname: str) -> pl.LazyFrame:
+def clean_indicator(
+    df: pl.LazyFrame, colname: str, synonyms: Optional[List[Tuple[str, str]]] = None
+) -> pl.LazyFrame:
     """
     Indicator is the specific answer to the survey question.
+    Synonyms is a list of (indicator_type, indicator) tuples that are identical.
+    The first synonym will be kept and all others dropped.
+    E.g. ("4-level vaccination and intent", "received a vaccinated") and ("up-to-date", "yes")
+    are synonymous, so the former should be kept and the latter discarded.
     """
     df.rename({colname: "indicator"})
     df = df.with_columns(pl.col("indicator").str.strip_chars())
+    if synonyms is not None:
+        sub_dfs = pl.collect_all(
+            [
+                df.filter(
+                    (pl.col("indicator_type") == pair[0])
+                    & (pl.col("indicator") == pair[1])
+                ).sort(df.columns)
+                for pair in synonyms
+            ]
+        )
+        assert all(sub_dfs[0].equals(sub_df) for sub_df in sub_dfs[1:]), (
+            "Provided (indicator_type, indicator) pairs are not synonymous."
+        )
+        synonyms.pop(0)
+        df = df.filter(
+            [
+                (pl.col("indicator_type") != pair[0]) | (pl.col("indicator") != pair[1])
+                for pair in synonyms
+            ]
+        )
 
     return df
 
@@ -321,39 +347,6 @@ def clean_sample_size(df: pl.LazyFrame, column: str) -> pl.LazyFrame:
     df = df.with_columns(pl.col("sample_size").cast(pl.UInt32))
 
     return df
-
-
-def clean_4_level(df: pl.LazyFrame) -> pl.LazyFrame:
-    # Verify that indicator type "up-to-date" has only one value ("yes")
-    assert (
-        df.filter(pl.col("indicator_type") == pl.lit("up-to-date"))
-        .select((pl.col("indicator") == pl.lit("yes")).all())
-        .pipe(ensure_eager)
-        .item()
-    )
-
-    # check that "Yes" and "Received a vaccination" are the same thing, so that
-    # we can drop "Up to Date"
-    assert (
-        df.filter(pl.col("indicator").is_in(["yes", "received a vaccination"]))
-        .drop("indicator_type")
-        .pipe(ensure_eager)
-        .pivot(on="indicator", values=["estimate", "ci_half_width_95pct"])
-        .select(
-            (
-                (pl.col("estimate_yes") == pl.col("estimate_received a vaccination"))
-                & (
-                    pl.col("ci_half_width_95pct_yes")
-                    == pl.col("ci_half_width_95pct_received a vaccination")
-                )
-            ).all()
-        )
-        .item()
-    )
-
-    return df.filter(
-        pl.col("indicator_type") == pl.lit("4-level vaccination and intent")
-    )
 
 
 def remove_duplicate_rows(df: pl.LazyFrame) -> pl.LazyFrame:
