@@ -255,51 +255,66 @@ def clean_time_start_end(
     return df
 
 
-def cast_types(df: pl.LazyFrame) -> pl.LazyFrame:
-    out = df.with_columns(
-        pl.col("week_ending").str.strptime(pl.Datetime, "%Y-%m-%dT%H:%M:%S%.f"),
-        pl.col(["estimate", "ci_half_width_95pct"]).cast(pl.Float64),
-    ).with_columns(pl.col(["estimate", "ci_half_width_95pct"]) / 100.0)
-
-    # check that the date doesn't have any trailing seconds
-    assert (
-        out.select(
-            (pl.col("week_ending").dt.truncate("1d") == pl.col("week_ending")).all()
-        )
-        .pipe(ensure_eager)
-        .item()
-    )
-
-    return out.with_columns(pl.col("week_ending").dt.date())
-
-
-def week_ending_to_times(df: pl.LazyFrame) -> pl.LazyFrame:
-    """Convert `week_ending` to time type, time start, and time end
-
-    Args:
-        df (pl.LazyFrame): input frame with column "week_ending"
-
-    Returns:
-        pl.LazyFrame: frame without "week_ending" but with "time_type",
-          "time_start", and "time_end"
+def clean_estimate(df: pl.LazyFrame, column: str) -> pl.LazyFrame:
     """
-    name = str(uuid.uuid1())
-    return (
-        df.with_columns(_week_ending_to_times_expr(pl.col("week_ending")).alias(name))
-        .unnest(name)
-        .drop("week_ending")
-        .with_columns(time_type=pl.lit("week"))
+    Estimate is the percentage of respondents represented by a row.
+    """
+    df.rename({column: "estimate"})
+    df.with_columns(
+        (pl.col("estimate").cast(pl.Float64) / 100.0).clip(
+            lower_bound=0.0, upper_bound=1.0
+        )
     )
 
-
-def _week_ending_to_times_expr(week_ending: pl.Expr) -> pl.Expr:
-    week_start = week_ending.dt.offset_by("-6d")
-    return pl.struct(
-        time_start=week_start, time_end=week_ending, time_type=pl.lit("week")
-    )
+    return df
 
 
-# INCLUDE A FUNCTION FOR SAMPLE SIZE ##############################
+def clean_lci_uci(
+    df: pl.LazyFrame, column: str, col_format: str = "end"
+) -> pl.LazyFrame:
+    """
+    LCI and UCI are the lower & upper 95% confidence intervals on the estimate.
+    A list of columns may be given if month-day is in one column and year in another.
+    Column format is "half" or "full" depending on whether the CI half-width or
+    full range is given.
+    """
+    if col_format == "half":
+        df = (
+            df.with_columns(pl.col(column).cast(pl.Float64))
+            .with_columns(
+                lci=(pl.col("estimate") - pl.col(column)).clip(lower_bound=0.0),
+                uci=(pl.col("estimate") + pl.col(column)).clip(upper_bound=0.0),
+            )
+            .drop(column)
+        )
+    elif col_format == "full":
+        df = df.with_columns(
+            lci=(
+                pl.col(column)
+                .str.extract(r"^(.*?)-")
+                .str.strip_chars()
+                .cast(pl.Float64)
+            )
+            / 100.0,
+            uci=(
+                pl.col(column)
+                .str.extract(r"-(.*)", 1)
+                .str.strip_chars()
+                .cast(pl.Float64)
+            )
+            / 100.0,
+        ).drop(column)
+    else:
+        raise ValueError("Column format {col_format} is not recognized.")
+
+    return df
+
+
+def clean_sample_size(df: pl.LazyFrame, column: str) -> pl.LazyFrame:
+    df.rename({column: "sample_size"})
+    df = df.with_columns(pl.col("sample_size").cast(pl.UInt32))
+
+    return df
 
 
 def clean_4_level(df: pl.LazyFrame) -> pl.LazyFrame:
@@ -422,44 +437,6 @@ def ensure_eager(df: pl.DataFrame | pl.LazyFrame) -> pl.DataFrame:
         return df.collect()
     else:
         raise RuntimeError(f"Cannot collect object of type {type(df)}")
-
-
-def hci_to_cis(
-    df: pl.LazyFrame,
-    estimate_name: str = "estimate",
-    hci_name: str = "ci_half_width_95pct",
-) -> pl.LazyFrame:
-    """Convert estimate and half confidence interval columns into lower and upper columns
-
-    Args:
-        df (pl.LazyFrame): input data frame
-        estimate_name (str): defaults to "estimate"
-        hci_name (str): defaults to "ci_half_width_95pct"
-
-    Returns:
-        pl.LazyFrame: data frame without `hci_name` column but with `lci` and `uci`
-    """
-    name = str(uuid.uuid1())
-    return (
-        df.with_columns(
-            _hci_to_cis_expr(pl.col(estimate_name), pl.col(hci_name)).alias(name)
-        )
-        .unnest(name)
-        .drop(hci_name)
-    )
-
-
-def _hci_to_cis_expr(estimate: pl.Expr, hci: pl.Expr) -> pl.Expr:
-    """Convert estimate and half confidence interval into lower and upper interval
-
-    Args:
-        estimate (pl.Expr): point estimate
-        hci (pl.Expr): half width of the confidence interval
-
-    Returns:
-        pl.Expr: struct with fields `lci` and `uci`
-    """
-    return pl.struct(lci=(estimate - hci).clip(lower_bound=0.0), uci=estimate + hci)
 
 
 def enforce_columns(df: pl.LazyFrame, schema: pl.Schema = data_schema) -> pl.LazyFrame:
