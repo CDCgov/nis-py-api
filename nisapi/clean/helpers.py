@@ -1,5 +1,7 @@
 import uuid
-from typing import Iterable, Optional, Sequence
+import warnings
+from datetime import timedelta
+from typing import Iterable, List, Optional, Sequence
 
 import polars as pl
 
@@ -81,6 +83,225 @@ admin1_values = [
 ]
 
 
+def drop_bad_rows(df: pl.LazyFrame, colname: str) -> pl.LazyFrame:
+    """
+    Bad rows are those with a suppression flag or null values.
+    """
+    df = df.filter(pl.col(colname) == pl.lit("0")).drop(colname)
+    null_rows = df.filter(pl.any_horizontal(pl.all().is_null())).collect()
+    if null_rows.shape[0] > 0:
+        warnings.warn("Some rows contain null values. These rows will be dropped.")
+        print(null_rows)
+    df = df.drop_nulls()
+
+    return df
+
+
+def clean_geography_type(df: pl.LazyFrame, colname: str) -> pl.LazyFrame:
+    """
+    Geography type is the scale of geographic division.
+    Add to the `replace_strict` dictonary as necessary to standardize verbiage.
+    """
+    df.rename({colname: "geography_type"})
+    df = df.with_columns(pl.col("geography_type").str.to_lowercase()).with_columns(
+        pl.col("geography_type").replace_strict(
+            {
+                "national": "nation",
+                "nation": "nation",
+                "state": "admin1",
+                "region": "region",
+                "hhs region": "region",
+                "substate": "substate",
+                "local": "local",
+            }
+        )
+    )
+
+    return df
+
+
+def clean_geography(df: pl.LazyFrame, colname: str) -> pl.LazyFrame:
+    """
+    Geography is the specific geographic location.
+    Add to the `replace` dictionary as necessary to standardize verbiage.
+    """
+    df.rename({colname: "geography"})
+    df = df.with_columns(pl.col("geography").replace({"National": "nation"}))
+
+    return df
+
+
+def clean_domain_type(df: pl.LazyFrame, colname: str) -> pl.LazyFrame:
+    """
+    Domain type is the demographic feature used to define groups.
+    Add to the `replace` dictionary as necessary to standardize verbiage.
+    """
+    df.rename({colname: "domain_type"})
+    df = df.with_columns(pl.col("domain_type").str.to_lowercase()).with_columns(
+        pl.col("domain_type").replace({"overall": "age"})
+    )
+
+    return df
+
+
+def clean_domain(df: pl.LazyFrame, colname: str) -> pl.LazyFrame:
+    """
+    Domain is the specific demographic group.
+    """
+    df.rename({colname: "domain"})
+
+    return df
+
+
+def clean_indicator_type(df: pl.LazyFrame, colname: str) -> pl.LazyFrame:
+    """
+    Indicator type is the survey question that was asked.
+    """
+    df.rename({colname: "indicator_type"})
+    df = df.with_columns(pl.col("indicator_type").str.to_lowercase())
+
+    return df
+
+
+def clean_indicator(df: pl.LazyFrame, colname: str) -> pl.LazyFrame:
+    """
+    Indicator is the specific answer to the survey question.
+    """
+    df.rename({colname: "indicator"})
+
+    return df
+
+
+def clean_vaccine(
+    df: pl.LazyFrame, colname: str, domain_phrases: Optional[List[str]] = None
+) -> pl.LazyFrame:
+    """
+    Vaccine is the target pathogen plus any formulation information.
+    Move extraneous information about eligibilty, etc. to the 'domain'
+    column as necessary by specifying the extraneous phrases
+    """
+    df.rename({colname: "vaccine"})
+    df = df.with_columns(pl.col("vaccine").str.to_lowercase())
+    if domain_phrases is not None:
+        for phrase in domain_phrases:
+            df = df.with_columns(
+                domain=pl.when(pl.col("vaccine").str.contains(phrase))
+                .then(pl.col("domain") + phrase)
+                .otherwise(pl.col("domain")),
+                vaccine=pl.col("vaccine").str.replace("phrase", ""),
+            )
+
+    return df
+
+
+def clean_time_type(df: pl.LazyFrame, time_type: str) -> pl.LazyFrame:
+    """
+    Time type is the interval between report dates, e.g. 'month' or 'week'
+    This is specified directly, as it is only in the data description.
+    """
+    df = df.with_columns(time_type=pl.lit(time_type))
+
+    return df
+
+
+def clean_time_start_end(
+    df: pl.LazyFrame,
+    column: str | List[str],
+    col_format: str = "end",
+    time_format: str = "%Y-%m-%dT%H:%M:%S%.f",
+    time_type: str = "week",
+) -> pl.LazyFrame:
+    """
+    Time start is the date on which phone surveys began for the reported estimate.
+    Time end is the date on which phone surveys ended for the reported estimate.
+    A list of columns may be given if month-day is in one column and year in another.
+    Column format is "start", "end", or "both" depending on which times are given.
+    Time format is the date format string describing the format of the (first) column.
+    Time type is the interval between report dates, e.g. 'month' or 'week'
+    """
+    if not isinstance(column, list):
+        column = [column]
+    if col_format == "end":
+        df = df.with_columns(
+            time_end=pl.col(column[0])
+            .str.strptime(pl.Datetime, time_format)
+            .dt.truncate("1d")
+        )
+        if time_type == "week":
+            df = df.with_columns(time_start=pl.col("time_end").dt.offset_by("-6d"))
+        elif time_type == "month":
+            df = df.with_columns(time_start=pl.col("time_end").dt.offset_by("-1mo"))
+        else:
+            raise ValueError("Time type {time_type} is not recognized.")
+    elif col_format == "both":
+        df = df.with_columns(
+            time_start=pl.col(column[0]).str.extract(r"^(.*?)-").str.strip_chars(),
+            time_end=pl.col(column[0]).str.extract(r"^(.*?)-").str.strip_chars(),
+        )
+        if len(column) > 1:
+            df = df.with_columns(
+                time_start=(pl.col("time_start") + " " + pl.col(column[1])),
+                time_end=(pl.col("time_end") + " " + pl.col(column[1])),
+            )
+        df = df.with_columns(
+            pl.col("time_start")
+            .str.strptime(pl.Datetime, time_format)
+            .dt.truncate("1d"),
+            pl.col("time_end").str.strptime(pl.Datetime, time_format).dt.truncate("1d"),
+        )
+    else:
+        raise ValueError("Column format {col_format} is not recognized.")
+
+    return df
+
+
+def cast_types(df: pl.LazyFrame) -> pl.LazyFrame:
+    out = df.with_columns(
+        pl.col("week_ending").str.strptime(pl.Datetime, "%Y-%m-%dT%H:%M:%S%.f"),
+        pl.col(["estimate", "ci_half_width_95pct"]).cast(pl.Float64),
+    ).with_columns(pl.col(["estimate", "ci_half_width_95pct"]) / 100.0)
+
+    # check that the date doesn't have any trailing seconds
+    assert (
+        out.select(
+            (pl.col("week_ending").dt.truncate("1d") == pl.col("week_ending")).all()
+        )
+        .pipe(ensure_eager)
+        .item()
+    )
+
+    return out.with_columns(pl.col("week_ending").dt.date())
+
+
+def week_ending_to_times(df: pl.LazyFrame) -> pl.LazyFrame:
+    """Convert `week_ending` to time type, time start, and time end
+
+    Args:
+        df (pl.LazyFrame): input frame with column "week_ending"
+
+    Returns:
+        pl.LazyFrame: frame without "week_ending" but with "time_type",
+          "time_start", and "time_end"
+    """
+    name = str(uuid.uuid1())
+    return (
+        df.with_columns(_week_ending_to_times_expr(pl.col("week_ending")).alias(name))
+        .unnest(name)
+        .drop("week_ending")
+        .with_columns(time_type=pl.lit("week"))
+    )
+
+
+def _week_ending_to_times_expr(week_ending: pl.Expr) -> pl.Expr:
+    week_start = week_ending.dt.offset_by("-6d")
+    return pl.struct(
+        time_start=week_start, time_end=week_ending, time_type=pl.lit("week")
+    )
+
+
+# INCLUDE A FUNCTION FOR SAMPLE SIZE ##############################
+
+
 def clean_4_level(df: pl.LazyFrame) -> pl.LazyFrame:
     # Verify that indicator type "up-to-date" has only one value ("yes")
     assert (
@@ -114,76 +335,8 @@ def clean_4_level(df: pl.LazyFrame) -> pl.LazyFrame:
     )
 
 
-def set_lowercase(df: pl.LazyFrame) -> pl.LazyFrame:
-    return df.with_columns(
-        pl.col(
-            [
-                "vaccine",
-                "geography_type",
-                "domain_type",
-                "indicator",
-                "indicator_type",
-            ]
-        ).str.to_lowercase()
-    )
-
-
-def cast_types(df: pl.LazyFrame) -> pl.LazyFrame:
-    out = df.with_columns(
-        pl.col("week_ending").str.strptime(pl.Datetime, "%Y-%m-%dT%H:%M:%S%.f"),
-        pl.col(["estimate", "ci_half_width_95pct"]).cast(pl.Float64),
-    ).with_columns(pl.col(["estimate", "ci_half_width_95pct"]) / 100.0)
-
-    # check that the date doesn't have any trailing seconds
-    assert (
-        out.select(
-            (pl.col("week_ending").dt.truncate("1d") == pl.col("week_ending")).all()
-        )
-        .pipe(ensure_eager)
-        .item()
-    )
-
-    return out.with_columns(pl.col("week_ending").dt.date())
-
-
-def clean_geography(df: pl.LazyFrame) -> pl.LazyFrame:
-    # Change from "national" to "nation", so that types are nouns rather
-    # than adjectives. (Otherwise we would need to change "region" to "regional")
-    return df.with_columns(
-        pl.col("geography_type").replace({"national": "nation"}),
-        pl.col("geography").replace({"National": "nation"}),
-    ).with_columns(
-        pl.col("geography_type").replace_strict(
-            {
-                "nation": "nation",
-                "state": "admin1",
-                "region": "region",
-                "substate": "substate",
-                "local": "local",
-            }
-        )
-    )
-
-
 def remove_duplicate_rows(df: pl.LazyFrame) -> pl.LazyFrame:
     return df.filter(df.collect().is_duplicated().not_())
-
-
-def rename_indicator_columns(df: pl.LazyFrame) -> pl.LazyFrame:
-    """
-    Make "indicator" follow the same logic as "geography" and
-    "domain", with "type" and "value" columns
-    """
-    return df.rename(
-        {
-            "geographic_level": "geography_type",
-            "geographic_name": "geography",
-            "demographic_level": "domain_type",
-            "demographic_name": "domain",
-            "indicator_label": "indicator_type",
-            "indicator_category_label": "indicator",
-        }
-    )
 
 
 def remove_near_duplicates(
@@ -258,17 +411,8 @@ def remove_near_duplicates(
     return df.group_by(group_columns).agg(pl.col(value_columns).mean())
 
 
-def replace_overall_domain(df: pl.LazyFrame) -> pl.LazyFrame:
-    return df.with_columns(pl.col("domain_type").replace({"overall": "age"}))
-
-
 def _mean_max_diff(x: pl.Expr, tolerance: float) -> pl.Expr:
     return (x - x.mean()).abs().max() < tolerance
-
-
-def drop_suppressed_rows(df: pl.LazyFrame) -> pl.LazyFrame:
-    """Drop rows with suppression flag `"0"`"""
-    return df.filter(pl.col("suppression_flag") == pl.lit("0")).drop("suppression_flag")
 
 
 def ensure_eager(df: pl.DataFrame | pl.LazyFrame) -> pl.DataFrame:
@@ -278,32 +422,6 @@ def ensure_eager(df: pl.DataFrame | pl.LazyFrame) -> pl.DataFrame:
         return df.collect()
     else:
         raise RuntimeError(f"Cannot collect object of type {type(df)}")
-
-
-def week_ending_to_times(df: pl.LazyFrame) -> pl.LazyFrame:
-    """Convert `week_ending` to time type, time start, and time end
-
-    Args:
-        df (pl.LazyFrame): input frame with column "week_ending"
-
-    Returns:
-        pl.LazyFrame: frame without "week_ending" but with "time_type",
-          "time_start", and "time_end"
-    """
-    name = str(uuid.uuid1())
-    return (
-        df.with_columns(_week_ending_to_times_expr(pl.col("week_ending")).alias(name))
-        .unnest(name)
-        .drop("week_ending")
-        .with_columns(time_type=pl.lit("week"))
-    )
-
-
-def _week_ending_to_times_expr(week_ending: pl.Expr) -> pl.Expr:
-    week_start = week_ending.dt.offset_by("-6d")
-    return pl.struct(
-        time_start=week_start, time_end=week_ending, time_type=pl.lit("week")
-    )
 
 
 def hci_to_cis(
@@ -357,6 +475,8 @@ def enforce_columns(df: pl.LazyFrame, schema: pl.Schema = data_schema) -> pl.Laz
     Returns:
         pl.LazyFrame: `df`, but with only the columns in the data schema
     """
+    # Include a clause to remove leading/trailing whitespace, str.strip_chars, from all string cols
+    # Include a message about which columns were removed
     current_columns = df.collect_schema().names()
     needed_columns = schema.names()
     missing_columns = set(needed_columns) - set(current_columns)
