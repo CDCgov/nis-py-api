@@ -142,10 +142,14 @@ def clean_geography(df: pl.LazyFrame, colname: str) -> pl.LazyFrame:
     return df
 
 
-def clean_domain_type(df: pl.LazyFrame, colname: str) -> pl.LazyFrame:
+def clean_domain_type(
+    df: pl.LazyFrame, colname: str, extra_type: Optional[str] = None
+) -> pl.LazyFrame:
     """
     Domain type is the demographic feature used to define groups.
     Add to the `replace` dictionary as necessary to standardize verbiage.
+    Another column (e.g. 'age_group') may contain further domain info;
+    in this case, provide a name for this extra info (e.g. 'age').
     """
     df.rename({colname: "domain_type"})
     df = df.with_columns(
@@ -154,19 +158,39 @@ def clean_domain_type(df: pl.LazyFrame, colname: str) -> pl.LazyFrame:
         .str.strip_chars()
         .replace({"overall": "age"})
     )
+    if extra_type is not None:
+        df = df.with_columns(
+            domain_type=pl.when(pl.col("domain_type") == extra_type)
+            .then(pl.col("domain_type"))
+            .otherwise(pl.col("domain_type") + " & " + extra_type)
+        )
 
     return df
 
 
-def clean_domain(df: pl.LazyFrame, colname: str) -> pl.LazyFrame:
+def clean_domain(
+    df: pl.LazyFrame,
+    colname: str,
+    extra_column: Optional[str] = None,
+    extra_type: Optional[str] = None,
+) -> pl.LazyFrame:
     """
     Domain is the specific demographic group.
     Add to the `replace` dictionary as necessary to standardize verbiage.
+    Another column (e.g. 'age_group') may contain further domain info;
+    in this case, provide this column's existing name and the preferred
+    name for this extra info (e.g. 'age').
     """
     df.rename({colname: "domain"})
     df = df.with_columns(
         pl.col("domain").str.strip_chars().replace({"All adults 18+": "18+ years"})
     )
+    if extra_column is not None:
+        df = df.with_columns(
+            domain=pl.when(pl.col("domain_type") == extra_type)
+            .then(pl.col("domain"))
+            .otherwise(pl.concat_str(["domain", extra_column], separator=" & "))
+        ).drop(extra_column)
 
     return df
 

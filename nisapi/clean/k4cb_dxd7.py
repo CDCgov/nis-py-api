@@ -1,63 +1,39 @@
 import polars as pl
 
 from nisapi.clean.helpers import (
-    cast_types,
-    clamp_ci,
-    clean_4_level,
+    clean_domain,
+    clean_domain_type,
+    clean_estimate,
     clean_geography,
-    drop_suppressed_rows,
-    enforce_columns,
-    hci_to_cis,
-    replace_overall_domain,
-    set_lowercase,
-    week_ending_to_times,
+    clean_geography_type,
+    clean_indicator,
+    clean_indicator_type,
+    clean_lci_uci,
+    clean_sample_size,
+    clean_time_start_end,
+    clean_time_type,
+    clean_vaccine,
+    drop_bad_rows,
+    enforce_schema,
+    remove_duplicates,
 )
-
-
-def rename_indicator_columns(df: pl.LazyFrame) -> pl.LazyFrame:
-    """
-    Make "indicator" follow the same logic as "geography" and
-    "domain", with "type" and "value" columns
-    """
-    return df.rename(
-        {
-            "geography_level": "geography_type",
-            "geography_name": "geography",
-            "demographic_level": "domain_type",
-            "demographic_name": "domain",
-            "indicator_label": "indicator_type",
-            "indicator_category_label": "indicator",
-        }
-    )
-
-
-def merge_age_groups(df: pl.LazyFrame) -> pl.LazyFrame:
-    """
-    Make the "age_group" column part of the "domain" and "domain_type" columns.
-    """
-    return df.with_columns(
-        domain_type=pl.when(pl.col("domain_type") == pl.lit("age"))
-        .then(pl.lit("age"))
-        .otherwise("age & " + pl.col("domain_type")),
-        domain=pl.when(pl.col("domain_type") == pl.lit("age"))
-        .then(pl.col("age_group"))
-        .otherwise(pl.concat_str(["age_group", "domain"], separator=" & ")),
-    ).drop("age_group")
 
 
 def clean(df: pl.LazyFrame) -> pl.LazyFrame:
     return (
-        df.rename({"suppresion_flag": "suppression_flag"})
-        .pipe(drop_suppressed_rows)
-        .pipe(rename_indicator_columns)
-        .pipe(set_lowercase)
-        .pipe(cast_types)
-        .pipe(clean_geography)
-        .pipe(clean_4_level)
-        .pipe(replace_overall_domain)
-        .pipe(merge_age_groups)
-        .pipe(week_ending_to_times)
-        .pipe(hci_to_cis)
-        .pipe(clamp_ci)
-        .pipe(enforce_columns)
+        df.pipe(drop_bad_rows, "suppresion_flag")
+        .pipe(clean_geography_type, "geography_level")
+        .pipe(clean_geography, "geography_name")
+        .pipe(clean_domain_type, "demographic_level", "age")
+        .pipe(clean_domain, "demographic_name", "age_group", "age")
+        .pipe(clean_indicator_type, "indicator_label")
+        .pipe(clean_indicator, "indicator_category_label")
+        .pipe(clean_vaccine, "vaccine")
+        .pipe(clean_time_type, None, "week")
+        .pipe(clean_time_start_end, "week_ending")
+        .pipe(clean_estimate, "estimate")
+        .pipe(clean_lci_uci, "ci_half_width_95pct", "half")
+        .pipe(clean_sample_size, "unweighted_sample_size")
+        .pipe(remove_duplicates)
+        .pipe(enforce_schema)
     )
