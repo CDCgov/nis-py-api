@@ -378,6 +378,8 @@ def clean_time_start_end(
     """
     if not isinstance(column, list):
         column = [column]
+    if len(column) > 1:
+        df = df.with_columns(pl.col(column[1]).str.strip_chars().str.slice(0, 4))
     if col_format == "end":
         if len(column) == 1:
             df = df.with_columns(
@@ -385,12 +387,10 @@ def clean_time_start_end(
                 .str.strptime(pl.Datetime, time_format)
                 .dt.truncate("1d")
             )
-        elif col_format == "end" and len(column) > 1:
+        elif len(column) > 1:
             df = df.with_columns(
-                pl.col(column[1]).str.extract(r"^(.*?)-").str.strip_chars()
-            ).with_columns(
                 time_end=pl.concat_str(
-                    [column[0], column[1]], separator=" "
+                    [column[0], column[1]], separator="-"
                 ).str.strptime(pl.Datetime, time_format)
             )
         df = df.with_columns(

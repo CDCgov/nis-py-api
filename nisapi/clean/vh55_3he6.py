@@ -36,7 +36,7 @@ def clean(df: pl.LazyFrame) -> pl.LazyFrame:
         .pipe(clean_indicator, None, override="yes")
         .pipe(clean_vaccine, "vaccine")
         .pipe(clean_time_type, None, "month")
-        .pipe(clean_time_start_end, ["month", "year_season"], "end", "%m %Y")
+        .pipe(clean_time_start_end, ["month", "year_season"], "end", "%m-%Y")
         .pipe(clean_estimate, "coverage_estimate")
         .pipe(clean_lci_uci, "_95_ci", "full")
         .pipe(clean_sample_size, "unweighted_sample_size")
