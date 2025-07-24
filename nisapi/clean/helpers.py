@@ -133,10 +133,13 @@ def clean_geography(df: pl.LazyFrame, colname: str) -> pl.LazyFrame:
         pl.col("geography").str.strip_chars().replace({"National": "nation"})
     )
     df = df.with_columns(
+        geography=pl.when(pl.col("geography_type") == "region")
+        .then(pl.col("geography").str.extract(r"^(.*?):").str.to_titlecase())
+        .otherwise(pl.col("geography")),
         geography_type=pl.when(
             (pl.col("geography_type") == "admin1")
             & (~pl.col("geography").is_in(admin1_values))
-        ).then(pl.lit("substate"))
+        ).then(pl.lit("substate")),
     )
 
     return df

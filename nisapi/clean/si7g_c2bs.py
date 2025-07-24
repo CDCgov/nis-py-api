@@ -26,14 +26,21 @@ def clean(df: pl.LazyFrame) -> pl.LazyFrame:
         .pipe(clean_geography, "geography")
         .pipe(clean_domain_type, "group_name")
         .pipe(clean_domain, "group_category")
-        .pipe(clean_indicator_type, "indicator_label")
-        .pipe(clean_indicator, "indicator_category_label")
-        .pipe(clean_vaccine, "vaccine")
-        .pipe(clean_time_type, None, "week")
-        .pipe(clean_time_start_end, "week_ending")
+        .pipe(clean_indicator_type, "indicator_name")
+        .pipe(clean_indicator, "indicator_category")
+        .pipe(
+            clean_vaccine,
+            "new_vax_group",
+            domain_phrases=[
+                "(among adults age 60-74 with high-risk conditions)",
+                "(among adults age 75+)",
+            ],
+        )
+        .pipe(clean_time_type, "time_type")
+        .pipe(clean_time_start_end, "time_period", "both", "%B %d %Y")
         .pipe(clean_estimate, "estimate")
-        .pipe(clean_lci_uci, "ci_half_width_95pct", "half")
-        .pipe(clean_sample_size, "unweighted_sample_size")
+        .pipe(clean_lci_uci, "_95_ci", "full")
+        .pipe(clean_sample_size, "sample_size")
         .pipe(remove_duplicates)
         .pipe(enforce_schema)
     )
