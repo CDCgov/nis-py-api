@@ -1,4 +1,5 @@
 import warnings
+from re import escape
 from typing import List, Optional, Tuple
 
 import polars as pl
@@ -82,11 +83,12 @@ admin1_values = [
 ]
 
 
-def drop_bad_rows(df: pl.LazyFrame, colname: str) -> pl.LazyFrame:
+def drop_bad_rows(df: pl.LazyFrame, colname: str | None) -> pl.LazyFrame:
     """
     Bad rows are those with a suppression flag or null values.
     """
-    df = df.filter(pl.col(colname) == pl.lit("0")).drop(colname)
+    if colname is not None:
+        df = df.filter(pl.col(colname) == pl.lit("0")).drop(colname)
     null_rows = df.filter(pl.any_horizontal(pl.all().is_null())).collect()
     if null_rows.shape[0] > 0:
         warnings.warn("Some rows contain null values. These rows will be dropped.")
@@ -111,11 +113,14 @@ def clean_geography_type(df: pl.LazyFrame, colname: str) -> pl.LazyFrame:
                 "nation": "nation",
                 "national estimates": "nation",
                 "state": "admin1",
+                "state/local areas": "admin1",
                 "jurisdictional estimates": "admin1",
                 "region": "region",
                 "hhs region": "region",
+                "hhs regions/national": "region",
                 "substate": "substate",
                 "local": "local",
+                "counties": "local",
             }
         )
     )
@@ -139,7 +144,12 @@ def clean_geography(df: pl.LazyFrame, colname: str) -> pl.LazyFrame:
         geography_type=pl.when(
             (pl.col("geography_type") == "admin1")
             & (~pl.col("geography").is_in(admin1_values))
-        ).then(pl.lit("substate")),
+        )
+        .then(pl.lit("substate"))
+        .when(
+            (pl.col("geography_type") == "region") & (pl.col("geography") == "nation")
+        )
+        .then("nation"),
     )
 
     return df
@@ -148,14 +158,14 @@ def clean_geography(df: pl.LazyFrame, colname: str) -> pl.LazyFrame:
 def clean_domain_type(
     df: pl.LazyFrame,
     colname: str | None,
-    extra_type: Optional[str] = None,
+    extra_type: Optional[str | List[str]] = None,
     override: Optional[str] = None,
 ) -> pl.LazyFrame:
     """
     Domain type is the demographic feature used to define groups.
     Add to the `replace` dictionary as necessary to standardize verbiage.
     Another column (e.g. 'age_group') may contain further domain info;
-    in this case, provide a name for this extra info (e.g. 'age').
+    in this case, provide name(s) for this extra type info (e.g. 'age').
     An override domain type can also be given to fill in all rows.
     """
     if colname is not None:
@@ -173,8 +183,10 @@ def clean_domain_type(
         .replace({"overall": "age"})
     )
     if extra_type is not None:
+        if not isinstance(extra_type, list):
+            extra_type = [extra_type]
         df = df.with_columns(
-            domain_type=pl.when(pl.col("domain_type") == extra_type)
+            domain_type=pl.when(pl.col("domain_type").is_in(extra_type))
             .then(pl.col("domain_type"))
             .otherwise(pl.col("domain_type") + " & " + extra_type)
         )
@@ -186,15 +198,15 @@ def clean_domain(
     df: pl.LazyFrame,
     colname: str | None,
     extra_column: Optional[str] = None,
-    extra_type: Optional[str] = None,
+    extra_type: Optional[str | List[str]] = None,
     override: Optional[str] = None,
 ) -> pl.LazyFrame:
     """
     Domain is the specific demographic group.
     Add to the `replace` dictionary as necessary to standardize verbiage.
     Another column (e.g. 'age_group') may contain further domain info;
-    in this case, provide this column's existing name and the preferred
-    name for this extra info (e.g. 'age').
+    in this case, provide this column's existing name and preferred
+    name(s) for this extra type info (e.g. 'age').
     An override domain can also be given to fill in all rows.
     """
     if colname is not None:
@@ -206,9 +218,11 @@ def clean_domain(
     df = df.with_columns(
         pl.col("domain").str.strip_chars().replace({"All adults 18+": "18+ years"})
     )
-    if extra_column is not None:
+    if extra_column is not None and extra_type is not None:
+        if not isinstance(extra_type, list):
+            extra_type = [extra_type]
         df = df.with_columns(
-            domain=pl.when(pl.col("domain_type") == extra_type)
+            domain=pl.when(pl.col("domain_type").is_in(extra_type))
             .then(pl.col("domain"))
             .otherwise(pl.concat_str(["domain", extra_column], separator=" & "))
         ).drop(extra_column)
@@ -360,16 +374,25 @@ def clean_time_start_end(
     Time end is the date on which phone surveys ended for the reported estimate.
     A list of columns may be given if month-day is in one column and year in another.
     Column format is "start", "end", or "both" depending on which times are given.
-    Time format is the date format string describing the format of the (first) column.
+    Time format is the format of the date string once it is constructed.
     """
     if not isinstance(column, list):
         column = [column]
     if col_format == "end":
-        df = df.with_columns(
-            time_end=pl.col(column[0])
-            .str.strptime(pl.Datetime, time_format)
-            .dt.truncate("1d")
-        )
+        if len(column) == 1:
+            df = df.with_columns(
+                time_end=pl.col(column[0])
+                .str.strptime(pl.Datetime, time_format)
+                .dt.truncate("1d")
+            )
+        elif col_format == "end" and len(column) > 1:
+            df = df.with_columns(
+                pl.col(column[1]).str.extract(r"^(.*?)-").str.strip_chars()
+            ).with_columns(
+                time_end=pl.concat_str(
+                    [column[0], column[1]], separator=" "
+                ).str.strptime(pl.Datetime, time_format)
+            )
         df = df.with_columns(
             time_start=pl.when(pl.col("time_type") == "week")
             .then(pl.col("time_end").dt.offset_by("-6d"))
@@ -414,6 +437,13 @@ def clean_estimate(df: pl.LazyFrame, column: str) -> pl.LazyFrame:
     Estimate is the percentage of respondents represented by a row.
     """
     df.rename({column: "estimate"})
+    bad_estimates = df.filter(pl.col("estimate").str.contains(r"[a-zA-Z]")).collect()
+    if bad_estimates.shape[0] > 0:
+        warnings.warn(
+            "Some rows contain non-numeric estimates. These rows will be dropped."
+        )
+        print(bad_estimates)
+    df = df.filter(~pl.col("estimate").str.contains(r"[a-zA-Z]"))
     df.with_columns(
         (pl.col("estimate").cast(pl.Float64) / 100.0).clip(
             lower_bound=0.0, upper_bound=1.0
@@ -424,12 +454,15 @@ def clean_estimate(df: pl.LazyFrame, column: str) -> pl.LazyFrame:
 
 
 def clean_lci_uci(
-    df: pl.LazyFrame, column: str, col_format: str = "half"
+    df: pl.LazyFrame,
+    column: str,
+    col_format: str = "half",
+    separator: str = "-",
 ) -> pl.LazyFrame:
     """
     LCI and UCI are the lower & upper 95% confidence intervals on the estimate.
     Column format is "half" or "full" depending on whether the CI half-width or
-    full range is given.
+    full range is given. In the latter case, specify the separating character(s).
     """
     if col_format == "half":
         df = (
@@ -441,22 +474,31 @@ def clean_lci_uci(
             .drop(column)
         )
     elif col_format == "full":
-        df = df.with_columns(
-            lci=(
+        df = (
+            df.with_columns(
                 pl.col(column)
-                .str.extract(r"^(.*?)-")
-                .str.strip_chars()
-                .cast(pl.Float64)
+                .str.replace(separator, "-")
+                .str.replace(r" â€¡$", "")
+                .str.replace(r" ‡$", "")
             )
-            / 100.0,
-            uci=(
-                pl.col(column)
-                .str.extract(r"-(.*)", 1)
-                .str.strip_chars()
-                .cast(pl.Float64)
+            .with_columns(
+                lci=(
+                    pl.col(column)
+                    .str.extract(r"^(.*?)-")
+                    .str.strip_chars()
+                    .cast(pl.Float64)
+                )
+                / 100.0,
+                uci=(
+                    pl.col(column)
+                    .str.extract(r"-(.*)", 1)
+                    .str.strip_chars()
+                    .cast(pl.Float64)
+                )
+                / 100.0,
             )
-            / 100.0,
-        ).drop(column)
+            .drop(column)
+        )
     else:
         raise RuntimeError("Column format {col_format} is not recognized.")
 
