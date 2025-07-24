@@ -146,15 +146,26 @@ def clean_geography(df: pl.LazyFrame, colname: str) -> pl.LazyFrame:
 
 
 def clean_domain_type(
-    df: pl.LazyFrame, colname: str, extra_type: Optional[str] = None
+    df: pl.LazyFrame,
+    colname: str | None,
+    extra_type: Optional[str] = None,
+    override: Optional[str] = None,
 ) -> pl.LazyFrame:
     """
     Domain type is the demographic feature used to define groups.
     Add to the `replace` dictionary as necessary to standardize verbiage.
     Another column (e.g. 'age_group') may contain further domain info;
     in this case, provide a name for this extra info (e.g. 'age').
+    An override domain type can also be given to fill in all rows.
     """
-    df.rename({colname: "domain_type"})
+    if colname is not None:
+        df.rename({colname: "domain_type"})
+    else:
+        if override is None:
+            raise RuntimeError(
+                "If there is no domain_type column, an override is required."
+            )
+        df = df.with_columns(domain_type=pl.lit(override))
     df = df.with_columns(
         pl.col("domain_type")
         .str.to_lowercase()
@@ -173,9 +184,10 @@ def clean_domain_type(
 
 def clean_domain(
     df: pl.LazyFrame,
-    colname: str,
+    colname: str | None,
     extra_column: Optional[str] = None,
     extra_type: Optional[str] = None,
+    override: Optional[str] = None,
 ) -> pl.LazyFrame:
     """
     Domain is the specific demographic group.
@@ -183,8 +195,14 @@ def clean_domain(
     Another column (e.g. 'age_group') may contain further domain info;
     in this case, provide this column's existing name and the preferred
     name for this extra info (e.g. 'age').
+    An override domain can also be given to fill in all rows.
     """
-    df.rename({colname: "domain"})
+    if colname is not None:
+        df.rename({colname: "domain"})
+    else:
+        if override is None:
+            raise RuntimeError("If there is no domain column, an override is required.")
+        df = df.with_columns(domain=pl.lit(override))
     df = df.with_columns(
         pl.col("domain").str.strip_chars().replace({"All adults 18+": "18+ years"})
     )
@@ -198,18 +216,31 @@ def clean_domain(
     return df
 
 
-def clean_indicator_type(df: pl.LazyFrame, colname: str) -> pl.LazyFrame:
+def clean_indicator_type(
+    df: pl.LazyFrame, colname: str | None, override: Optional[str] = None
+) -> pl.LazyFrame:
     """
     Indicator type is the survey question that was asked.
+    An override indicator type can also be given to fill in all rows.
     """
-    df.rename({colname: "indicator_type"})
+    if colname is not None:
+        df.rename({colname: "indicator_type"})
+    else:
+        if override is None:
+            raise RuntimeError(
+                "If there is no indicator_type column, an override is required."
+            )
+        df = df.with_columns(indicator_type=pl.lit(override))
     df = df.with_columns(pl.col("indicator_type").str.to_lowercase().str.strip_chars())
 
     return df
 
 
 def clean_indicator(
-    df: pl.LazyFrame, colname: str, synonyms: Optional[List[Tuple[str, str]]] = None
+    df: pl.LazyFrame,
+    colname: str | None,
+    synonyms: Optional[List[Tuple[str, str]]] = None,
+    override: Optional[str] = None,
 ) -> pl.LazyFrame:
     """
     Indicator is the specific answer to the survey question.
@@ -217,8 +248,16 @@ def clean_indicator(
     The first synonym will be kept and all others dropped.
     E.g. ("4-level vaccination and intent", "received a vaccinated") and ("up-to-date", "yes")
     are synonymous, so the former should be kept and the latter discarded.
+    An override indicator can also be given to fill in all rows.
     """
-    df.rename({colname: "indicator"})
+    if colname is not None:
+        df.rename({colname: "indicator"})
+    else:
+        if override is None:
+            raise RuntimeError(
+                "If there is no indicator column, an override is required."
+            )
+        df = df.with_columns(indicator=pl.lit(override))
     df = df.with_columns(pl.col("indicator").str.strip_chars())
     if synonyms is not None:
         sub_dfs = pl.collect_all(
@@ -247,27 +286,36 @@ def clean_indicator(
 def clean_vaccine(
     df: pl.LazyFrame,
     colname: str | None,
-    literal: Optional[str] = None,
+    override: Optional[str] = None,
     domain_phrases: Optional[List[str]] = None,
 ) -> pl.LazyFrame:
     """
     Vaccine is the target pathogen plus any formulation information.
-    If there is no column with this information, provide it as 'literal'.
+    Add to the `.replace()` dictionary as necessary to standardize verbiage.
+    If there is no column with this information, provide it as 'override'.
     Move extraneous information about eligibilty, etc. to the 'domain'
     column as necessary by specifying the extraneous phrases.
 
     """
     if colname is not None:
-        if literal is not None:
-            warnings.warn("A vaccine column is given; no need for a literal entry.")
         df.rename({colname: "vaccine"})
     else:
-        if literal is None:
+        if override is None:
             raise RuntimeError(
-                "If there is no vaccine column, a literal entry is required."
+                "If there is no vaccine column, an override is required."
             )
-        df = df.with_columns(vaccine=pl.lit(literal))
-    df = df.with_columns(pl.col("vaccine").str.to_lowercase())
+        df = df.with_columns(vaccine=pl.lit(override))
+    df = df.with_columns(
+        pl.col("vaccine")
+        .str.to_lowercase()
+        .replace(
+            {
+                "infant received nirsevimab": "nirsevimab",
+                "mother received rsv vaccination during pregnancy and infant did not receive nirsevimab": "rsv_maternal",
+                "the mother received rsv vaccination during pregnancy and the infant did not receive nirsevimab": "rsv_maternal",
+            }
+        )
+    )
     if domain_phrases is not None:
         for phrase in domain_phrases:
             df = df.with_columns(
@@ -282,23 +330,21 @@ def clean_vaccine(
 
 
 def clean_time_type(
-    df: pl.LazyFrame, colname: str | None, literal: Optional[str] = None
+    df: pl.LazyFrame, colname: str | None, override: Optional[str] = None
 ) -> pl.LazyFrame:
     """
     Time type is the interval between report dates, e.g. 'month' or 'week'.
-    If there is no column with this information, provide it as 'literal'.
+    If there is no column with this information, provide it as 'override'.
     """
     if colname is not None:
-        if literal is not None:
-            warnings.warn("A time_type column is given; no need for a literal entry.")
         df.rename({colname: "time_type"})
-        df = df.with_columns(pl.col("time_type").str.replace("ly", ""))
     else:
-        if literal is None:
+        if override is None:
             raise RuntimeError(
-                "If there is no time_type column, a literal entry is required."
+                "If there is no time_type column, an override is required."
             )
-        df = df.with_columns(time_type=pl.lit(literal))
+        df = df.with_columns(time_type=pl.lit(override))
+    df = df.with_columns(pl.col("time_type").str.replace("ly", ""))
 
     return df
 
