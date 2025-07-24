@@ -6,11 +6,11 @@ import polars as pl
 import yaml
 
 import nisapi
-import nisapi.clean.vh55_3he6
+import nisapi.clean.akkj_j5ru
 from nisapi.clean import Validate
 
-dataset_id = "vh55-3he6"
-clean_func = nisapi.clean.vh55_3he6.clean
+dataset_id = "akkj-j5ru"
+clean_func = nisapi.clean.akkj_j5ru.clean
 
 td = tempfile.TemporaryDirectory()
 
@@ -33,6 +33,7 @@ clean = clean_func(raw)
 
 # look at the first few rows of the partially cleaned data
 clean.head(10).collect().glimpse()
+print(clean.collect().shape)
 
 # save a copy of the partially cleaned data
 tf = tempfile.NamedTemporaryFile()

@@ -103,7 +103,7 @@ def clean_geography_type(df: pl.LazyFrame, colname: str) -> pl.LazyFrame:
     Geography type is the scale of geographic division.
     Add to the `replace_strict` dictonary as necessary to standardize verbiage.
     """
-    df.rename({colname: "geography_type"})
+    df = df.rename({colname: "geography_type"})
     df = df.with_columns(
         pl.col("geography_type").str.to_lowercase().str.strip_chars()
     ).with_columns(
@@ -133,7 +133,7 @@ def clean_geography(df: pl.LazyFrame, colname: str) -> pl.LazyFrame:
     Geography is the specific geographic location.
     Add to the `replace` dictionary as necessary to standardize verbiage.
     """
-    df.rename({colname: "geography"})
+    df = df.rename({colname: "geography"})
     df = df.with_columns(
         pl.col("geography").str.strip_chars().replace({"National": "nation"})
     )
@@ -149,7 +149,8 @@ def clean_geography(df: pl.LazyFrame, colname: str) -> pl.LazyFrame:
         .when(
             (pl.col("geography_type") == "region") & (pl.col("geography") == "nation")
         )
-        .then("nation"),
+        .then(pl.lit("nation"))
+        .otherwise(pl.col("geography_type")),
     )
 
     return df
@@ -169,7 +170,7 @@ def clean_domain_type(
     An override domain type can also be given to fill in all rows.
     """
     if colname is not None:
-        df.rename({colname: "domain_type"})
+        df = df.rename({colname: "domain_type"})
     else:
         if override is None:
             raise RuntimeError(
@@ -210,7 +211,7 @@ def clean_domain(
     An override domain can also be given to fill in all rows.
     """
     if colname is not None:
-        df.rename({colname: "domain"})
+        df = df.rename({colname: "domain"})
     else:
         if override is None:
             raise RuntimeError("If there is no domain column, an override is required.")
@@ -238,7 +239,7 @@ def clean_indicator_type(
     An override indicator type can also be given to fill in all rows.
     """
     if colname is not None:
-        df.rename({colname: "indicator_type"})
+        df = df.rename({colname: "indicator_type"})
     else:
         if override is None:
             raise RuntimeError(
@@ -265,7 +266,7 @@ def clean_indicator(
     An override indicator can also be given to fill in all rows.
     """
     if colname is not None:
-        df.rename({colname: "indicator"})
+        df = df.rename({colname: "indicator"})
     else:
         if override is None:
             raise RuntimeError(
@@ -312,7 +313,7 @@ def clean_vaccine(
 
     """
     if colname is not None:
-        df.rename({colname: "vaccine"})
+        df = df.rename({colname: "vaccine"})
     else:
         if override is None:
             raise RuntimeError(
@@ -351,14 +352,16 @@ def clean_time_type(
     If there is no column with this information, provide it as 'override'.
     """
     if colname is not None:
-        df.rename({colname: "time_type"})
+        df = df.rename({colname: "time_type"})
     else:
         if override is None:
             raise RuntimeError(
                 "If there is no time_type column, an override is required."
             )
         df = df.with_columns(time_type=pl.lit(override))
-    df = df.with_columns(pl.col("time_type").str.replace("ly", ""))
+    df = df.with_columns(
+        pl.col("time_type").str.to_lowercase().str.replace("ly", "").str.strip_chars()
+    )
 
     return df
 
@@ -384,14 +387,14 @@ def clean_time_start_end(
         if len(column) == 1:
             df = df.with_columns(
                 time_end=pl.col(column[0])
-                .str.strptime(pl.Datetime, time_format)
+                .str.strptime(pl.Date, time_format)
                 .dt.truncate("1d")
             )
         elif len(column) > 1:
             df = df.with_columns(
                 time_end=pl.concat_str(
                     [column[0], column[1]], separator="-"
-                ).str.strptime(pl.Datetime, time_format)
+                ).str.strptime(pl.Date, time_format)
             )
         df = df.with_columns(
             time_start=pl.when(pl.col("time_type") == "week")
@@ -421,10 +424,8 @@ def clean_time_start_end(
                 time_end=(pl.col("time_end") + " " + pl.col(column[1])),
             )
         df = df.with_columns(
-            pl.col("time_start")
-            .str.strptime(pl.Datetime, time_format)
-            .dt.truncate("1d"),
-            pl.col("time_end").str.strptime(pl.Datetime, time_format).dt.truncate("1d"),
+            pl.col("time_start").str.strptime(pl.Date, time_format).dt.truncate("1d"),
+            pl.col("time_end").str.strptime(pl.Date, time_format).dt.truncate("1d"),
         )
     else:
         raise RuntimeError("Column format {col_format} is not recognized.")
@@ -444,8 +445,8 @@ def clean_estimate(df: pl.LazyFrame, column: str) -> pl.LazyFrame:
         )
         print(bad_estimates)
     df = df.filter(~pl.col("estimate").str.contains(r"[a-zA-Z]"))
-    df.with_columns(
-        (pl.col("estimate").cast(pl.Float64) / 100.0).clip(
+    df = df.with_columns(
+        estimate=((pl.col("estimate").cast(pl.Float64)) / 100.0).clip(
             lower_bound=0.0, upper_bound=1.0
         )
     )
@@ -464,6 +465,11 @@ def clean_lci_uci(
     Column format is "half" or "full" depending on whether the CI half-width or
     full range is given. In the latter case, specify the separating character(s).
     """
+    bad_cis = df.filter(pl.col(column).str.contains("NA")).collect()
+    if bad_cis.shape[0] > 0:
+        warnings.warn("Some rows contain NA CIs. These rows will be dropped.")
+        print(bad_cis)
+    df = df.filter(~pl.col(column).str.contains("NA"))
     if col_format == "half":
         df = (
             df.with_columns(pl.col(column).cast(pl.Float64))
@@ -506,7 +512,7 @@ def clean_lci_uci(
 
 
 def clean_sample_size(df: pl.LazyFrame, column: str) -> pl.LazyFrame:
-    df.rename({column: "sample_size"})
+    df = df.rename({column: "sample_size"})
     df = df.with_columns(pl.col("sample_size").cast(pl.UInt32))
 
     return df
