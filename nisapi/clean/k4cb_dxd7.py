@@ -27,7 +27,14 @@ def clean(df: pl.LazyFrame) -> pl.LazyFrame:
         .pipe(clean_domain_type, "demographic_level", "age")
         .pipe(clean_domain, "demographic_name", "age_group", "age")
         .pipe(clean_indicator_type, "indicator_label")
-        .pipe(clean_indicator, "indicator_category_label")
+        .pipe(
+            clean_indicator,
+            "indicator_category_label",
+            synonyms=[
+                ("4-level vaccination and intent", "Received a vaccination"),
+                ("up-to-date", "Yes"),
+            ],
+        )
         .pipe(clean_vaccine, "vaccine")
         .pipe(clean_time_type, None, "week")
         .pipe(clean_time_start_end, "week_ending")
