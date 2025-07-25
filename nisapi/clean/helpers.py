@@ -263,8 +263,8 @@ def clean_indicator(
     """
     Indicator is the specific answer to the survey question.
     Synonyms is a list of (indicator_type, indicator) tuples that are identical.
-    The first synonym will be kept and all others dropped.
-    E.g. ("4-level vaccination and intent", "received a vaccinated") and ("up-to-date", "yes")
+    Only the synonym with the most rows will be kept, using the verbiage of the first synonym.
+    E.g. ("4-level vaccination and intent", "Received a vaccination") and ("up-to-date", "Yes")
     are synonymous, so the former should be kept and the latter discarded.
     An override indicator can also be given to fill in all rows.
     """
@@ -283,19 +283,38 @@ def clean_indicator(
                 df.filter(
                     (pl.col("indicator_type") == pair[0])
                     & (pl.col("indicator") == pair[1])
-                ).sort(df.columns)
+                ).drop(["indicator_type", "indicator"])
                 for pair in synonyms
             ]
         )
-        assert all(sub_dfs[0].equals(sub_df) for sub_df in sub_dfs[1:]), (
-            "Provided (indicator_type, indicator) pairs are not synonymous."
-        )
-        synonyms.pop(0)
+        ref_idx = max(range(len(sub_dfs)), key=lambda idx: sub_dfs[idx].height)
+        ref_df = sub_dfs[ref_idx]
+        for sub_df in sub_dfs:
+            extra_rows = sub_df.join(ref_df, on=ref_df.columns, how="anti")
+            if extra_rows.height > 0:
+                raise RuntimeError("Indicator pairs are not synonymous", extra_rows)
+        ref_pair = synonyms[ref_idx]
+        pref_pair = synonyms[0]
+        synonyms.pop(ref_idx)
         df = df.filter(
             [
                 (pl.col("indicator_type") != pair[0]) | (pl.col("indicator") != pair[1])
                 for pair in synonyms
             ]
+        )
+        df = df.with_columns(
+            indicator_type=pl.when(
+                (pl.col("indicator_type") == ref_pair[0])
+                & (pl.col("indicator") == ref_pair[1])
+            )
+            .then(pl.lit(pref_pair[0]))
+            .otherwise(pl.col("indicator_type")),
+            indicator=pl.when(
+                (pl.col("indicator_type") == ref_pair[0])
+                & (pl.col("indicator") == ref_pair[1])
+            )
+            .then(pl.lit(pref_pair[1]))
+            .otherwise(pl.col("indicator")),
         )
 
     return df
@@ -431,7 +450,7 @@ def clean_time_start_end(
             pl.col("time_end").str.strptime(pl.Date, time_format).dt.truncate("1d"),
         )
     else:
-        raise RuntimeError("Column format {col_format} is not recognized.")
+        raise RuntimeError(f"Column format {col_format} is not recognized.")
 
     return df
 
@@ -509,7 +528,7 @@ def clean_lci_uci(
             .drop(column)
         )
     else:
-        raise RuntimeError("Column format {col_format} is not recognized.")
+        raise RuntimeError(f"Column format {col_format} is not recognized.")
 
     return df
 

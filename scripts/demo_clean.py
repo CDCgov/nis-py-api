@@ -4,11 +4,11 @@ from pathlib import Path
 import yaml
 
 import nisapi
-import nisapi.clean.k4cb_dxd7
+import nisapi.clean.ksfb_ug5d
 from nisapi.clean import Validate
 
-dataset_id = "k4cb-dxd7"
-clean_func = nisapi.clean.k4cb_dxd7.clean
+dataset_id = "ksfb-ug5d"
+clean_func = nisapi.clean.ksfb_ug5d.clean
 
 td = tempfile.TemporaryDirectory()
 
