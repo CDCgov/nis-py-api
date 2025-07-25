@@ -459,7 +459,7 @@ def clean_estimate(df: pl.LazyFrame, column: str) -> pl.LazyFrame:
     """
     Estimate is the percentage of respondents represented by a row.
     """
-    df.rename({column: "estimate"})
+    df = df.rename({column: "estimate"})
     bad_estimates = df.filter(pl.col("estimate").str.contains(r"[a-zA-Z]")).collect()
     if bad_estimates.shape[0] > 0:
         warnings.warn(
