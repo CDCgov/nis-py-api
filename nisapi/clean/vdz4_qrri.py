@@ -23,7 +23,7 @@ def clean(df: pl.LazyFrame) -> pl.LazyFrame:
     return (
         df.pipe(drop_bad_rows, "suppressed_flag")
         .pipe(clean_geography_type, "geography_label")
-        .pipe(clean_geography, "geography_label")
+        .pipe(clean_geography, None, override="nation")
         .pipe(clean_domain_type, None, override="age & season")
         .pipe(
             clean_domain,
@@ -32,10 +32,21 @@ def clean(df: pl.LazyFrame) -> pl.LazyFrame:
         )
         .pipe(clean_indicator_type, None, override="4-level vaccination and intent")
         .pipe(clean_indicator, "indicator_category_label")
-        .pipe(clean_vaccine, "indicator_category_label")
+        .pipe(
+            clean_vaccine,
+            "indicator",
+            infer={
+                "nirsevimab for infant": "nirsevimab",
+                "infant nirsevimab": "nirsevimab",
+                "Infant received nirsevimab": "nirsevimab",
+                "Mother received": "rsv_maternal",
+                "The mother received": "rsv_maternal",
+                "RSV vaccine": "rsv",
+            },
+        )
         .pipe(clean_time_type, None, "month")
         .pipe(clean_time_start_end, "timeframe", "both", "%m/%d/%Y")
-        .pipe(clean_estimate, "estimates")
+        .pipe(clean_estimate, "estimate")
         .pipe(clean_lci_uci, "_95_confidence_interval", "full")
         .pipe(clean_sample_size, "sample_size")
         .pipe(remove_duplicates)

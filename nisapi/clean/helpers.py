@@ -1,6 +1,5 @@
 import warnings
-from re import escape
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import polars as pl
 
@@ -128,12 +127,24 @@ def clean_geography_type(df: pl.LazyFrame, colname: str) -> pl.LazyFrame:
     return df
 
 
-def clean_geography(df: pl.LazyFrame, colname: str) -> pl.LazyFrame:
+def clean_geography(
+    df: pl.LazyFrame,
+    colname: str | None,
+    override: Optional[str] = None,
+) -> pl.LazyFrame:
     """
     Geography is the specific geographic location.
     Add to the `replace` dictionary as necessary to standardize verbiage.
+    An override geography can also be given to fill in all rows.
     """
-    df = df.rename({colname: "geography"})
+    if colname is not None:
+        df = df.rename({colname: "geography"})
+    else:
+        if override is None:
+            raise RuntimeError(
+                "If there is no geography column, an override is required."
+            )
+        df = df.with_columns(geography=pl.lit(override))
     df = df.with_columns(
         pl.col("geography").str.strip_chars().replace({"National": "nation"})
     )
@@ -323,19 +334,34 @@ def clean_indicator(
 def clean_vaccine(
     df: pl.LazyFrame,
     colname: str | None,
+    infer: Optional[Dict] = None,
     override: Optional[str] = None,
     domain_phrases: Optional[List[str]] = None,
 ) -> pl.LazyFrame:
     """
     Vaccine is the target pathogen plus any formulation information.
-    Add to the `.replace()` dictionary as necessary to standardize verbiage.
-    If there is no column with this information, provide it as 'override'.
+    If an 'infer' dictionary is given along with a column, the vaccine
+    is inferred from that column: in the dictionary, keys = phrases to
+    look for, and values = the vaccines those phrases indicate.
+    If there is no column with vaccine information, provide it as 'override'.
     Move extraneous information about eligibilty, etc. to the 'domain'
     column as necessary by specifying the extraneous phrases.
 
     """
     if colname is not None:
-        df = df.rename({colname: "vaccine"})
+        if infer is None:
+            df = df.rename({colname: "vaccine"})
+        else:
+            expr = pl.lit("Unrecognized vaccine")
+            for phrase, vax in infer.items():
+                expr = (
+                    pl.when(pl.col(colname).str.contains(phrase))
+                    .then(pl.lit(vax))
+                    .otherwise(expr)
+                )
+
+            df = df.with_columns(vaccine=expr)
+
     else:
         if override is None:
             raise RuntimeError(
@@ -583,7 +609,7 @@ def enforce_schema(df: pl.LazyFrame, schema: pl.Schema = data_schema) -> pl.Lazy
     if missing_columns != set():
         raise RuntimeError("Missing columns:", missing_columns)
     if extra_columns != set():
-        warnings.warn("Dropped columns: {extra_columns}")
+        warnings.warn(f"Dropped columns: {extra_columns}")
     return df.select(needed_columns)
 
 

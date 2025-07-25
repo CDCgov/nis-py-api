@@ -28,7 +28,7 @@ def clean(df: pl.LazyFrame) -> pl.LazyFrame:
         .pipe(clean_domain, "group_category")
         .pipe(clean_indicator_type, "indicator_name")
         .pipe(clean_indicator, "indicator_category")
-        .pipe(clean_vaccine, None, "covid")
+        .pipe(clean_vaccine, None, override="covid")
         .pipe(clean_time_type, "time_type")
         .pipe(clean_time_start_end, ["time_period", "time_year"], "both", "%B %d %Y")
         .pipe(clean_estimate, "estimate")
