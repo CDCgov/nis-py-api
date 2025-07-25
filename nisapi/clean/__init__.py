@@ -155,7 +155,11 @@ class Validate:
 
         # confidence intervals must bracket estimate
         if not ((df["lci"] <= df["estimate"]) & (df["estimate"] <= df["uci"])).all():
-            problems.append("confidence intervals do not bracket estimate")
+            bad_rows = df.filter(
+                (pl.col("lci") > pl.col("estimate"))
+                | (pl.col("uci") < pl.col("estimate"))
+            )
+            problems.append(f"confidence intervals do not bracket estimate: {bad_rows}")
 
         return problems
 

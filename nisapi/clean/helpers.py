@@ -138,7 +138,10 @@ def clean_geography(df: pl.LazyFrame, colname: str) -> pl.LazyFrame:
         pl.col("geography").str.strip_chars().replace({"National": "nation"})
     )
     df = df.with_columns(
-        geography=pl.when(pl.col("geography_type") == "region")
+        geography=pl.when(
+            (pl.col("geography_type") == "region")
+            & (pl.col("geography").str.contains(":"))
+        )
         .then(pl.col("geography").str.extract(r"^(.*?):").str.to_titlecase())
         .otherwise(pl.col("geography")),
         geography_type=pl.when(
@@ -189,7 +192,7 @@ def clean_domain_type(
         df = df.with_columns(
             domain_type=pl.when(pl.col("domain_type").is_in(extra_type))
             .then(pl.col("domain_type"))
-            .otherwise(pl.col("domain_type") + " & " + extra_type)
+            .otherwise(pl.col("domain_type") + " & " + " & ".join(extra_type))
         )
 
     return df
@@ -475,7 +478,7 @@ def clean_lci_uci(
             df.with_columns(pl.col(column).cast(pl.Float64))
             .with_columns(
                 lci=(pl.col("estimate") - pl.col(column)).clip(lower_bound=0.0),
-                uci=(pl.col("estimate") + pl.col(column)).clip(upper_bound=0.0),
+                uci=(pl.col("estimate") + pl.col(column)).clip(upper_bound=1.0),
             )
             .drop(column)
         )
@@ -529,6 +532,9 @@ def remove_duplicates(df: pl.LazyFrame, tolerance: float = 0.001) -> pl.LazyFram
     """
     value_columns = {"estimate", "lci", "uci"}
     group_columns = data_schema.keys() - value_columns
+
+    pl.Config.set_tbl_rows(100)
+    pl.Config.set_tbl_cols(100)
 
     bad_groups = (
         df.group_by(group_columns)
