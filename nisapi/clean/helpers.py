@@ -82,12 +82,18 @@ admin1_values = [
 ]
 
 
-def drop_bad_rows(df: pl.LazyFrame, colname: str | None) -> pl.LazyFrame:
+def drop_bad_rows(
+    df: pl.LazyFrame, colname: str | None, bad_columns: Optional[str | List[str]] = None
+) -> pl.LazyFrame:
     """
     Bad rows are those with a suppression flag or null values.
+    Bad columns are those that should be dropped immediately,
+    and where null values are not a problem.
     """
     if colname is not None:
         df = df.filter(pl.col(colname) == pl.lit("0")).drop(colname)
+    if bad_columns is not None:
+        df = df.drop(bad_columns)
     null_rows = df.filter(pl.any_horizontal(pl.all().is_null())).collect()
     if null_rows.shape[0] > 0:
         warnings.warn("Some rows contain null values. These rows will be dropped.")
@@ -231,7 +237,9 @@ def clean_domain(
             raise RuntimeError("If there is no domain column, an override is required.")
         df = df.with_columns(domain=pl.lit(override))
     df = df.with_columns(
-        pl.col("domain").str.strip_chars().replace({"All adults 18+": "18+ years"})
+        pl.col("domain")
+        .str.strip_chars()
+        .replace({"All adults 18+": "18+ years", "Overall": "6 months-17 years"})
     )
     if extra_column is not None and extra_type is not None:
         if not isinstance(extra_type, list):
@@ -520,7 +528,7 @@ def clean_lci_uci(
     df = df.filter(~pl.col(column).str.contains("NA"))
     if col_format == "half":
         df = (
-            df.with_columns(pl.col(column).cast(pl.Float64))
+            df.with_columns(pl.col(column).cast(pl.Float64) / 100.0)
             .with_columns(
                 lci=(pl.col("estimate") - pl.col(column)).clip(lower_bound=0.0),
                 uci=(pl.col("estimate") + pl.col(column)).clip(upper_bound=1.0),

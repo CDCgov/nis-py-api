@@ -60,9 +60,10 @@
   start_date: 2019-10-05
   universe: 6 months - 17 years old
   notes:
-    - The 'vaccine' column is totally blank, so "flu" must be filled in
+    - The 'vaccine' column is missing, so "flu" must be filled in
     - There are 585 with geographic_level "Local" (e.g. City of Chicago). This is new, but permitted by validation.
     - There are 2580 rows with "null" estimates that must be dropped.
+    - There is an empty indicator type "", often paired with indicator "Yes", but this does not appear synonymous with any other indicator.
 - id: k4cb-dxd7
   url: https://data.cdc.gov/Vaccinations/Weekly-Cumulative-RSV-Vaccination-Coverage-and-Int/k4cb-dxd7/about_data
   vaccine: rsv
