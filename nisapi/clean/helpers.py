@@ -103,16 +103,19 @@ def drop_bad_rows(
     return df
 
 
-def clean_geography_type(df: pl.LazyFrame, colname: str) -> pl.LazyFrame:
+def clean_geography_type(
+    df: pl.LazyFrame, colname: str | None, override: Optional[str] = None
+) -> pl.LazyFrame:
     """
     Geography type is the scale of geographic division.
     Add to the `replace_strict` dictonary as necessary to standardize verbiage.
     """
-    df = df.rename({colname: "geography_type"})
+    df = df.pipe(_replace_column_name, "geography_type", colname, override)
     df = df.with_columns(
-        pl.col("geography_type").str.to_lowercase().str.strip_chars()
-    ).with_columns(
-        pl.col("geography_type").replace_strict(
+        pl.col("geography_type")
+        .str.to_lowercase()
+        .str.strip_chars()
+        .replace_strict(
             {
                 "national": "nation",
                 "nation": "nation",
@@ -143,14 +146,7 @@ def clean_geography(
     Add to the `replace` dictionary as necessary to standardize verbiage.
     An override geography can also be given to fill in all rows.
     """
-    if colname is not None:
-        df = df.rename({colname: "geography"})
-    else:
-        if override is None:
-            raise RuntimeError(
-                "If there is no geography column, an override is required."
-            )
-        df = df.with_columns(geography=pl.lit(override))
+    df = df.pipe(_replace_column_name, "geography", colname, override)
     df = df.with_columns(
         pl.col("geography").str.strip_chars().replace({"National": "nation"})
     )
@@ -178,7 +174,7 @@ def clean_geography(
 
 def clean_domain_type(
     df: pl.LazyFrame,
-    colname: str | None,
+    colname: Optional[str] = None,
     extra_type: Optional[str | List[str]] = None,
     override: Optional[str] = None,
 ) -> pl.LazyFrame:
@@ -189,14 +185,7 @@ def clean_domain_type(
     in this case, provide name(s) for this extra type info (e.g. 'age').
     An override domain type can also be given to fill in all rows.
     """
-    if colname is not None:
-        df = df.rename({colname: "domain_type"})
-    else:
-        if override is None:
-            raise RuntimeError(
-                "If there is no domain_type column, an override is required."
-            )
-        df = df.with_columns(domain_type=pl.lit(override))
+    df = df.pipe(_replace_column_name, "domain_type", colname, override)
     df = df.with_columns(
         pl.col("domain_type")
         .str.to_lowercase()
@@ -230,12 +219,7 @@ def clean_domain(
     name(s) for this extra type info (e.g. 'age').
     An override domain can also be given to fill in all rows.
     """
-    if colname is not None:
-        df = df.rename({colname: "domain"})
-    else:
-        if override is None:
-            raise RuntimeError("If there is no domain column, an override is required.")
-        df = df.with_columns(domain=pl.lit(override))
+    df = df.pipe(_replace_column_name, "domain", colname, override)
     df = df.with_columns(
         pl.col("domain")
         .str.strip_chars()
@@ -260,14 +244,7 @@ def clean_indicator_type(
     Indicator type is the survey question that was asked.
     An override indicator type can also be given to fill in all rows.
     """
-    if colname is not None:
-        df = df.rename({colname: "indicator_type"})
-    else:
-        if override is None:
-            raise RuntimeError(
-                "If there is no indicator_type column, an override is required."
-            )
-        df = df.with_columns(indicator_type=pl.lit(override))
+    df = df.pipe(_replace_column_name, "indicator_type", colname, override)
     df = df.with_columns(pl.col("indicator_type").str.to_lowercase().str.strip_chars())
 
     return df
@@ -287,14 +264,7 @@ def clean_indicator(
     are synonymous, so the former should be kept and the latter discarded.
     An override indicator can also be given to fill in all rows.
     """
-    if colname is not None:
-        df = df.rename({colname: "indicator"})
-    else:
-        if override is None:
-            raise RuntimeError(
-                "If there is no indicator column, an override is required."
-            )
-        df = df.with_columns(indicator=pl.lit(override))
+    df = df.pipe(_replace_column_name, "indicator", colname, override)
     df = df.with_columns(pl.col("indicator").str.strip_chars())
     if synonyms is not None:
         sub_dfs = pl.collect_all(
@@ -356,6 +326,7 @@ def clean_vaccine(
     column as necessary by specifying the extraneous phrases.
 
     """
+    df = df.pipe(_replace_column_name, "vaccine", colname, override)
     if colname is not None:
         if infer is None:
             df = df.rename({colname: "vaccine"})
@@ -407,14 +378,7 @@ def clean_time_type(
     Time type is the interval between report dates, e.g. 'month' or 'week'.
     If there is no column with this information, provide it as 'override'.
     """
-    if colname is not None:
-        df = df.rename({colname: "time_type"})
-    else:
-        if override is None:
-            raise RuntimeError(
-                "If there is no time_type column, an override is required."
-            )
-        df = df.with_columns(time_type=pl.lit(override))
+    df = df.pipe(_replace_column_name, "time_type", colname, override)
     df = df.with_columns(
         pl.col("time_type").str.to_lowercase().str.replace("ly", "").str.strip_chars()
     )
@@ -604,6 +568,33 @@ def remove_duplicates(df: pl.LazyFrame, tolerance: float = 0.001) -> pl.LazyFram
 
 def _mean_max_diff(x: pl.Expr, tolerance: float) -> pl.Expr:
     return (x - x.mean()).abs().max() < tolerance
+
+
+def _replace_column_name(
+    df: pl.LazyFrame,
+    new_colname: str,
+    old_colname: Optional[str] = None,
+    override_value: Optional[str] = None,
+) -> pl.LazyFrame:
+    """
+    Create a new column in a data frame, either by:
+    - renaming an old column and keeping the original values, or
+    - creating a new column and filling in a repeated value
+    """
+    if old_colname is not None:
+        df = df.rename({old_colname: new_colname})
+        if override_value is not None:
+            raise RuntimeError(
+                "Exactly one of 'old_colname' or 'override_value' must be given."
+            )
+    else:
+        if override_value is None:
+            raise RuntimeError(
+                "Exactly one of 'old_colname' or 'override_value' must be given."
+            )
+        df = df.with_columns(pl.lit(override_value).alias(new_colname))
+
+    return df
 
 
 def enforce_schema(df: pl.LazyFrame, schema: pl.Schema = data_schema) -> pl.LazyFrame:
