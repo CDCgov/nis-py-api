@@ -104,33 +104,32 @@ def drop_bad_rows(
 
 
 def clean_geography_type(
-    df: pl.LazyFrame, colname: str | None, override: Optional[str] = None
+    df: pl.LazyFrame,
+    colname: str | None,
+    override: Optional[str] = None,
+    replace: Optional[dict] = None,
 ) -> pl.LazyFrame:
     """
     Geography type is the scale of geographic division.
-    Add to the `replace_strict` dictonary as necessary to standardize verbiage.
+    Add to the default 'replace' dictonary as necessary to standardize verbiage.
     """
-    df = df.pipe(_replace_column_name, "geography_type", colname, override)
-    df = df.with_columns(
-        pl.col("geography_type")
-        .str.to_lowercase()
-        .str.strip_chars()
-        .replace_strict(
-            {
-                "national": "nation",
-                "nation": "nation",
-                "national estimates": "nation",
-                "state": "admin1",
-                "state/local areas": "admin1",
-                "jurisdictional estimates": "admin1",
-                "region": "region",
-                "hhs region": "region",
-                "hhs regions/national": "region",
-                "substate": "substate",
-                "local": "local",
-                "counties": "local",
-            }
-        )
+    if replace is None:
+        replace = {
+            "national": "nation",
+            "nation": "nation",
+            "national estimates": "nation",
+            "state": "admin1",
+            "state/local areas": "admin1",
+            "jurisdictional estimates": "admin1",
+            "region": "region",
+            "hhs region": "region",
+            "hhs regions/national": "region",
+            "substate": "substate",
+            "local": "local",
+            "counties": "local",
+        }
+    df = df.pipe(_replace_column_name, "geography_type", colname, override).pipe(
+        _replace_column_values, "geography_type", replace=replace
     )
 
     return df
@@ -140,15 +139,16 @@ def clean_geography(
     df: pl.LazyFrame,
     colname: str | None,
     override: Optional[str] = None,
+    replace: Optional[dict] = None,
 ) -> pl.LazyFrame:
     """
     Geography is the specific geographic location.
-    Add to the `replace` dictionary as necessary to standardize verbiage.
-    An override geography can also be given to fill in all rows.
+    Add to the default `replace` dictionary as necessary to standardize verbiage.
     """
-    df = df.pipe(_replace_column_name, "geography", colname, override)
-    df = df.with_columns(
-        pl.col("geography").str.strip_chars().replace({"National": "nation"})
+    if replace is None:
+        replace = {"National": "nation"}
+    df = df.pipe(_replace_column_name, "geography", colname, override).pipe(
+        _replace_column_values, "geography", False, replace
     )
     df = df.with_columns(
         geography=pl.when(
@@ -175,31 +175,30 @@ def clean_geography(
 def clean_domain_type(
     df: pl.LazyFrame,
     colname: Optional[str] = None,
-    extra_type: Optional[str | List[str]] = None,
     override: Optional[str] = None,
+    replace: Optional[dict] = None,
+    extra: Optional[str | List[str]] = None,
 ) -> pl.LazyFrame:
     """
     Domain type is the demographic feature used to define groups.
-    Add to the `replace` dictionary as necessary to standardize verbiage.
+    Add to the default 'replace' dictionary as necessary to standardize verbiage.
     Another column (e.g. 'age_group') may contain further domain info;
     in this case, provide name(s) for this extra type info (e.g. 'age').
     An override domain type can also be given to fill in all rows.
     """
-    df = df.pipe(_replace_column_name, "domain_type", colname, override)
-    df = df.with_columns(
-        pl.col("domain_type")
-        .str.to_lowercase()
-        .str.strip_chars()
-        .replace({"overall": "age"})
+    if replace is None:
+        replace = {"overall": "age"}
+    df = df.pipe(_replace_column_name, "domain_type", colname, override).pipe(
+        _replace_column_values, "domain_type", replace=replace, extra=extra
     )
-    if extra_type is not None:
-        if not isinstance(extra_type, list):
-            extra_type = [extra_type]
-        df = df.with_columns(
-            domain_type=pl.when(pl.col("domain_type").is_in(extra_type))
-            .then(pl.col("domain_type"))
-            .otherwise(pl.col("domain_type") + " & " + " & ".join(extra_type))
-        )
+    # if extra_type is not None:
+    #     if not isinstance(extra_type, list):
+    #         extra_type = [extra_type]
+    #     df = df.with_columns(
+    #         domain_type=pl.when(pl.col("domain_type").is_in(extra_type))
+    #         .then(pl.col("domain_type"))
+    #         .otherwise(pl.col("domain_type") + " & " + " & ".join(extra_type))
+    #     )
 
     return df
 
@@ -207,9 +206,10 @@ def clean_domain_type(
 def clean_domain(
     df: pl.LazyFrame,
     colname: str | None,
-    extra_column: Optional[str] = None,
-    extra_type: Optional[str | List[str]] = None,
     override: Optional[str] = None,
+    replace: Optional[dict] = None,
+    borrow: Optional[str] = None,
+    borrow_phrases: Optional[List[str]] = None,
 ) -> pl.LazyFrame:
     """
     Domain is the specific demographic group.
@@ -219,33 +219,38 @@ def clean_domain(
     name(s) for this extra type info (e.g. 'age').
     An override domain can also be given to fill in all rows.
     """
-    df = df.pipe(_replace_column_name, "domain", colname, override)
-    df = df.with_columns(
-        pl.col("domain")
-        .str.strip_chars()
-        .replace({"All adults 18+": "18+ years", "Overall": "6 months-17 years"})
+    if replace is None:
+        replace = {"All adults 18+": "18+ years", "Overall": "6 months-17 years"}
+    df = df.pipe(_replace_column_name, "domain", colname, override).pipe(
+        _replace_column_values, "domain", False, replace
     )
-    if extra_column is not None and extra_type is not None:
-        if not isinstance(extra_type, list):
-            extra_type = [extra_type]
-        df = df.with_columns(
-            domain=pl.when(pl.col("domain_type").is_in(extra_type))
-            .then(pl.col("domain"))
-            .otherwise(pl.concat_str(["domain", extra_column], separator=" & "))
-        ).drop(extra_column)
+    if borrow is not None:
+        df = df.pipe(_borrow_column_values, "domain", borrow, borrow_phrases)
+    # if extra_column is not None and extra_type is not None:
+    #     if not isinstance(extra_type, list):
+    #         extra_type = [extra_type]
+    #     df = df.with_columns(
+    #         domain=pl.when(pl.col("domain_type").is_in(extra_type))
+    #         .then(pl.col("domain"))
+    #         .otherwise(pl.concat_str(["domain", extra_column], separator=" & "))
+    #     ).drop(extra_column)
 
     return df
 
 
 def clean_indicator_type(
-    df: pl.LazyFrame, colname: str | None, override: Optional[str] = None
+    df: pl.LazyFrame,
+    colname: str | None,
+    override: Optional[str] = None,
+    replace: Optional[dict] = None,
 ) -> pl.LazyFrame:
     """
     Indicator type is the survey question that was asked.
     An override indicator type can also be given to fill in all rows.
     """
-    df = df.pipe(_replace_column_name, "indicator_type", colname, override)
-    df = df.with_columns(pl.col("indicator_type").str.to_lowercase().str.strip_chars())
+    df = df.pipe(_replace_column_name, "indicator_type", colname, override).pipe(
+        _replace_column_values, "indicator_type", replace=replace
+    )
 
     return df
 
@@ -255,6 +260,7 @@ def clean_indicator(
     colname: str | None,
     synonyms: Optional[List[Tuple[str, str]]] = None,
     override: Optional[str] = None,
+    replace: Optional[dict] = None,
 ) -> pl.LazyFrame:
     """
     Indicator is the specific answer to the survey question.
@@ -264,47 +270,48 @@ def clean_indicator(
     are synonymous, so the former should be kept and the latter discarded.
     An override indicator can also be given to fill in all rows.
     """
-    df = df.pipe(_replace_column_name, "indicator", colname, override)
-    df = df.with_columns(pl.col("indicator").str.strip_chars())
-    if synonyms is not None:
-        sub_dfs = pl.collect_all(
-            [
-                df.filter(
-                    (pl.col("indicator_type") == pair[0])
-                    & (pl.col("indicator") == pair[1])
-                ).drop(["indicator_type", "indicator"])
-                for pair in synonyms
-            ]
-        )
-        ref_idx = max(range(len(sub_dfs)), key=lambda idx: sub_dfs[idx].height)
-        ref_df = sub_dfs[ref_idx]
-        for sub_df in sub_dfs:
-            extra_rows = sub_df.join(ref_df, on=ref_df.columns, how="anti")
-            if extra_rows.height > 0:
-                raise RuntimeError("Indicator pairs are not synonymous", extra_rows)
-        ref_pair = synonyms[ref_idx]
-        pref_pair = synonyms[0]
-        synonyms.pop(ref_idx)
-        df = df.filter(
-            [
-                (pl.col("indicator_type") != pair[0]) | (pl.col("indicator") != pair[1])
-                for pair in synonyms
-            ]
-        )
-        df = df.with_columns(
-            indicator_type=pl.when(
-                (pl.col("indicator_type") == ref_pair[0])
-                & (pl.col("indicator") == ref_pair[1])
-            )
-            .then(pl.lit(pref_pair[0]))
-            .otherwise(pl.col("indicator_type")),
-            indicator=pl.when(
-                (pl.col("indicator_type") == ref_pair[0])
-                & (pl.col("indicator") == ref_pair[1])
-            )
-            .then(pl.lit(pref_pair[1]))
-            .otherwise(pl.col("indicator")),
-        )
+    df = df.pipe(_replace_column_name, "indicator", colname, override).pipe(
+        _replace_column_values, "indicator", False, replace
+    )
+    # if synonyms is not None:
+    #     sub_dfs = pl.collect_all(
+    #         [
+    #             df.filter(
+    #                 (pl.col("indicator_type") == pair[0])
+    #                 & (pl.col("indicator") == pair[1])
+    #             ).drop(["indicator_type", "indicator"])
+    #             for pair in synonyms
+    #         ]
+    #     )
+    #     ref_idx = max(range(len(sub_dfs)), key=lambda idx: sub_dfs[idx].height)
+    #     ref_df = sub_dfs[ref_idx]
+    #     for sub_df in sub_dfs:
+    #         extra_rows = sub_df.join(ref_df, on=ref_df.columns, how="anti")
+    #         if extra_rows.height > 0:
+    #             raise RuntimeError("Indicator pairs are not synonymous", extra_rows)
+    #     ref_pair = synonyms[ref_idx]
+    #     pref_pair = synonyms[0]
+    #     synonyms.pop(ref_idx)
+    #     df = df.filter(
+    #         [
+    #             (pl.col("indicator_type") != pair[0]) | (pl.col("indicator") != pair[1])
+    #             for pair in synonyms
+    #         ]
+    #     )
+    #     df = df.with_columns(
+    #         indicator_type=pl.when(
+    #             (pl.col("indicator_type") == ref_pair[0])
+    #             & (pl.col("indicator") == ref_pair[1])
+    #         )
+    #         .then(pl.lit(pref_pair[0]))
+    #         .otherwise(pl.col("indicator_type")),
+    #         indicator=pl.when(
+    #             (pl.col("indicator_type") == ref_pair[0])
+    #             & (pl.col("indicator") == ref_pair[1])
+    #         )
+    #         .then(pl.lit(pref_pair[1]))
+    #         .otherwise(pl.col("indicator")),
+    #     )
 
     return df
 
@@ -312,9 +319,9 @@ def clean_indicator(
 def clean_vaccine(
     df: pl.LazyFrame,
     colname: str | None,
-    infer: Optional[Dict] = None,
     override: Optional[str] = None,
-    domain_phrases: Optional[List[str]] = None,
+    replace: Optional[dict] = None,
+    infer: Optional[Dict] = None,
 ) -> pl.LazyFrame:
     """
     Vaccine is the target pathogen plus any formulation information.
@@ -326,61 +333,45 @@ def clean_vaccine(
     column as necessary by specifying the extraneous phrases.
 
     """
-    df = df.pipe(_replace_column_name, "vaccine", colname, override)
-    if colname is not None:
-        if infer is None:
-            df = df.rename({colname: "vaccine"})
-        else:
-            expr = pl.lit("Unrecognized vaccine")
-            for phrase, vax in infer.items():
-                expr = (
-                    pl.when(pl.col(colname).str.contains(phrase))
-                    .then(pl.lit(vax))
-                    .otherwise(expr)
-                )
-
-            df = df.with_columns(vaccine=expr)
-
-    else:
-        if override is None:
-            raise RuntimeError(
-                "If there is no vaccine column, an override is required."
-            )
-        df = df.with_columns(vaccine=pl.lit(override))
-    df = df.with_columns(
-        pl.col("vaccine")
-        .str.to_lowercase()
-        .replace(
-            {
-                "infant received nirsevimab": "nirsevimab",
-                "mother received rsv vaccination during pregnancy and infant did not receive nirsevimab": "rsv_maternal",
-                "the mother received rsv vaccination during pregnancy and the infant did not receive nirsevimab": "rsv_maternal",
-            }
-        )
+    df = df.pipe(_replace_column_name, "vaccine", colname, override).pipe(
+        _replace_column_values, "vaccine", replace=replace, infer=infer
     )
-    if domain_phrases is not None:
-        for phrase in domain_phrases:
-            df = df.with_columns(
-                domain=pl.when(pl.col("vaccine").str.contains(phrase))
-                .then(pl.col("domain") + phrase)
-                .otherwise(pl.col("domain")),
-                vaccine=pl.col("vaccine").str.replace("phrase", ""),
-            )
-    df = df.with_columns(pl.col("vaccine").str.strip_chars())
+    # if infer is not None:
+    #     expr = pl.lit("Unrecognized vaccine")
+    #     for phrase, vax in infer.items():
+    #         expr = (
+    #             pl.when(pl.col("vaccine").str.contains(phrase))
+    #             .then(pl.lit(vax))
+    #             .otherwise(expr)
+    #         )
+    #     df = df.with_columns(vaccine=expr)
+    # if domain_phrases is not None:
+    #     for phrase in domain_phrases:
+    #         df = df.with_columns(
+    #             domain=pl.when(pl.col("vaccine").str.contains(phrase))
+    #             .then(pl.col("domain") + phrase)
+    #             .otherwise(pl.col("domain")),
+    #             vaccine=pl.col("vaccine").str.replace("phrase", ""),
+    #         )
+    # df = df.with_columns(pl.col("vaccine").str.strip_chars())
 
     return df
 
 
 def clean_time_type(
-    df: pl.LazyFrame, colname: str | None, override: Optional[str] = None
+    df: pl.LazyFrame,
+    colname: str | None,
+    override: Optional[str] = None,
+    replace: Optional[dict] = None,
 ) -> pl.LazyFrame:
     """
     Time type is the interval between report dates, e.g. 'month' or 'week'.
     If there is no column with this information, provide it as 'override'.
     """
-    df = df.pipe(_replace_column_name, "time_type", colname, override)
-    df = df.with_columns(
-        pl.col("time_type").str.to_lowercase().str.replace("ly", "").str.strip_chars()
+    if replace is None:
+        replace = {"ly": ""}
+    df = df.pipe(_replace_column_name, "time_type", colname, override).pipe(
+        _replace_column_values, "time_type", replace=replace
     )
 
     return df
@@ -538,7 +529,12 @@ def clean_sample_size(df: pl.LazyFrame, column: str) -> pl.LazyFrame:
     return df
 
 
-def remove_duplicates(df: pl.LazyFrame, tolerance: float = 0.001) -> pl.LazyFrame:
+def remove_duplicates(
+    df: pl.LazyFrame,
+    tolerance: float = 0.001,
+    synonym_columns: Optional[Tuple] = None,
+    synonyms: Optional[List[Tuple]] = None,
+) -> pl.LazyFrame:
     """
     Rows are duplicates if they are within some tolerance for value columns
     (estimate, lci, & uci) and identical for group columns (all others).
@@ -547,6 +543,44 @@ def remove_duplicates(df: pl.LazyFrame, tolerance: float = 0.001) -> pl.LazyFram
     If duplicate rows are found, average their values together.
     If duplicate groups have clashing values, raise an error.
     """
+    if synonym_columns is not None:
+        if synonyms is None:
+            raise RuntimeError(
+                "If 'synonym columns' are provided, 'synonyms' must be too."
+            )
+        assert (len(s) == len(synonym_columns) for s in synonyms)
+        sub_dfs = pl.collect_all(
+            [
+                df.filter(
+                    (pl.col(col) == syn) for col, syn in zip(synonym_columns, synonym)
+                )
+                for synonym in synonyms
+            ]
+        )
+        ref_idx = max(range(len(sub_dfs)), key=lambda idx: sub_dfs[idx].height)
+        ref_df = sub_dfs[ref_idx].drop(synonym_columns)
+        for sub_df in sub_dfs:
+            extra_rows = sub_df.drop(synonym_columns).join(
+                ref_df, on=ref_df.columns, how="anti"
+            )
+            if extra_rows.height > 0:
+                raise RuntimeError(
+                    "Declared synonyms are not really synonyms.", extra_rows
+                )
+        ref_df = ref_df.with_columns(
+            [pl.lit(syn).alias(col) for col, syn in zip(synonym_columns, synonyms[0])]
+        )
+        df = pl.concat(
+            [
+                df.collect().join(
+                    pl.concat(sub_dfs),
+                    on=list(set(df.columns) - set(synonym_columns)),
+                    how="anti",
+                ),
+                ref_df,
+            ]
+        ).lazy()
+
     value_columns = {"estimate", "lci", "uci"}
     group_columns = data_schema.keys() - value_columns
 
@@ -574,7 +608,7 @@ def _replace_column_name(
     df: pl.LazyFrame,
     new_colname: str,
     old_colname: Optional[str] = None,
-    override_value: Optional[str] = None,
+    override: Optional[str] = None,
 ) -> pl.LazyFrame:
     """
     Create a new column in a data frame, either by:
@@ -583,16 +617,88 @@ def _replace_column_name(
     """
     if old_colname is not None:
         df = df.rename({old_colname: new_colname})
-        if override_value is not None:
+        if override is not None:
             raise RuntimeError(
                 "Exactly one of 'old_colname' or 'override_value' must be given."
             )
     else:
-        if override_value is None:
+        if override is None:
             raise RuntimeError(
                 "Exactly one of 'old_colname' or 'override_value' must be given."
             )
-        df = df.with_columns(pl.lit(override_value).alias(new_colname))
+        df = df.with_columns(pl.lit(override).alias(new_colname))
+
+    return df
+
+
+def _replace_column_values(
+    df: pl.LazyFrame,
+    colname: str,
+    lowercase: bool = True,
+    replace: Optional[dict] = None,
+    extra: Optional[str | List[str]] = None,
+    infer: Optional[dict] = None,
+) -> pl.LazyFrame:
+    """
+    Replace the values in a column by:
+    - removing leading/trailing whitespace
+    - setting to lowercase if desired, and
+    - replacing certain strings with others
+    - adding extra strings if they are missing
+    - inferring entirely new values from the presence of certain strings
+    """
+    new_values = pl.col(colname).str.strip_chars()
+    if lowercase:
+        new_values = new_values.str.to_lowercase()
+    if replace is not None:
+        new_values = new_values.str.replace_many(replace)
+    if extra is not None:
+        if not isinstance(extra, list):
+            extra = [extra]
+        new_values = (
+            pl.when(new_values.is_in(extra))
+            .then(new_values)
+            .otherwise(new_values + " & " + " & ".join(extra))
+        )
+    if infer is not None:
+        for old_phrase, new_phrase in infer.items():
+            new_values = (
+                pl.when(new_values.str.contains(old_phrase))
+                .then(pl.lit(new_phrase))
+                .otherwise(new_values)
+            )
+
+    df = df.with_columns(new_values)
+
+    return df
+
+
+def _borrow_column_values(
+    df: pl.LazyFrame,
+    recip_colname: str,
+    donor_colname: str,
+    phrases: Optional[List[str]] = None,
+) -> pl.LazyFrame:
+    """
+    Augment the values in a recipient column with the values in a donor column by
+    - Transferring the whole donor column to the recipient, when the two are not already identical.
+    - Transferring phrases from the donor column to the recipient, when those phrases are present.
+    """
+    if phrases is None:
+        new_values = (
+            pl.when(pl.col(recip_colname) != pl.col(donor_colname))
+            .then(pl.concat_str([recip_colname, donor_colname], separator=" & "))
+            .otherwise(pl.col(recip_colname))
+        )
+    else:
+        for phrase in phrases:
+            new_values = (
+                pl.when(pl.col(donor_colname).str.contains(phrase))
+                .then(pl.col(recip_colname) + phrase)
+                .otherwise(pl.col(recip_colname))
+            )
+
+    df = df.with_columns(new_values.alias(recip_colname))
 
     return df
 
