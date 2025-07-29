@@ -34,8 +34,9 @@ def clean(df: pl.LazyFrame) -> pl.LazyFrame:
         .pipe(clean_indicator, "indicator_category_label")
         .pipe(
             clean_vaccine,
-            "indicator",
-            infer={
+            None,
+            donor_colname="indicator",
+            transfer={
                 "nirsevimab for infant": "nirsevimab",
                 "infant nirsevimab": "nirsevimab",
                 "Infant received nirsevimab": "nirsevimab",
@@ -44,7 +45,7 @@ def clean(df: pl.LazyFrame) -> pl.LazyFrame:
                 "RSV vaccine": "rsv",
             },
         )
-        .pipe(clean_time_type, None, "month")
+        .pipe(clean_time_type, None, override="month")
         .pipe(clean_time_start_end, "timeframe", "both", "%m/%d/%Y")
         .pipe(clean_estimate, "estimate")
         .pipe(clean_lci_uci, "_95_confidence_interval", "full")

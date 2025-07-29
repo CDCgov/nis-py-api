@@ -112,7 +112,7 @@ def clean_geography_type(
     append: Optional[str | List[str]] = None,
     infer: Optional[dict] = None,
     donor_colname: Optional[str] = None,
-    transfer: Optional[str | list[str]] = None,
+    transfer: Optional[dict] = None,
 ) -> pl.LazyFrame:
     """
     Geography type is the scale of geographic division.
@@ -153,7 +153,7 @@ def clean_geography(
     append: Optional[str | List[str]] = None,
     infer: Optional[dict] = None,
     donor_colname: Optional[str] = None,
-    transfer: Optional[str | list[str]] = None,
+    transfer: Optional[dict] = None,
 ) -> pl.LazyFrame:
     """
     Geography is the specific geographic location.
@@ -198,7 +198,7 @@ def clean_domain_type(
     append: Optional[str | List[str]] = None,
     infer: Optional[dict] = None,
     donor_colname: Optional[str] = None,
-    transfer: Optional[str | list[str]] = None,
+    transfer: Optional[dict] = None,
 ) -> pl.LazyFrame:
     """
     Domain type is the demographic feature used to define groups.
@@ -235,7 +235,7 @@ def clean_domain(
     append: Optional[str | List[str]] = None,
     infer: Optional[dict] = None,
     donor_colname: Optional[str] = None,
-    transfer: Optional[str | list[str]] = None,
+    transfer: Optional[dict] = None,
 ) -> pl.LazyFrame:
     """
     Domain is the specific demographic group.
@@ -273,7 +273,7 @@ def clean_indicator_type(
     append: Optional[str | List[str]] = None,
     infer: Optional[dict] = None,
     donor_colname: Optional[str] = None,
-    transfer: Optional[str | list[str]] = None,
+    transfer: Optional[dict] = None,
 ) -> pl.LazyFrame:
     """
     Indicator type is the survey question that was asked.
@@ -299,7 +299,7 @@ def clean_indicator(
     append: Optional[str | List[str]] = None,
     infer: Optional[dict] = None,
     donor_colname: Optional[str] = None,
-    transfer: Optional[str | list[str]] = None,
+    transfer: Optional[dict] = None,
 ) -> pl.LazyFrame:
     """
     Indicator is the specific answer to the survey question.
@@ -366,7 +366,7 @@ def clean_vaccine(
     append: Optional[str | List[str]] = None,
     infer: Optional[dict] = None,
     donor_colname: Optional[str] = None,
-    transfer: Optional[str | list[str]] = None,
+    transfer: Optional[dict] = None,
 ) -> pl.LazyFrame:
     """
     Vaccine is the target pathogen plus any formulation information.
@@ -376,7 +376,6 @@ def clean_vaccine(
     If there is no column with vaccine information, provide it as 'override'.
     Move extraneous information about eligibilty, etc. to the 'domain'
     column as necessary by specifying the extraneous phrases.
-
     """
     df = (
         df.pipe(_replace_column_name, "vaccine", colname, override)
@@ -414,7 +413,7 @@ def clean_time_type(
     append: Optional[str | List[str]] = None,
     infer: Optional[dict] = None,
     donor_colname: Optional[str] = None,
-    transfer: Optional[str | list[str]] = None,
+    transfer: Optional[dict] = None,
 ) -> pl.LazyFrame:
     """
     Time type is the interval between report dates, e.g. 'month' or 'week'.
@@ -668,15 +667,12 @@ def _replace_column_name(
     if old_colname is not None:
         df = df.rename({old_colname: new_colname})
         if override is not None:
-            raise RuntimeError(
-                "Exactly one of 'old_colname' or 'override_value' must be given."
+            warnings.warn(
+                f"Argument 'override' ignored in favor of column {old_colname}"
             )
     else:
-        if override is None:
-            raise RuntimeError(
-                "Exactly one of 'old_colname' or 'override_value' must be given."
-            )
-        df = df.with_columns(pl.lit(override).alias(new_colname))
+        if override is not None:
+            df = df.with_columns(pl.lit(override).alias(new_colname))
 
     return df
 
@@ -697,6 +693,9 @@ def _replace_column_values(
     - appending strings if they are missing
     - inferring entirely new values from the presence of certain strings
     """
+    if colname not in df.collect_schema().names():
+        return df
+
     new_values = pl.col(colname).str.strip_chars()
     if lowercase:
         new_values = new_values.str.to_lowercase()
@@ -728,30 +727,35 @@ def _borrow_column_values(
     df: pl.LazyFrame,
     recip_colname: str,
     donor_colname: Optional[str] = None,
-    transfer: Optional[str | List[str]] = None,
+    transfer: Optional[dict] = None,
 ) -> pl.LazyFrame:
     """
     Augment the values in a recipient column with the values in a donor column by
     - Transferring the whole donor column to the recipient, when the two are not already identical.
-    - Transferring phrases from the donor column to the recipient, when those phrases are present.
+    - Transferring information from the donor column to the recipient when key phrases are found.
     """
     if donor_colname is None:
         return df
 
     if transfer is None:
-        new_values = (
-            pl.when(pl.col(recip_colname) != pl.col(donor_colname))
-            .then(pl.concat_str([recip_colname, donor_colname], separator=" & "))
-            .otherwise(pl.col(recip_colname))
-        )
-    else:
-        if not isinstance(transfer, list):
-            transfer = [transfer]
-        for phrase in transfer:
+        if recip_colname in df.collect_schema().names():
             new_values = (
-                pl.when(pl.col(donor_colname).str.contains(phrase))
-                .then(pl.col(recip_colname) + phrase)
+                pl.when(pl.col(recip_colname) != pl.col(donor_colname))
+                .then(pl.concat_str([recip_colname, donor_colname], separator=" & "))
                 .otherwise(pl.col(recip_colname))
+            )
+        else:
+            new_values = pl.col(donor_colname)
+    else:
+        if recip_colname in df.collect_schema().names():
+            new_values = pl.col(recip_colname)
+        else:
+            new_values = pl.lit("missing value")
+        for old_phrase, new_phrase in transfer.items():
+            new_values = (
+                pl.when(pl.col(donor_colname).str.contains(old_phrase))
+                .then(pl.lit(new_phrase))
+                .otherwise(new_values)
             )
 
     df = df.with_columns(new_values.alias(recip_colname))
