@@ -22,7 +22,14 @@ from nisapi.clean.helpers import (
 def clean(df: pl.LazyFrame) -> pl.LazyFrame:
     return (
         df.pipe(drop_bad_rows, "suppression_flag")
-        .pipe(clean_geography_type, "geography_type")
+        .pipe(
+            clean_geography_type,
+            "geography_type",
+            replace={
+                "jurisdictional estimates": "admin1",
+                "national estimates": "nation",
+            },
+        )
         .pipe(clean_geography, "geography")
         .pipe(clean_domain_type, "group_name")
         .pipe(clean_domain, "group_category")

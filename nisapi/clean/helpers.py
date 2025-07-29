@@ -120,15 +120,15 @@ def clean_geography_type(
     """
     if replace is None:
         replace = {
+            "national estimates": "nation",
             "national": "nation",
             "nation": "nation",
-            "national estimates": "nation",
-            "state": "admin1",
             "state/local areas": "admin1",
+            "state": "admin1",
             "jurisdictional estimates": "admin1",
-            "region": "region",
-            "hhs region": "region",
             "hhs regions/national": "region",
+            "hhs region": "region",
+            "region": "region",
             "substate": "substate",
             "local": "local",
             "counties": "local",
@@ -245,7 +245,7 @@ def clean_domain(
     An override domain can also be given to fill in all rows.
     """
     if replace is None:
-        replace = {"All adults 18+": "18+ years", "Overall": "6 months-17 years"}
+        replace = {"All adults 18+": "18+ years"}
     df = (
         df.pipe(_replace_column_name, "domain", colname, override)
         .pipe(_replace_column_values, "domain", lowercase, replace, append, infer)
@@ -480,7 +480,7 @@ def clean_time_start_end(
     elif col_format == "both":
         df = df.with_columns(
             time_start=pl.col(column[0]).str.extract(r"^(.*?)-").str.strip_chars(),
-            time_end=pl.col(column[0]).str.extract(r"^(.*?)-").str.strip_chars(),
+            time_end=pl.col(column[0]).str.extract(r"-(.*)").str.strip_chars(),
         )
         if len(column) > 1:
             df = df.with_columns(
