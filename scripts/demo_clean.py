@@ -4,11 +4,11 @@ from pathlib import Path
 import yaml
 
 import nisapi
-import nisapi.clean.vdz4_qrri
+import nisapi.clean.vncy_2ds7
 from nisapi.clean import Validate
 
-dataset_id = "vdz4-qrri"
-clean_func = nisapi.clean.vdz4_qrri.clean
+dataset_id = "vncy-2ds7"
+clean_func = nisapi.clean.vncy_2ds7.clean
 
 td = tempfile.TemporaryDirectory()
 

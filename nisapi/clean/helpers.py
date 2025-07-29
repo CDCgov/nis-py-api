@@ -732,7 +732,7 @@ def _borrow_column_values(
     """
     Augment the values in a recipient column with the values in a donor column by
     - Transferring the whole donor column to the recipient, when the two are not already identical.
-    - Transferring information from the donor column to the recipient when key phrases are found.
+    - Transferring information about the donor column to the recipient when key phrases are found.
     """
     if donor_colname is None:
         return df
