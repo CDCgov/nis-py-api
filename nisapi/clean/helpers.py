@@ -457,8 +457,8 @@ def clean_time_start_end(
         elif len(column) > 1:
             df = df.with_columns(
                 time_end=pl.concat_str(
-                    [column[0], column[1]], separator="-"
-                ).str.strptime(pl.Date, time_format)
+                    [pl.col(column[0]).str.zfill(2), pl.col(column[1])], separator="-"
+                ).str.to_date(time_format)
             )
         df = df.with_columns(
             time_start=pl.when(pl.col("time_type") == "week")
@@ -552,11 +552,18 @@ def clean_lci_uci(
                 .str.replace(r" ‡$", "")
             )
             .with_columns(
+                pl.when(pl.col(column).str.starts_with("-"))
+                .then(pl.col(column).str.replace(r"^-.*?-", "0.0 -"))
+                .otherwise(pl.col(column))
+                .alias(column)
+            )
+            .with_columns(
                 lci=(
                     pl.col(column)
                     .str.extract(r"^(.*?)-")
                     .str.strip_chars()
                     .cast(pl.Float64)
+                    .clip(lower_bound=0.0)
                 )
                 / 100.0,
                 uci=(
@@ -564,6 +571,7 @@ def clean_lci_uci(
                     .str.extract(r"-(.*)", 1)
                     .str.strip_chars()
                     .cast(pl.Float64)
+                    .clip(upper_bound=100.0)
                 )
                 / 100.0,
             )
@@ -749,14 +757,20 @@ def _borrow_column_values(
     else:
         if recip_colname in df.collect_schema().names():
             new_values = pl.col(recip_colname)
+            for old_phrase, new_phrase in transfer.items():
+                new_values = (
+                    pl.when(pl.col(donor_colname).str.contains(old_phrase))
+                    .then(new_values + " & " + new_phrase)
+                    .otherwise(new_values)
+                )
         else:
             new_values = pl.lit("missing value")
-        for old_phrase, new_phrase in transfer.items():
-            new_values = (
-                pl.when(pl.col(donor_colname).str.contains(old_phrase))
-                .then(pl.lit(new_phrase))
-                .otherwise(new_values)
-            )
+            for old_phrase, new_phrase in transfer.items():
+                new_values = (
+                    pl.when(pl.col(donor_colname).str.contains(old_phrase))
+                    .then(pl.lit(new_phrase))
+                    .otherwise(new_values)
+                )
 
     df = df.with_columns(new_values.alias(recip_colname))
 
