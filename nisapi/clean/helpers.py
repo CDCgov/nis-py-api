@@ -120,17 +120,9 @@ def clean_geography_type(
     """
     if replace is None:
         replace = {
-            # "national estimates": "nation",
             "national": "nation",
-            # "nation": "nation",
-            # "state/local areas": "admin1",
             "state": "admin1",
-            # "jurisdictional estimates": "admin1",
-            # "hhs regions/national": "region",
             "hhs region": "region",
-            # "region": "region",
-            # "substate": "substate",
-            # "local": "local",
             "counties": "local",
         }
     df = (
@@ -214,14 +206,6 @@ def clean_domain_type(
         .pipe(_replace_column_values, "domain_type", lowercase, replace, append, infer)
         .pipe(_borrow_column_values, "domain_type", donor_colname, transfer)
     )
-    # if extra_type is not None:
-    #     if not isinstance(extra_type, list):
-    #         extra_type = [extra_type]
-    #     df = df.with_columns(
-    #         domain_type=pl.when(pl.col("domain_type").is_in(extra_type))
-    #         .then(pl.col("domain_type"))
-    #         .otherwise(pl.col("domain_type") + " & " + " & ".join(extra_type))
-    #     )
 
     return df
 
@@ -252,14 +236,6 @@ def clean_domain(
         .pipe(_replace_column_values, "domain", lowercase, replace, append, infer)
         .pipe(_borrow_column_values, "domain", donor_colname, transfer)
     )
-    # if extra_column is not None and extra_type is not None:
-    #     if not isinstance(extra_type, list):
-    #         extra_type = [extra_type]
-    #     df = df.with_columns(
-    #         domain=pl.when(pl.col("domain_type").is_in(extra_type))
-    #         .then(pl.col("domain"))
-    #         .otherwise(pl.concat_str(["domain", extra_column], separator=" & "))
-    #     ).drop(extra_column)
 
     return df
 
@@ -314,45 +290,6 @@ def clean_indicator(
         .pipe(_replace_column_values, "indicator", lowercase, replace, append, infer)
         .pipe(_borrow_column_values, "indicator", donor_colname, transfer)
     )
-    # if synonyms is not None:
-    #     sub_dfs = pl.collect_all(
-    #         [
-    #             df.filter(
-    #                 (pl.col("indicator_type") == pair[0])
-    #                 & (pl.col("indicator") == pair[1])
-    #             ).drop(["indicator_type", "indicator"])
-    #             for pair in synonyms
-    #         ]
-    #     )
-    #     ref_idx = max(range(len(sub_dfs)), key=lambda idx: sub_dfs[idx].height)
-    #     ref_df = sub_dfs[ref_idx]
-    #     for sub_df in sub_dfs:
-    #         extra_rows = sub_df.join(ref_df, on=ref_df.columns, how="anti")
-    #         if extra_rows.height > 0:
-    #             raise RuntimeError("Indicator pairs are not synonymous", extra_rows)
-    #     ref_pair = synonyms[ref_idx]
-    #     pref_pair = synonyms[0]
-    #     synonyms.pop(ref_idx)
-    #     df = df.filter(
-    #         [
-    #             (pl.col("indicator_type") != pair[0]) | (pl.col("indicator") != pair[1])
-    #             for pair in synonyms
-    #         ]
-    #     )
-    #     df = df.with_columns(
-    #         indicator_type=pl.when(
-    #             (pl.col("indicator_type") == ref_pair[0])
-    #             & (pl.col("indicator") == ref_pair[1])
-    #         )
-    #         .then(pl.lit(pref_pair[0]))
-    #         .otherwise(pl.col("indicator_type")),
-    #         indicator=pl.when(
-    #             (pl.col("indicator_type") == ref_pair[0])
-    #             & (pl.col("indicator") == ref_pair[1])
-    #         )
-    #         .then(pl.lit(pref_pair[1]))
-    #         .otherwise(pl.col("indicator")),
-    #     )
 
     return df
 
@@ -382,24 +319,6 @@ def clean_vaccine(
         .pipe(_replace_column_values, "vaccine", lowercase, replace, append, infer)
         .pipe(_borrow_column_values, "vaccine", donor_colname, transfer)
     )
-    # if infer is not None:
-    #     expr = pl.lit("Unrecognized vaccine")
-    #     for phrase, vax in infer.items():
-    #         expr = (
-    #             pl.when(pl.col("vaccine").str.contains(phrase))
-    #             .then(pl.lit(vax))
-    #             .otherwise(expr)
-    #         )
-    #     df = df.with_columns(vaccine=expr)
-    # if domain_phrases is not None:
-    #     for phrase in domain_phrases:
-    #         df = df.with_columns(
-    #             domain=pl.when(pl.col("vaccine").str.contains(phrase))
-    #             .then(pl.col("domain") + phrase)
-    #             .otherwise(pl.col("domain")),
-    #             vaccine=pl.col("vaccine").str.replace("phrase", ""),
-    #         )
-    # df = df.with_columns(pl.col("vaccine").str.strip_chars())
 
     return df
 
