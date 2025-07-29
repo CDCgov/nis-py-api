@@ -168,18 +168,19 @@ def clean_geography(
     )
     df = df.with_columns(
         geography=pl.when(
-            (pl.col("geography_type") == "region")
+            (pl.col("geography_type").str.contains("region"))
             & (pl.col("geography").str.contains(":"))
         )
         .then(pl.col("geography").str.extract(r"^(.*?):").str.to_titlecase())
         .otherwise(pl.col("geography")),
         geography_type=pl.when(
-            (pl.col("geography_type") == "admin1")
+            (pl.col("geography_type").str.contains("admin1"))
             & (~pl.col("geography").is_in(admin1_values))
         )
         .then(pl.lit("substate"))
         .when(
-            (pl.col("geography_type") == "region") & (pl.col("geography") == "nation")
+            (pl.col("geography_type").str.contains("region"))
+            & (pl.col("geography").str.contains("nation"))
         )
         .then(pl.lit("nation"))
         .otherwise(pl.col("geography_type")),
@@ -625,7 +626,7 @@ def remove_duplicates(
                 df.collect()
                 .join(
                     pl.concat(sub_dfs),
-                    on=list(set(df.columns) - set(synonym_columns)),
+                    on=list(set(df.collect_schema().names()) - set(synonym_columns)),
                     how="anti",
                 )
                 .select(ref_df.columns),
