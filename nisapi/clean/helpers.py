@@ -1,5 +1,5 @@
 import warnings
-from typing import Dict, List, Optional, Tuple
+from typing import List, Optional, Tuple
 
 import polars as pl
 
@@ -636,9 +636,6 @@ def remove_duplicates(
 
     value_columns = {"estimate", "lci", "uci"}
     group_columns = data_schema.keys() - value_columns
-
-    pl.Config.set_tbl_rows(100)
-    pl.Config.set_tbl_cols(100)
 
     bad_groups = (
         df.group_by(group_columns)
