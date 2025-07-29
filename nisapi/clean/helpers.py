@@ -120,17 +120,17 @@ def clean_geography_type(
     """
     if replace is None:
         replace = {
-            "national estimates": "nation",
+            # "national estimates": "nation",
             "national": "nation",
-            "nation": "nation",
-            "state/local areas": "admin1",
+            # "nation": "nation",
+            # "state/local areas": "admin1",
             "state": "admin1",
-            "jurisdictional estimates": "admin1",
-            "hhs regions/national": "region",
+            # "jurisdictional estimates": "admin1",
+            # "hhs regions/national": "region",
             "hhs region": "region",
-            "region": "region",
-            "substate": "substate",
-            "local": "local",
+            # "region": "region",
+            # "substate": "substate",
+            # "local": "local",
             "counties": "local",
         }
     df = (
@@ -606,16 +606,13 @@ def remove_duplicates(
             [
                 df.filter(
                     (pl.col(col) == syn) for col, syn in zip(synonym_columns, synonym)
-                )
+                ).drop(synonym_columns)
                 for synonym in synonyms
             ]
         )
-        ref_idx = max(range(len(sub_dfs)), key=lambda idx: sub_dfs[idx].height)
-        ref_df = sub_dfs[ref_idx].drop(synonym_columns)
+        ref_df = max(sub_dfs, key=lambda df: df.height)
         for sub_df in sub_dfs:
-            extra_rows = sub_df.drop(synonym_columns).join(
-                ref_df, on=ref_df.columns, how="anti"
-            )
+            extra_rows = sub_df.join(ref_df, on=ref_df.columns, how="anti")
             if extra_rows.height > 0:
                 raise RuntimeError(
                     "Declared synonyms are not really synonyms.", extra_rows
@@ -625,11 +622,13 @@ def remove_duplicates(
         )
         df = pl.concat(
             [
-                df.collect().join(
+                df.collect()
+                .join(
                     pl.concat(sub_dfs),
                     on=list(set(df.columns) - set(synonym_columns)),
                     how="anti",
-                ),
+                )
+                .select(ref_df.columns),
                 ref_df,
             ]
         ).lazy()
@@ -709,7 +708,7 @@ def _replace_column_values(
             new_values = (
                 pl.when(new_values.str.contains(phrase))
                 .then(new_values)
-                .otherwise(new_values + " & " + " & ".join(phrase))
+                .otherwise(new_values + " & " + phrase)
             )
     if infer is not None:
         for old_phrase, new_phrase in infer.items():
