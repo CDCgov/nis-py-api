@@ -107,7 +107,12 @@ def clean_geography_type(
     df: pl.LazyFrame,
     colname: str | None,
     override: Optional[str] = None,
+    lowercase: bool = True,
     replace: Optional[dict] = None,
+    append: Optional[str | List[str]] = None,
+    infer: Optional[dict] = None,
+    donor_colname: Optional[str] = None,
+    transfer: Optional[str | list[str]] = None,
 ) -> pl.LazyFrame:
     """
     Geography type is the scale of geographic division.
@@ -128,8 +133,12 @@ def clean_geography_type(
             "local": "local",
             "counties": "local",
         }
-    df = df.pipe(_replace_column_name, "geography_type", colname, override).pipe(
-        _replace_column_values, "geography_type", replace=replace
+    df = (
+        df.pipe(_replace_column_name, "geography_type", colname, override)
+        .pipe(
+            _replace_column_values, "geography_type", lowercase, replace, append, infer
+        )
+        .pipe(_borrow_column_values, "geography_type", donor_colname, transfer)
     )
 
     return df
@@ -139,7 +148,12 @@ def clean_geography(
     df: pl.LazyFrame,
     colname: str | None,
     override: Optional[str] = None,
+    lowercase: bool = False,
     replace: Optional[dict] = None,
+    append: Optional[str | List[str]] = None,
+    infer: Optional[dict] = None,
+    donor_colname: Optional[str] = None,
+    transfer: Optional[str | list[str]] = None,
 ) -> pl.LazyFrame:
     """
     Geography is the specific geographic location.
@@ -147,8 +161,10 @@ def clean_geography(
     """
     if replace is None:
         replace = {"National": "nation"}
-    df = df.pipe(_replace_column_name, "geography", colname, override).pipe(
-        _replace_column_values, "geography", False, replace
+    df = (
+        df.pipe(_replace_column_name, "geography", colname, override)
+        .pipe(_replace_column_values, "geography", lowercase, replace, append, infer)
+        .pipe(_borrow_column_values, "geography", donor_colname, transfer)
     )
     df = df.with_columns(
         geography=pl.when(
@@ -174,10 +190,14 @@ def clean_geography(
 
 def clean_domain_type(
     df: pl.LazyFrame,
-    colname: Optional[str] = None,
+    colname: str | None,
     override: Optional[str] = None,
+    lowercase: bool = True,
     replace: Optional[dict] = None,
-    extra: Optional[str | List[str]] = None,
+    append: Optional[str | List[str]] = None,
+    infer: Optional[dict] = None,
+    donor_colname: Optional[str] = None,
+    transfer: Optional[str | list[str]] = None,
 ) -> pl.LazyFrame:
     """
     Domain type is the demographic feature used to define groups.
@@ -188,8 +208,10 @@ def clean_domain_type(
     """
     if replace is None:
         replace = {"overall": "age"}
-    df = df.pipe(_replace_column_name, "domain_type", colname, override).pipe(
-        _replace_column_values, "domain_type", replace=replace, extra=extra
+    df = (
+        df.pipe(_replace_column_name, "domain_type", colname, override)
+        .pipe(_replace_column_values, "domain_type", lowercase, replace, append, infer)
+        .pipe(_borrow_column_values, "domain_type", donor_colname, transfer)
     )
     # if extra_type is not None:
     #     if not isinstance(extra_type, list):
@@ -207,9 +229,12 @@ def clean_domain(
     df: pl.LazyFrame,
     colname: str | None,
     override: Optional[str] = None,
+    lowercase: bool = False,
     replace: Optional[dict] = None,
-    borrow: Optional[str] = None,
-    borrow_phrases: Optional[List[str]] = None,
+    append: Optional[str | List[str]] = None,
+    infer: Optional[dict] = None,
+    donor_colname: Optional[str] = None,
+    transfer: Optional[str | list[str]] = None,
 ) -> pl.LazyFrame:
     """
     Domain is the specific demographic group.
@@ -221,11 +246,11 @@ def clean_domain(
     """
     if replace is None:
         replace = {"All adults 18+": "18+ years", "Overall": "6 months-17 years"}
-    df = df.pipe(_replace_column_name, "domain", colname, override).pipe(
-        _replace_column_values, "domain", False, replace
+    df = (
+        df.pipe(_replace_column_name, "domain", colname, override)
+        .pipe(_replace_column_values, "domain", lowercase, replace, append, infer)
+        .pipe(_borrow_column_values, "domain", donor_colname, transfer)
     )
-    if borrow is not None:
-        df = df.pipe(_borrow_column_values, "domain", borrow, borrow_phrases)
     # if extra_column is not None and extra_type is not None:
     #     if not isinstance(extra_type, list):
     #         extra_type = [extra_type]
@@ -242,14 +267,23 @@ def clean_indicator_type(
     df: pl.LazyFrame,
     colname: str | None,
     override: Optional[str] = None,
+    lowercase: bool = True,
     replace: Optional[dict] = None,
+    append: Optional[str | List[str]] = None,
+    infer: Optional[dict] = None,
+    donor_colname: Optional[str] = None,
+    transfer: Optional[str | list[str]] = None,
 ) -> pl.LazyFrame:
     """
     Indicator type is the survey question that was asked.
     An override indicator type can also be given to fill in all rows.
     """
-    df = df.pipe(_replace_column_name, "indicator_type", colname, override).pipe(
-        _replace_column_values, "indicator_type", replace=replace
+    df = (
+        df.pipe(_replace_column_name, "indicator_type", colname, override)
+        .pipe(
+            _replace_column_values, "indicator_type", lowercase, replace, append, infer
+        )
+        .pipe(_borrow_column_values, "indicator_type", donor_colname, transfer)
     )
 
     return df
@@ -258,9 +292,13 @@ def clean_indicator_type(
 def clean_indicator(
     df: pl.LazyFrame,
     colname: str | None,
-    synonyms: Optional[List[Tuple[str, str]]] = None,
     override: Optional[str] = None,
+    lowercase: bool = False,
     replace: Optional[dict] = None,
+    append: Optional[str | List[str]] = None,
+    infer: Optional[dict] = None,
+    donor_colname: Optional[str] = None,
+    transfer: Optional[str | list[str]] = None,
 ) -> pl.LazyFrame:
     """
     Indicator is the specific answer to the survey question.
@@ -270,8 +308,10 @@ def clean_indicator(
     are synonymous, so the former should be kept and the latter discarded.
     An override indicator can also be given to fill in all rows.
     """
-    df = df.pipe(_replace_column_name, "indicator", colname, override).pipe(
-        _replace_column_values, "indicator", False, replace
+    df = (
+        df.pipe(_replace_column_name, "indicator", colname, override)
+        .pipe(_replace_column_values, "indicator", lowercase, replace, append, infer)
+        .pipe(_borrow_column_values, "indicator", donor_colname, transfer)
     )
     # if synonyms is not None:
     #     sub_dfs = pl.collect_all(
@@ -320,8 +360,12 @@ def clean_vaccine(
     df: pl.LazyFrame,
     colname: str | None,
     override: Optional[str] = None,
+    lowercase: bool = True,
     replace: Optional[dict] = None,
-    infer: Optional[Dict] = None,
+    append: Optional[str | List[str]] = None,
+    infer: Optional[dict] = None,
+    donor_colname: Optional[str] = None,
+    transfer: Optional[str | list[str]] = None,
 ) -> pl.LazyFrame:
     """
     Vaccine is the target pathogen plus any formulation information.
@@ -333,8 +377,10 @@ def clean_vaccine(
     column as necessary by specifying the extraneous phrases.
 
     """
-    df = df.pipe(_replace_column_name, "vaccine", colname, override).pipe(
-        _replace_column_values, "vaccine", replace=replace, infer=infer
+    df = (
+        df.pipe(_replace_column_name, "vaccine", colname, override)
+        .pipe(_replace_column_values, "vaccine", lowercase, replace, append, infer)
+        .pipe(_borrow_column_values, "vaccine", donor_colname, transfer)
     )
     # if infer is not None:
     #     expr = pl.lit("Unrecognized vaccine")
@@ -362,7 +408,12 @@ def clean_time_type(
     df: pl.LazyFrame,
     colname: str | None,
     override: Optional[str] = None,
+    lowercase: bool = True,
     replace: Optional[dict] = None,
+    append: Optional[str | List[str]] = None,
+    infer: Optional[dict] = None,
+    donor_colname: Optional[str] = None,
+    transfer: Optional[str | list[str]] = None,
 ) -> pl.LazyFrame:
     """
     Time type is the interval between report dates, e.g. 'month' or 'week'.
@@ -370,8 +421,10 @@ def clean_time_type(
     """
     if replace is None:
         replace = {"ly": ""}
-    df = df.pipe(_replace_column_name, "time_type", colname, override).pipe(
-        _replace_column_values, "time_type", replace=replace
+    df = (
+        df.pipe(_replace_column_name, "time_type", colname, override)
+        .pipe(_replace_column_values, "time_type", lowercase, replace, append, infer)
+        .pipe(_borrow_column_values, "time_type", donor_colname, transfer)
     )
 
     return df
@@ -636,7 +689,7 @@ def _replace_column_values(
     colname: str,
     lowercase: bool = True,
     replace: Optional[dict] = None,
-    extra: Optional[str | List[str]] = None,
+    append: Optional[str | List[str]] = None,
     infer: Optional[dict] = None,
 ) -> pl.LazyFrame:
     """
@@ -644,7 +697,7 @@ def _replace_column_values(
     - removing leading/trailing whitespace
     - setting to lowercase if desired, and
     - replacing certain strings with others
-    - adding extra strings if they are missing
+    - appending strings if they are missing
     - inferring entirely new values from the presence of certain strings
     """
     new_values = pl.col(colname).str.strip_chars()
@@ -652,14 +705,15 @@ def _replace_column_values(
         new_values = new_values.str.to_lowercase()
     if replace is not None:
         new_values = new_values.str.replace_many(replace)
-    if extra is not None:
-        if not isinstance(extra, list):
-            extra = [extra]
-        new_values = (
-            pl.when(new_values.is_in(extra))
-            .then(new_values)
-            .otherwise(new_values + " & " + " & ".join(extra))
-        )
+    if append is not None:
+        if not isinstance(append, list):
+            append = [append]
+        for phrase in append:
+            new_values = (
+                pl.when(new_values.str.contains(phrase))
+                .then(new_values)
+                .otherwise(new_values + " & " + " & ".join(phrase))
+            )
     if infer is not None:
         for old_phrase, new_phrase in infer.items():
             new_values = (
@@ -676,22 +730,27 @@ def _replace_column_values(
 def _borrow_column_values(
     df: pl.LazyFrame,
     recip_colname: str,
-    donor_colname: str,
-    phrases: Optional[List[str]] = None,
+    donor_colname: Optional[str] = None,
+    transfer: Optional[str | List[str]] = None,
 ) -> pl.LazyFrame:
     """
     Augment the values in a recipient column with the values in a donor column by
     - Transferring the whole donor column to the recipient, when the two are not already identical.
     - Transferring phrases from the donor column to the recipient, when those phrases are present.
     """
-    if phrases is None:
+    if donor_colname is None:
+        return df
+
+    if transfer is None:
         new_values = (
             pl.when(pl.col(recip_colname) != pl.col(donor_colname))
             .then(pl.concat_str([recip_colname, donor_colname], separator=" & "))
             .otherwise(pl.col(recip_colname))
         )
     else:
-        for phrase in phrases:
+        if not isinstance(transfer, list):
+            transfer = [transfer]
+        for phrase in transfer:
             new_values = (
                 pl.when(pl.col(donor_colname).str.contains(phrase))
                 .then(pl.col(recip_colname) + phrase)
