@@ -78,6 +78,3 @@
   vaccine: covid, flu, and rsv
   start_date: 2024-09-01
   universe: 18+ years old
-  notes:
-  - The data is monthly but includes the full cross of state-level geography and adult age groups for all three vaccinations, for 2024-25
-
