@@ -412,6 +412,11 @@ def clean_time_start_end(
         )
     else:
         raise RuntimeError(f"Column format {col_format} is not recognized.")
+    df = df.with_columns(
+        time_start=pl.when(pl.col("time_start") > pl.col("time_end"))
+        .then(pl.col("time_start").dt.offset_by("-1y"))
+        .otherwise(pl.col("time_start"))
+    )
 
     return df
 
