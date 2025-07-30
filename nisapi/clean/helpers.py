@@ -3,7 +3,7 @@ from typing import List, Optional, Tuple
 
 import polars as pl
 
-"""Data schema to be used for all datasets"""
+"""Desired schema for all datasets"""
 data_schema = pl.Schema(
     [
         ("vaccine", pl.String),
@@ -116,7 +116,7 @@ def clean_geography_type(
 ) -> pl.LazyFrame:
     """
     Geography type is the scale of geographic division.
-    Add to the default 'replace' dictonary as necessary to standardize verbiage.
+    Note the default 'replace' dictonary, when not explicitly given.
     """
     if replace is None:
         replace = {
@@ -149,7 +149,12 @@ def clean_geography(
 ) -> pl.LazyFrame:
     """
     Geography is the specific geographic location.
-    Add to the default `replace` dictionary as necessary to standardize verbiage.
+    Note the default 'replace' dictionary, when not explicitly given.
+    Note the extra logic for common replacements that involve both
+    geography and geography type. For example, replace:
+    - "Region 1: ME, VT, NH, MA, CT, RI" with "Region 1" in geography
+    - "admin1" with "substate" in geography_type when geography is "TX - Bexar County"
+    - "region" with "nation" in geography_type when geography is "nation"
     """
     if replace is None:
         replace = {"National": "nation"}
@@ -194,10 +199,7 @@ def clean_domain_type(
 ) -> pl.LazyFrame:
     """
     Domain type is the demographic feature used to define groups.
-    Add to the default 'replace' dictionary as necessary to standardize verbiage.
-    Another column (e.g. 'age_group') may contain further domain info;
-    in this case, provide name(s) for this extra type info (e.g. 'age').
-    An override domain type can also be given to fill in all rows.
+    Note the default 'replace' dictionary, when not explicitly given.
     """
     if replace is None:
         replace = {"overall": "age"}
@@ -223,11 +225,7 @@ def clean_domain(
 ) -> pl.LazyFrame:
     """
     Domain is the specific demographic group.
-    Add to the `replace` dictionary as necessary to standardize verbiage.
-    Another column (e.g. 'age_group') may contain further domain info;
-    in this case, provide this column's existing name and preferred
-    name(s) for this extra type info (e.g. 'age').
-    An override domain can also be given to fill in all rows.
+    Note the default 'replace' dictionary, when not explicitly given.
     """
     if replace is None:
         replace = {"All adults 18+": "18+ years"}
@@ -253,7 +251,6 @@ def clean_indicator_type(
 ) -> pl.LazyFrame:
     """
     Indicator type is the survey question that was asked.
-    An override indicator type can also be given to fill in all rows.
     """
     df = (
         df.pipe(_replace_column_name, "indicator_type", colname, override)
@@ -279,11 +276,6 @@ def clean_indicator(
 ) -> pl.LazyFrame:
     """
     Indicator is the specific answer to the survey question.
-    Synonyms is a list of (indicator_type, indicator) tuples that are identical.
-    Only the synonym with the most rows will be kept, using the verbiage of the first synonym.
-    E.g. ("4-level vaccination and intent", "Received a vaccination") and ("up-to-date", "Yes")
-    are synonymous, so the former should be kept and the latter discarded.
-    An override indicator can also be given to fill in all rows.
     """
     df = (
         df.pipe(_replace_column_name, "indicator", colname, override)
@@ -307,12 +299,6 @@ def clean_vaccine(
 ) -> pl.LazyFrame:
     """
     Vaccine is the target pathogen plus any formulation information.
-    If an 'infer' dictionary is given along with a column, the vaccine
-    is inferred from that column: in the dictionary, keys = phrases to
-    look for, and values = the vaccines those phrases indicate.
-    If there is no column with vaccine information, provide it as 'override'.
-    Move extraneous information about eligibilty, etc. to the 'domain'
-    column as necessary by specifying the extraneous phrases.
     """
     df = (
         df.pipe(_replace_column_name, "vaccine", colname, override)
@@ -336,7 +322,7 @@ def clean_time_type(
 ) -> pl.LazyFrame:
     """
     Time type is the interval between report dates, e.g. 'month' or 'week'.
-    If there is no column with this information, provide it as 'override'.
+    Note the default 'replace' dictionary, when not explicitly given.
     """
     if replace is None:
         replace = {"ly": ""}
@@ -358,7 +344,7 @@ def clean_time_start_end(
     """
     Time start is the date on which phone surveys began for the reported estimate.
     Time end is the date on which phone surveys ended for the reported estimate.
-    A list of columns may be given if month-day is in one column and year in another.
+    A list of two columns may be given if month-day is in one column and year in another.
     Column format is "start", "end", or "both" depending on which times are given.
     Time format is the format of the date string once it is constructed.
     """
@@ -508,6 +494,9 @@ def clean_lci_uci(
 
 
 def clean_sample_size(df: pl.LazyFrame, column: str) -> pl.LazyFrame:
+    """
+    Sample size is the number of phone surveys represented by a row of data.
+    """
     df = df.rename({column: "sample_size"})
     df = df.with_columns(pl.col("sample_size").cast(pl.UInt32))
 
@@ -521,12 +510,28 @@ def remove_duplicates(
     synonyms: Optional[List[Tuple]] = None,
 ) -> pl.LazyFrame:
     """
-    Rows are duplicates if they are within some tolerance for value columns
-    (estimate, lci, & uci) and identical for group columns (all others).
-    To find duplicates, group by group columns and get mean of value columns.
-    Then verify that the difference between the raw and mean values < tolerance.
-    If duplicate rows are found, average their values together.
-    If duplicate groups have clashing values, raise an error.
+    Rows are considered duplicates under two circumstances:
+
+    1) Different values in some column(s) are synonymous. For example,
+    in the columns "indicator_type" and "indicator" the value pairs
+    "4-level vaccination and intent","Received a vaccination" and
+    "up-to-date","Yes" mean the same thing. In this case, specify
+    the columns that contain synonyms, and what the synonyms are.
+    First, it is checked that they synonym that occurs most often
+    indeed contains every occurrence of the other synonyms.
+    Then, only the synonym that occurs most often is kept, and its
+    verbiage is replaced with the synonym that was listed first.
+    If no single synonym contains every instance of all the others,
+    an error is raised.
+
+    2) Rows are identical except small discrepancies in their numeric
+    values (estimate, lci, & uci). These are detected by grouping on
+    all non-numeric columns and verifying that each candidate duplicate
+    differs from its group mean by less than the specified tolerance.
+    In this case, all duplicates in a group are replaced by a single
+    row that uses the average value the group's numeric columns.
+    If duplicates are found with clashing values exceeding the tolerance,
+    an error is raised.
     """
     if synonym_columns is not None:
         if synonyms is None:
@@ -592,8 +597,8 @@ def _replace_column_name(
     override: Optional[str] = None,
 ) -> pl.LazyFrame:
     """
-    Create a new column in a data frame, either by:
-    - renaming an old column and keeping the original values, or
+    Create a column by:
+    - renaming an old column and keeping the original values
     - creating a new column and filling in a repeated value
     """
     if old_colname is not None:
@@ -618,12 +623,12 @@ def _replace_column_values(
     infer: Optional[dict] = None,
 ) -> pl.LazyFrame:
     """
-    Replace the values in a column by:
+    Edit values in a column by:
     - removing leading/trailing whitespace
-    - setting to lowercase if desired, and
-    - replacing certain strings with others
-    - appending strings if they are missing
-    - inferring entirely new values from the presence of certain strings
+    - setting to lowercase
+    - replacing certain phrases with others
+    - appending phrases if they are missing
+    - inferring entirely new values from existing phrases
     """
     if colname not in df.collect_schema().names():
         return df
@@ -662,9 +667,9 @@ def _borrow_column_values(
     transfer: Optional[dict] = None,
 ) -> pl.LazyFrame:
     """
-    Augment the values in a recipient column with the values in a donor column by
-    - Transferring the whole donor column to the recipient, when the two are not already identical.
-    - Transferring information about the donor column to the recipient when key phrases are found.
+    Augment values in a recipient column with values in a donor column by:
+    - Adding the donor to the recipient verbatim, when not already identical.
+    - Transferring phrases from the donor to the recipient when they occur.
     """
     if donor_colname is None:
         return df
@@ -703,7 +708,7 @@ def _borrow_column_values(
 
 def enforce_schema(df: pl.LazyFrame, schema: pl.Schema = data_schema) -> pl.LazyFrame:
     """
-    Enforce that the standardized schema is followed. Remove extra columns.
+    Enforce that a schema is followed and remove extra columns.
     """
     current_columns = df.collect_schema().names()
     needed_columns = schema.names()
