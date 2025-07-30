@@ -34,49 +34,6 @@ clean = clean_func(raw)
 clean.head(10).collect().glimpse()
 print(clean.collect().shape)
 
-print(clean.filter(pl.col("vaccine") == pl.lit("flu")).collect().height)
-print(clean.filter(pl.col("domain_type") == "all adults 18+ years").collect().height)
-print(clean.filter(pl.col("geography_type") == pl.lit("admin1")).collect().height)
-print(clean.filter(pl.col("geography") == pl.lit("Minnesota")).collect().height)
-print(
-    clean.filter(
-        pl.col("indicator_type")
-        == pl.lit("vaccination coverage and intent (among all adults 18+)")
-    )
-    .collect()
-    .height
-)
-print(
-    clean.filter(pl.col("indicator") == pl.lit("Received a 2024-2025 flu dose"))
-    .collect()
-    .height
-)
-
-print(
-    clean.filter(
-        pl.col("vaccine") == pl.lit("flu"),
-        pl.col("domain_type") == "all adults 18+ years",
-        pl.col("geography_type") == pl.lit("admin1"),
-        pl.col("geography") == pl.lit("Minnesota"),
-        pl.col("indicator_type")
-        == pl.lit("vaccination coverage and intent (among all adults 18+)"),
-        pl.col("indicator") == pl.lit("Received a 2024-2025 flu dose"),
-    )
-    .drop(
-        [
-            "vaccine",
-            "geography_type",
-            "geography",
-            "domain_type",
-            "domain",
-            "indicator_type",
-            "indicator",
-        ]
-    )
-    .sort("time_start")
-    .collect()
-)
-
 # save a copy of the partially cleaned data
 tf = tempfile.NamedTemporaryFile()
 clean.collect().write_parquet(tf.name)
