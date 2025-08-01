@@ -6,6 +6,7 @@ import nisapi.clean.akkj_j5ru
 import nisapi.clean.k4cb_dxd7
 import nisapi.clean.ker6_gs6z
 import nisapi.clean.ksfb_ug5d
+import nisapi.clean.si7g_c2bs
 import nisapi.clean.sw5n_wg2p
 import nisapi.clean.vdz4_qrri
 import nisapi.clean.vh55_3he6
@@ -47,6 +48,8 @@ def clean_dataset(df: pl.LazyFrame, id: str, validation_mode: str) -> pl.DataFra
         out = nisapi.clean.vncy_2ds7.clean(df)
     elif id == "k4cb-dxd7":
         out = nisapi.clean.k4cb_dxd7.clean(df)
+    elif id == "si7g-c2bs":
+        out = nisapi.clean.si7g_c2bs.clean(df)
     else:
         raise RuntimeError(f"No cleaning set up for dataset {id}")
 
@@ -152,7 +155,11 @@ class Validate:
 
         # confidence intervals must bracket estimate
         if not ((df["lci"] <= df["estimate"]) & (df["estimate"] <= df["uci"])).all():
-            problems.append("confidence intervals do not bracket estimate")
+            bad_rows = df.filter(
+                (pl.col("lci") > pl.col("estimate"))
+                | (pl.col("uci") < pl.col("estimate"))
+            )
+            problems.append(f"confidence intervals do not bracket estimate: {bad_rows}")
 
         return problems
 

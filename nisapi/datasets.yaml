@@ -60,9 +60,10 @@
   start_date: 2019-10-05
   universe: 6 months - 17 years old
   notes:
-    - The 'vaccine' column is totally blank, so "flu" must be filled in
+    - The 'vaccine' column is missing, so "flu" must be filled in
     - There are 585 with geographic_level "Local" (e.g. City of Chicago). This is new, but permitted by validation.
     - There are 2580 rows with "null" estimates that must be dropped.
+    - There is an empty indicator type "", often paired with indicator "Yes", but this does not appear synonymous with any other indicator.
 - id: k4cb-dxd7
   url: https://data.cdc.gov/Vaccinations/Weekly-Cumulative-RSV-Vaccination-Coverage-and-Int/k4cb-dxd7/about_data
   vaccine: rsv
@@ -72,3 +73,8 @@
     - The column "suppression_flag" is misspelled as "suppresion_flag"
     - The columns that are usually named "geographic_type" and "geographic_level" are instead "geography_type" and "geography_level"
     - An "age_group" column, divides every entry into "60-74 years (high risk)" vs. "75+ years" even when "domain_type" is not "overall" i.e. age
+- id: si7g-c2bs
+  url: https://data.cdc.gov/Vaccinations/National-Immunization-Survey-Adult-COVID-Module-NI/si7g-c2bs/about_data
+  vaccine: covid, flu, and rsv
+  start_date: 2024-09-01
+  universe: 18+ years old

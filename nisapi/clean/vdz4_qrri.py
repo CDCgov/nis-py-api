@@ -1,56 +1,55 @@
 import polars as pl
 
-import nisapi.clean.helpers
+from nisapi.clean.helpers import (
+    clean_domain,
+    clean_domain_type,
+    clean_estimate,
+    clean_geography,
+    clean_geography_type,
+    clean_indicator,
+    clean_indicator_type,
+    clean_lci_uci,
+    clean_sample_size,
+    clean_time_start_end,
+    clean_time_type,
+    clean_vaccine,
+    drop_bad_rows,
+    enforce_schema,
+    remove_duplicates,
+)
 
 
 def clean(df: pl.LazyFrame) -> pl.LazyFrame:
     return (
-        df
-        # get the indicators we need
-        .with_columns(
-            vaccine=pl.col("indicator_category_label").replace(
-                {
-                    "Infant received nirsevimab": "nirsevimab",
-                    "Mother received RSV vaccination during pregnancy and infant did not receive nirsevimab": "rsv_maternal",
-                    # same as above, but with two "the"s
-                    "The mother received RSV vaccination during pregnancy and the infant did not receive nirsevimab": "rsv_maternal",
-                }
-            )
+        df.pipe(drop_bad_rows, "suppressed_flag")
+        .pipe(clean_geography_type, "geography_label")
+        .pipe(clean_geography, None, override="nation")
+        .pipe(clean_domain_type, None, override="age & season")
+        .pipe(
+            clean_domain,
+            None,
+            override="adult females aged 18-49 years with infants under the age of 8 months during the RSV season (born since April 1, 2024)",
         )
-        .filter(pl.col("vaccine").is_in(["nirsevimab", "rsv_maternal"]))
-        # separate CI and timeframe columns
-        .with_columns(
-            pl.col("_95_confidence_interval")
-            .str.split_exact(by=" - ", n=2)
-            .struct.rename_fields(["lci", "uci"]),
-            pl.col("timeframe")
-            .str.split_exact(by="-", n=2)
-            .struct.rename_fields(["time_start", "time_end"]),
+        .pipe(clean_indicator_type, None, override="4-level vaccination and intent")
+        .pipe(clean_indicator, "indicator_category_label")
+        .pipe(
+            clean_vaccine,
+            None,
+            donor_colname="indicator",
+            transfer={
+                "nirsevimab for infant": "nirsevimab",
+                "infant nirsevimab": "nirsevimab",
+                "Infant received nirsevimab": "nirsevimab",
+                "Mother received": "rsv_maternal",
+                "The mother received": "rsv_maternal",
+                "RSV vaccine": "rsv",
+            },
         )
-        .select(
-            [
-                pl.col("timeframe").struct.unnest(),
-                "vaccine",
-                "estimate",
-                pl.col("_95_confidence_interval").struct.unnest(),
-            ]
-        )
-        # adjust column types
-        .with_columns(
-            pl.col(["estimate", "lci", "uci"]).cast(pl.Float64) / 100.0,
-            pl.col(["time_start", "time_end"]).str.to_date(format="%m/%d/%Y"),
-        )
-        # move to standard schema
-        .with_columns(
-            geography_type=pl.lit("nation"),
-            geography=pl.lit("nation"),
-            domain_type=pl.lit("age and season"),
-            domain=pl.lit(
-                "adult females aged 18-49 years with infants under the age of 8 months during the RSV season (born since April 1, 2024)"
-            ),
-            indicator_type=pl.lit("received immunization"),
-            indicator=pl.lit("received immunization"),
-            time_type=pl.lit("month"),
-        )
-        .select(nisapi.clean.helpers.data_schema.names())
+        .pipe(clean_time_type, None, override="month")
+        .pipe(clean_time_start_end, "timeframe", "both", "%m/%d/%Y")
+        .pipe(clean_estimate, "estimate")
+        .pipe(clean_lci_uci, "_95_confidence_interval", "full")
+        .pipe(clean_sample_size, "sample_size")
+        .pipe(remove_duplicates)
+        .pipe(enforce_schema)
     )
