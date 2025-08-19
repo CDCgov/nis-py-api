@@ -4,11 +4,9 @@ from pathlib import Path
 import yaml
 
 import nisapi
-import nisapi.clean.si7g_c2bs
-from nisapi.clean import Validate
+from nisapi.clean import clean_dataset, Validate
 
 dataset_id = "si7g-c2bs"
-clean_func = nisapi.clean.si7g_c2bs.clean
 
 td = tempfile.TemporaryDirectory()
 
@@ -27,7 +25,7 @@ print(f"Raw data saved to {td.name}")
 raw.head().collect().glimpse()
 
 # try to clean the data
-clean = clean_func(raw)
+clean = clean_dataset(raw, dataset_id)
 
 # look at the first few rows of the partially cleaned data
 clean.head(10).collect().glimpse()
