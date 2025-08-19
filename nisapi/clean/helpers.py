@@ -1,5 +1,5 @@
 import warnings
-from typing import List, Optional, Tuple
+from typing import List, Optional
 
 import polars as pl
 
@@ -506,8 +506,8 @@ def clean_sample_size(df: pl.LazyFrame, colname: str) -> pl.LazyFrame:
 def remove_duplicates(
     df: pl.LazyFrame,
     tolerance: float = 0.001,
-    synonym_columns: Optional[Tuple] = None,
-    synonyms: Optional[List[Tuple]] = None,
+    synonym_columns: Optional[List] = None,
+    synonyms: Optional[List[List]] = None,
 ) -> pl.LazyFrame:
     """
     Rows are considered duplicates under two circumstances:
