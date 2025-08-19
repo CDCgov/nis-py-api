@@ -1,5 +1,6 @@
 from typing import List
 
+import importlib.resources
 import polars as pl
 import json
 
@@ -40,8 +41,8 @@ def clean_dataset(df: pl.LazyFrame, id: str, validation_mode: str) -> pl.DataFra
     """
 
     try:
-        with open(id + ".json", "r") as file:
-            pars = json.load(file)
+        with importlib.resources.open_text(__package__, id + ".json") as f:
+            pars = json.load(f)
     except FileNotFoundError:
         print(f"Error: {id}.json not found.")
 
