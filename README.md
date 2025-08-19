@@ -117,8 +117,9 @@ Rows that were suppressed in the raw data are dropped. This includes data with s
    - Replace the arguments for each helper function with arguments suitable to the new dataset.
 4. Run `scripts/demo_clean.py`, after substituting the name of the dataset you are adding in Line 9. This should cache the raw dataset and run the cleaning function. It will probably fail on validation, because there are often quirks of a new dataset that were not obvious at first.
 5. Iteratively update the dataset-specific .json until validation passes.
+   - The helper functions are always deployed in the same order, but they offer lots of flexibility in solving odd validation problems. For example, `drop_bad_rows()` allows you not only to remove rows with a non-zero suppression flag, but also to remove "bad_columns" that contain useless information and might sabotage subsequent cleaning steps. See the helper docstrings, including `_replace_column_name()`, `_replace_column_values()`, and `_borrow_column_values()`, all the creative cleaning manipulations that are possible.
    - Be especially aware of redundant indicators. If you suspect redundant indicators, use the `remove_duplicates` helper to check if the redundancy is truly synonymous, and if so to keep only the indicator with the most rows. For example, `ksfb-ug5d` and `sw5n-wg2p` drop the up-to-date indicator in favor of the 4-level vaccination intent indicator.
-   - If you find some dataset-specific anomaly or validation problem, make a note of it in `datasets.yaml`. The helper functions offer lots of flexibility to solve validation problems. In the worst case, you can add a feature to one of the helper functions to get the behavior you want.
+   - If you find some dataset-specific anomaly or validation problem, make a note of it in `datasets.yaml`. Again, the helper functions offer lots of flexibility to solve validation problems with creative use of the existing arguments. In the worst case, you can add a feature to one of the helper functions to get the behavior you want.
 6. Open a PR.
    - Include any validations if you needed to correct an anomaly.
 
