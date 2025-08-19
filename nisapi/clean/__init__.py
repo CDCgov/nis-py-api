@@ -51,7 +51,7 @@ def clean_dataset(df: pl.LazyFrame, id: str, validation_mode: str) -> pl.DataFra
         .pipe(clean_geography, **pars["clean_geography"])
         .pipe(clean_domain_type, **pars["clean_domain_type"])
         .pipe(clean_domain, **pars["clean_domain"])
-        .pipe(clean_indicator_type, **pars["clean_indicatort_type"])
+        .pipe(clean_indicator_type, **pars["clean_indicator_type"])
         .pipe(clean_indicator, **pars["clean_indicator"])
         .pipe(clean_vaccine, **pars["clean_vaccine"])
         .pipe(clean_time_type, **pars["clean_time_type"])
