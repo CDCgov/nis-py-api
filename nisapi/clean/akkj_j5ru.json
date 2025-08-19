@@ -15,7 +15,7 @@
   "clean_vaccine": {"override": "covid"},
   "clean_time_type": {"colname": "time_type"},
   "clean_time_start_end": {
-        "column": ["time_period", "time_year"],
+        "colname": ["time_period", "time_year"],
         "col_format": "both",
         "time_format": "%B %d %Y"
     },
