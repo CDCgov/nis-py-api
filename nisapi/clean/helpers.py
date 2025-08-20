@@ -83,7 +83,9 @@ admin1_values = [
 
 
 def drop_bad_rows(
-    df: pl.LazyFrame, colname: str | None, bad_columns: Optional[str | List[str]] = None
+    df: pl.LazyFrame,
+    colname: Optional[str] = None,
+    bad_columns: Optional[str | List[str]] = None,
 ) -> pl.LazyFrame:
     """
     Bad rows are those with a suppression flag or null values.
@@ -105,7 +107,7 @@ def drop_bad_rows(
 
 def clean_geography_type(
     df: pl.LazyFrame,
-    colname: str | None,
+    colname: Optional[str] = None,
     override: Optional[str] = None,
     lowercase: bool = True,
     replace: Optional[dict] = None,
@@ -138,7 +140,7 @@ def clean_geography_type(
 
 def clean_geography(
     df: pl.LazyFrame,
-    colname: str | None,
+    colname: Optional[str] = None,
     override: Optional[str] = None,
     lowercase: bool = False,
     replace: Optional[dict] = None,
@@ -188,7 +190,7 @@ def clean_geography(
 
 def clean_domain_type(
     df: pl.LazyFrame,
-    colname: str | None,
+    colname: Optional[str] = None,
     override: Optional[str] = None,
     lowercase: bool = True,
     replace: Optional[dict] = None,
@@ -214,7 +216,7 @@ def clean_domain_type(
 
 def clean_domain(
     df: pl.LazyFrame,
-    colname: str | None,
+    colname: Optional[str] = None,
     override: Optional[str] = None,
     lowercase: bool = False,
     replace: Optional[dict] = None,
@@ -240,7 +242,7 @@ def clean_domain(
 
 def clean_indicator_type(
     df: pl.LazyFrame,
-    colname: str | None,
+    colname: Optional[str] = None,
     override: Optional[str] = None,
     lowercase: bool = True,
     replace: Optional[dict] = None,
@@ -265,7 +267,7 @@ def clean_indicator_type(
 
 def clean_indicator(
     df: pl.LazyFrame,
-    colname: str | None,
+    colname: Optional[str] = None,
     override: Optional[str] = None,
     lowercase: bool = False,
     replace: Optional[dict] = None,
@@ -288,7 +290,7 @@ def clean_indicator(
 
 def clean_vaccine(
     df: pl.LazyFrame,
-    colname: str | None,
+    colname: Optional[str] = None,
     override: Optional[str] = None,
     lowercase: bool = True,
     replace: Optional[dict] = None,
@@ -311,7 +313,7 @@ def clean_vaccine(
 
 def clean_time_type(
     df: pl.LazyFrame,
-    colname: str | None,
+    colname: Optional[str] = None,
     override: Optional[str] = None,
     lowercase: bool = True,
     replace: Optional[dict] = None,
