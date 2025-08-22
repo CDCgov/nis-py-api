@@ -11,7 +11,7 @@ dependencies = [
     "pyyaml>=6.0.2,<7",
 ]
 
-[dependency-groups]
+[project.optional-dependencies]
 dev = [
     "pytest>=8.3.3,<9",
     "pre-commit>=4.0.1,<5",
@@ -23,12 +23,6 @@ scripts = [
     "vl-convert-python>=1.7.0,<2",
     "azure-identity>=1.19.0,<2",
     "azure-storage-blob>=12.24.0,<13",
-]
-
-[tool.uv]
-default-groups = [
-    "dev",
-    "scripts",
 ]
 
 [build-system]

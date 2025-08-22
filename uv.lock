@@ -565,7 +565,7 @@ dependencies = [
     { name = "pyyaml" },
 ]
 
-[package.dev-dependencies]
+[package.optional-dependencies]
 dev = [
     { name = "detect-secrets" },
     { name = "pre-commit" },
@@ -581,24 +581,19 @@ scripts = [
 
 [package.metadata]
 requires-dist = [
+    { name = "altair", marker = "extra == 'scripts'", specifier = ">=5.4.1,<6" },
+    { name = "azure-identity", marker = "extra == 'scripts'", specifier = ">=1.19.0,<2" },
+    { name = "azure-storage-blob", marker = "extra == 'scripts'", specifier = ">=12.24.0,<13" },
+    { name = "detect-secrets", marker = "extra == 'dev'", specifier = ">=1.5.0,<2" },
     { name = "platformdirs", specifier = ">=4.3.6,<5" },
     { name = "polars", specifier = ">=1.12.0,<2" },
+    { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=4.0.1,<5" },
+    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.3.3,<9" },
     { name = "pyyaml", specifier = ">=6.0.2,<7" },
+    { name = "streamlit", marker = "extra == 'dev'", specifier = ">=1.40.1,<2" },
+    { name = "vl-convert-python", marker = "extra == 'scripts'", specifier = ">=1.7.0,<2" },
 ]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "detect-secrets", specifier = ">=1.5.0,<2" },
-    { name = "pre-commit", specifier = ">=4.0.1,<5" },
-    { name = "pytest", specifier = ">=8.3.3,<9" },
-    { name = "streamlit", specifier = ">=1.40.1,<2" },
-]
-scripts = [
-    { name = "altair", specifier = ">=5.4.1,<6" },
-    { name = "azure-identity", specifier = ">=1.19.0,<2" },
-    { name = "azure-storage-blob", specifier = ">=12.24.0,<13" },
-    { name = "vl-convert-python", specifier = ">=1.7.0,<2" },
-]
+provides-extras = ["dev", "scripts"]
 
 [[package]]
 name = "nodeenv"
