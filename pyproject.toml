@@ -2,7 +2,7 @@
 name = "nisapi"
 version = "1.0.1"
 description = ""
-authors = [{ name = "Scott Olesen", email = "ulp7@cdc.gov" }]
+authors = [{ name = "Edward Schrom", email = "tec0@cdc.gov" }]
 requires-python = ">=3.10"
 readme = "README.md"
 dependencies = [
