@@ -1,5 +1,5 @@
 import warnings
-from typing import List, Optional, Tuple
+from typing import List, Optional
 
 import polars as pl
 
@@ -83,7 +83,9 @@ admin1_values = [
 
 
 def drop_bad_rows(
-    df: pl.LazyFrame, colname: str | None, bad_columns: Optional[str | List[str]] = None
+    df: pl.LazyFrame,
+    colname: Optional[str] = None,
+    bad_columns: Optional[str | List[str]] = None,
 ) -> pl.LazyFrame:
     """
     Bad rows are those with a suppression flag or null values.
@@ -105,7 +107,7 @@ def drop_bad_rows(
 
 def clean_geography_type(
     df: pl.LazyFrame,
-    colname: str | None,
+    colname: Optional[str] = None,
     override: Optional[str] = None,
     lowercase: bool = True,
     replace: Optional[dict] = None,
@@ -138,7 +140,7 @@ def clean_geography_type(
 
 def clean_geography(
     df: pl.LazyFrame,
-    colname: str | None,
+    colname: Optional[str] = None,
     override: Optional[str] = None,
     lowercase: bool = False,
     replace: Optional[dict] = None,
@@ -188,7 +190,7 @@ def clean_geography(
 
 def clean_domain_type(
     df: pl.LazyFrame,
-    colname: str | None,
+    colname: Optional[str] = None,
     override: Optional[str] = None,
     lowercase: bool = True,
     replace: Optional[dict] = None,
@@ -214,7 +216,7 @@ def clean_domain_type(
 
 def clean_domain(
     df: pl.LazyFrame,
-    colname: str | None,
+    colname: Optional[str] = None,
     override: Optional[str] = None,
     lowercase: bool = False,
     replace: Optional[dict] = None,
@@ -240,7 +242,7 @@ def clean_domain(
 
 def clean_indicator_type(
     df: pl.LazyFrame,
-    colname: str | None,
+    colname: Optional[str] = None,
     override: Optional[str] = None,
     lowercase: bool = True,
     replace: Optional[dict] = None,
@@ -265,7 +267,7 @@ def clean_indicator_type(
 
 def clean_indicator(
     df: pl.LazyFrame,
-    colname: str | None,
+    colname: Optional[str] = None,
     override: Optional[str] = None,
     lowercase: bool = False,
     replace: Optional[dict] = None,
@@ -288,7 +290,7 @@ def clean_indicator(
 
 def clean_vaccine(
     df: pl.LazyFrame,
-    colname: str | None,
+    colname: Optional[str] = None,
     override: Optional[str] = None,
     lowercase: bool = True,
     replace: Optional[dict] = None,
@@ -311,7 +313,7 @@ def clean_vaccine(
 
 def clean_time_type(
     df: pl.LazyFrame,
-    colname: str | None,
+    colname: Optional[str] = None,
     override: Optional[str] = None,
     lowercase: bool = True,
     replace: Optional[dict] = None,
@@ -337,7 +339,7 @@ def clean_time_type(
 
 def clean_time_start_end(
     df: pl.LazyFrame,
-    column: str | List[str],
+    colname: str | List[str],
     col_format: str = "end",
     time_format: str = "%Y-%m-%dT%H:%M:%S%.f",
 ) -> pl.LazyFrame:
@@ -348,21 +350,21 @@ def clean_time_start_end(
     Column format is "start", "end", or "both" depending on which times are given.
     Time format is the format of the date string once it is constructed.
     """
-    if not isinstance(column, list):
-        column = [column]
-    if len(column) > 1:
-        df = df.with_columns(pl.col(column[1]).str.strip_chars().str.slice(0, 4))
+    if not isinstance(colname, list):
+        colname = [colname]
+    if len(colname) > 1:
+        df = df.with_columns(pl.col(colname[1]).str.strip_chars().str.slice(0, 4))
     if col_format == "end":
-        if len(column) == 1:
+        if len(colname) == 1:
             df = df.with_columns(
-                time_end=pl.col(column[0])
+                time_end=pl.col(colname[0])
                 .str.strptime(pl.Date, time_format)
                 .dt.truncate("1d")
             )
-        elif len(column) > 1:
+        elif len(colname) > 1:
             df = df.with_columns(
                 time_end=pl.concat_str(
-                    [pl.col(column[0]).str.zfill(2), pl.col(column[1])], separator="-"
+                    [pl.col(colname[0]).str.zfill(2), pl.col(colname[1])], separator="-"
                 ).str.to_date(time_format)
             )
         df = df.with_columns(
@@ -384,13 +386,13 @@ def clean_time_start_end(
             raise RuntimeError("Time type not recognized:", odd_time_type)
     elif col_format == "both":
         df = df.with_columns(
-            time_start=pl.col(column[0]).str.extract(r"^(.*?)-").str.strip_chars(),
-            time_end=pl.col(column[0]).str.extract(r"-(.*)").str.strip_chars(),
+            time_start=pl.col(colname[0]).str.extract(r"^(.*?)-").str.strip_chars(),
+            time_end=pl.col(colname[0]).str.extract(r"-(.*)").str.strip_chars(),
         )
-        if len(column) > 1:
+        if len(colname) > 1:
             df = df.with_columns(
-                time_start=(pl.col("time_start") + " " + pl.col(column[1])),
-                time_end=(pl.col("time_end") + " " + pl.col(column[1])),
+                time_start=(pl.col("time_start") + " " + pl.col(colname[1])),
+                time_end=(pl.col("time_end") + " " + pl.col(colname[1])),
             )
         df = df.with_columns(
             pl.col("time_start").str.strptime(pl.Date, time_format).dt.truncate("1d"),
@@ -407,11 +409,11 @@ def clean_time_start_end(
     return df
 
 
-def clean_estimate(df: pl.LazyFrame, column: str) -> pl.LazyFrame:
+def clean_estimate(df: pl.LazyFrame, colname: str) -> pl.LazyFrame:
     """
     Estimate is the percentage of respondents represented by a row.
     """
-    df = df.rename({column: "estimate"})
+    df = df.rename({colname: "estimate"})
     bad_estimates = df.filter(pl.col("estimate").str.contains(r"[a-zA-Z]")).collect()
     if bad_estimates.shape[0] > 0:
         warnings.warn(
@@ -430,7 +432,7 @@ def clean_estimate(df: pl.LazyFrame, column: str) -> pl.LazyFrame:
 
 def clean_lci_uci(
     df: pl.LazyFrame,
-    column: str,
+    colname: str,
     col_format: str = "half",
     separator: str = "-",
 ) -> pl.LazyFrame:
@@ -439,37 +441,37 @@ def clean_lci_uci(
     Column format is "half" or "full" depending on whether the CI half-width or
     full range is given. In the latter case, specify the separating character(s).
     """
-    bad_cis = df.filter(pl.col(column).str.contains("NA")).collect()
+    bad_cis = df.filter(pl.col(colname).str.contains("NA")).collect()
     if bad_cis.shape[0] > 0:
         warnings.warn("Some rows contain NA CIs. These rows will be dropped.")
         print(bad_cis)
-    df = df.filter(~pl.col(column).str.contains("NA"))
+    df = df.filter(~pl.col(colname).str.contains("NA"))
     if col_format == "half":
         df = (
-            df.with_columns(pl.col(column).cast(pl.Float64) / 100.0)
+            df.with_columns(pl.col(colname).cast(pl.Float64) / 100.0)
             .with_columns(
-                lci=(pl.col("estimate") - pl.col(column)).clip(lower_bound=0.0),
-                uci=(pl.col("estimate") + pl.col(column)).clip(upper_bound=1.0),
+                lci=(pl.col("estimate") - pl.col(colname)).clip(lower_bound=0.0),
+                uci=(pl.col("estimate") + pl.col(colname)).clip(upper_bound=1.0),
             )
-            .drop(column)
+            .drop(colname)
         )
     elif col_format == "full":
         df = (
             df.with_columns(
-                pl.col(column)
+                pl.col(colname)
                 .str.replace(separator, "-")
                 .str.replace(r" â€¡$", "")
                 .str.replace(r" ‡$", "")
             )
             .with_columns(
-                pl.when(pl.col(column).str.starts_with("-"))
-                .then(pl.col(column).str.replace(r"^-.*?-", "0.0 -"))
-                .otherwise(pl.col(column))
-                .alias(column)
+                pl.when(pl.col(colname).str.starts_with("-"))
+                .then(pl.col(colname).str.replace(r"^-.*?-", "0.0 -"))
+                .otherwise(pl.col(colname))
+                .alias(colname)
             )
             .with_columns(
                 lci=(
-                    pl.col(column)
+                    pl.col(colname)
                     .str.extract(r"^(.*?)-")
                     .str.strip_chars()
                     .cast(pl.Float64)
@@ -477,7 +479,7 @@ def clean_lci_uci(
                 )
                 / 100.0,
                 uci=(
-                    pl.col(column)
+                    pl.col(colname)
                     .str.extract(r"-(.*)", 1)
                     .str.strip_chars()
                     .cast(pl.Float64)
@@ -485,7 +487,7 @@ def clean_lci_uci(
                 )
                 / 100.0,
             )
-            .drop(column)
+            .drop(colname)
         )
     else:
         raise RuntimeError(f"Column format {col_format} is not recognized.")
@@ -493,11 +495,11 @@ def clean_lci_uci(
     return df
 
 
-def clean_sample_size(df: pl.LazyFrame, column: str) -> pl.LazyFrame:
+def clean_sample_size(df: pl.LazyFrame, colname: str) -> pl.LazyFrame:
     """
     Sample size is the number of phone surveys represented by a row of data.
     """
-    df = df.rename({column: "sample_size"})
+    df = df.rename({colname: "sample_size"})
     df = df.with_columns(pl.col("sample_size").cast(pl.UInt32))
 
     return df
@@ -506,8 +508,8 @@ def clean_sample_size(df: pl.LazyFrame, column: str) -> pl.LazyFrame:
 def remove_duplicates(
     df: pl.LazyFrame,
     tolerance: float = 0.001,
-    synonym_columns: Optional[Tuple] = None,
-    synonyms: Optional[List[Tuple]] = None,
+    synonym_columns: Optional[List] = None,
+    synonyms: Optional[List[List]] = None,
 ) -> pl.LazyFrame:
     """
     Rows are considered duplicates under two circumstances:

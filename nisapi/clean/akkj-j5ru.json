@@ -1,0 +1,29 @@
+{
+  "drop_bad_rows": {"colname": "suppression_flag"},
+  "clean_geography_type": {
+        "colname": "geography_type",
+        "replace": {
+                "jurisdictional estimates": "admin1",
+                "national estimates": "nation"
+            }
+    },
+  "clean_geography": {"colname": "geography"},
+  "clean_domain_type": {"colname": "group_name"},
+  "clean_domain": {"colname": "group_category"},
+  "clean_indicator_type": {"colname": "indicator_name"},
+  "clean_indicator": {"colname": "indicator_category"},
+  "clean_vaccine": {"override": "covid"},
+  "clean_time_type": {"colname": "time_type"},
+  "clean_time_start_end": {
+        "colname": ["time_period", "time_year"],
+        "col_format": "both",
+        "time_format": "%B %d %Y"
+    },
+  "clean_estimate": {"colname": "estimate"},
+  "clean_lci_uci": {
+        "colname": "coninf_95",
+        "col_format": "full"
+    },
+  "clean_sample_size": {"colname": "sample_size"},
+  "remove_duplicates": {}
+}

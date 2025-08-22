@@ -1,19 +1,27 @@
 from typing import List
 
+import importlib.resources
 import polars as pl
+import json
 
-import nisapi.clean.akkj_j5ru
-import nisapi.clean.k4cb_dxd7
-import nisapi.clean.ker6_gs6z
-import nisapi.clean.ksfb_ug5d
-import nisapi.clean.si7g_c2bs
-import nisapi.clean.sw5n_wg2p
-import nisapi.clean.vdz4_qrri
-import nisapi.clean.vh55_3he6
-import nisapi.clean.vncy_2ds7
 from nisapi.clean.helpers import (
     admin1_values,
     data_schema,
+    clean_domain,
+    clean_domain_type,
+    clean_estimate,
+    clean_geography,
+    clean_geography_type,
+    clean_indicator,
+    clean_indicator_type,
+    clean_lci_uci,
+    clean_sample_size,
+    clean_time_start_end,
+    clean_time_type,
+    clean_vaccine,
+    drop_bad_rows,
+    enforce_schema,
+    remove_duplicates,
     duplicated_rows,
     ensure_eager,
     rows_with_any_null,
@@ -32,26 +40,29 @@ def clean_dataset(df: pl.LazyFrame, id: str, validation_mode: str) -> pl.DataFra
         pl.DataFrame: clean dataset
     """
 
-    if id == "akkj-j5ru":
-        out = nisapi.clean.akkj_j5ru.clean(df)
-    elif id == "sw5n-wg2p":
-        out = nisapi.clean.sw5n_wg2p.clean(df)
-    elif id == "ksfb-ug5d":
-        out = nisapi.clean.ksfb_ug5d.clean(df)
-    elif id == "vh55-3he6":
-        out = nisapi.clean.vh55_3he6.clean(df)
-    elif id == "vdz4-qrri":
-        out = nisapi.clean.vdz4_qrri.clean(df)
-    elif id == "ker6-gs6z":
-        out = nisapi.clean.ker6_gs6z.clean(df)
-    elif id == "vncy-2ds7":
-        out = nisapi.clean.vncy_2ds7.clean(df)
-    elif id == "k4cb-dxd7":
-        out = nisapi.clean.k4cb_dxd7.clean(df)
-    elif id == "si7g-c2bs":
-        out = nisapi.clean.si7g_c2bs.clean(df)
-    else:
-        raise RuntimeError(f"No cleaning set up for dataset {id}")
+    try:
+        with importlib.resources.open_text(__package__, id + ".json") as f:
+            pars = json.load(f)
+    except FileNotFoundError:
+        print(f"Error: {id}.json not found.")
+
+    out = (
+        df.pipe(drop_bad_rows, **pars["drop_bad_rows"])
+        .pipe(clean_geography_type, **pars["clean_geography_type"])
+        .pipe(clean_geography, **pars["clean_geography"])
+        .pipe(clean_domain_type, **pars["clean_domain_type"])
+        .pipe(clean_domain, **pars["clean_domain"])
+        .pipe(clean_indicator_type, **pars["clean_indicator_type"])
+        .pipe(clean_indicator, **pars["clean_indicator"])
+        .pipe(clean_vaccine, **pars["clean_vaccine"])
+        .pipe(clean_time_type, **pars["clean_time_type"])
+        .pipe(clean_time_start_end, **pars["clean_time_start_end"])
+        .pipe(clean_estimate, **pars["clean_estimate"])
+        .pipe(clean_lci_uci, **pars["clean_lci_uci"])
+        .pipe(clean_sample_size, **pars["clean_sample_size"])
+        .pipe(remove_duplicates, **pars["remove_duplicates"])
+        .pipe(enforce_schema)
+    )
 
     out = out.pipe(ensure_eager)
     Validate(id=id, df=out, mode=validation_mode)

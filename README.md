@@ -4,7 +4,7 @@ Python API to access parts of the [National Immunization Survey](https://www.cdc
 
 ## Getting started
 
-1. This a poetry-enabled project. Use `poetry install` to install.
+1. This a uv-enabled project. Use `uv sync` to install.
 2. [*optional*] Get a [Socrata app token](https://support.socrata.com/hc/en-us/articles/210138558-Generating-App-Tokens-and-API-Keys). This may speed up your downloads.
 3. See `scripts/demo.py` for an example of how to cache and query the data:
    - `python -m nisapi cache` or `nisapi.cache_all_datasets()` to download, clean, and cache data. Add the command line or function argument `app-token={SOCRATA_APP_TOKEN}` to use the token.
@@ -112,21 +112,20 @@ Rows that were suppressed in the raw data are dropped. This includes data with s
 2. Add the dataset to `nisapi/datasets.yaml`.
    - At a minimum, you must include the dataset ID.
    - It is helpful to also include URL, vaccine, date range, and universe.
-3. Create a dataset-specific module in `nisapi/clean/`. It should have a main function `clean()`.
-   - Start with a `clean()` function that does nothing and just returns the input data frame.
-4. Add the `import` and `elif` statements for this dataset ID to `clean_dataset()` in `nisapi/clean/__init__.py`.
-5. Run `scripts/demo_clean.py`, after substituting the name of the dataset you are adding in Lines 6, 9, and 10. This should cache the raw dataset, run the cleaning function, and fail on validation.
-6. Iteratively update the dataset-specific `clean()` function until validation passes.
-   - Ideally, `clean()` should be a series of pipe functions.
-   - If a cleaning step is specific to a single dataset, keep that in the dataset-specific submodule. If a step is shared between datasets, move it into `helpers.py`.
-   - If multiple indicators are redundant, validate that redundancy in code, and then pick only one indicator. (E.g., `ksfb-ug5d` and `sw5n-wg2p` drop the up-to-date indicator in favor of the 4-level vaccination intent indicator.)
-   - If you find some dataset-specific anomaly or validation problem, make a note of it in `datasets.yaml`.
-7. Open a PR.
+3. Create a dataset-specific .json in `nisapi/clean/`. This contains the arguments for the cleaning helper functions.
+   - Start by copying a relatively simple example, like `sw5n-wg2p.json`, to the new .json file.
+   - Replace the arguments for each helper function with arguments suitable to the new dataset.
+4. Run `scripts/demo_clean.py`, after substituting the name of the dataset you are adding in Line 9. This should cache the raw dataset and run the cleaning function. It will probably fail on validation, because there are often quirks of a new dataset that were not obvious at first.
+5. Iteratively update the dataset-specific .json until validation passes.
+   - The helper functions are always deployed in the same order, but they offer lots of flexibility in solving odd validation problems. For example, `drop_bad_rows()` allows you not only to remove rows with a non-zero suppression flag, but also to remove "bad_columns" that contain useless information and might sabotage subsequent cleaning steps. See the [helper docstrings](https://github.com/CDCgov/nis-py-api/blob/main/nisapi/clean/helpers.py), including `_replace_column_name()`, `_replace_column_values()`, and `_borrow_column_values()`, all the creative cleaning manipulations that are possible.
+   - Be especially aware of redundant indicators. If you suspect redundant indicators, use the `remove_duplicates` helper to check if the redundancy is truly synonymous, and if so to keep only the indicator with the most rows. For example, `ksfb-ug5d` and `sw5n-wg2p` drop the up-to-date indicator in favor of the 4-level vaccination intent indicator.
+   - If you find some dataset-specific anomaly or validation problem, make a note of it in `datasets.yaml`. Again, the helper functions offer lots of flexibility to solve validation problems with creative use of the existing arguments. In the worst case, you can add a feature to one of the helper functions to get the behavior you want.
+6. Open a PR.
    - Include any validations if you needed to correct an anomaly.
 
 ## Project Admin
 
-- Scott Olesen <ulp7@cdc.gov> (CDC/CFA)
+- Edward Schrom <tec0@cdc.gov> (CDC/CFA)
 
 ---
 
