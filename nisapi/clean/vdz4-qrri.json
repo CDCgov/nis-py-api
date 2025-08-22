@@ -3,7 +3,7 @@
   "clean_geography_type": {"colname": "geography_label"},
   "clean_geography": {"override": "nation"},
   "clean_domain_type": {"override": "age & season"},
-  "clean_domain": {"overide": "adult females aged 18-49 years with infants under the age of 8 months during the RSV season (born since April 1, 2024)"},
+  "clean_domain": {"override": "adult females aged 18-49 years with infants under the age of 8 months during the RSV season (born since April 1, 2024)"},
   "clean_indicator_type": {"override": "4-level vaccination and intent"},
   "clean_indicator": {"colname": "indicator_category_label"},
   "clean_vaccine": {
