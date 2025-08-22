@@ -13,19 +13,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install poetry
-        run: pipx install poetry
-
       - name: Set up python
-        uses: actions/setup-python@v5
+        uses: astral-sh/setup-uv@6
         with:
-          cache: poetry
-
-      - name: Install global dependencies
-        run: |
-          pip install poetry
+          enable-cache: true
 
       - name: Test
         run: |
-          poetry install
-          poetry run pytest -v
+          uv sync --all-extras --all-groups
+          uv run pytest -v
