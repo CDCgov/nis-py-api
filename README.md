@@ -4,7 +4,7 @@ Python API to access parts of the [National Immunization Survey](https://www.cdc
 
 ## Getting started
 
-1. This a poetry-enabled project. Use `poetry install` to install.
+1. This a uv-enabled project. Use `uv sync` to install.
 2. [*optional*] Get a [Socrata app token](https://support.socrata.com/hc/en-us/articles/210138558-Generating-App-Tokens-and-API-Keys). This may speed up your downloads.
 3. See `scripts/demo.py` for an example of how to cache and query the data:
    - `python -m nisapi cache` or `nisapi.cache_all_datasets()` to download, clean, and cache data. Add the command line or function argument `app-token={SOCRATA_APP_TOKEN}` to use the token.
@@ -125,7 +125,7 @@ Rows that were suppressed in the raw data are dropped. This includes data with s
 
 ## Project Admin
 
-- Scott Olesen <ulp7@cdc.gov> (CDC/CFA)
+- Edward Schrom <tec0@cdc.gov> (CDC/CFA)
 
 ---
 
