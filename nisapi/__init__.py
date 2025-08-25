@@ -8,7 +8,7 @@ from typing import Literal, Optional
 
 import platformdirs
 import polars as pl
-import yaml
+import json
 
 import nisapi.clean
 import nisapi.socrata
@@ -84,10 +84,10 @@ def delete_cache(path: Optional[Path] = None, confirm: bool = True) -> None:
 
 
 def _get_dataset_ids() -> Sequence[str]:
-    with importlib.resources.open_text(nisapi, "datasets.yaml") as f:
-        metadata = yaml.safe_load(f)
+    with importlib.resources.open_text(nisapi, "datasets.json") as f:
+        datasets = json.load(f)
 
-    return [dataset["id"] for dataset in metadata]
+    return [dataset["id"] for dataset in datasets["datasets"]]
 
 
 def _cache_clean_dataset(
@@ -97,10 +97,17 @@ def _cache_clean_dataset(
     overwrite: str,
     validation_mode: str,
 ) -> None:
+    with importlib.resources.open_text(nisapi, "datasets.json") as f:
+        datasets = json.load(f)
+
+    clean_args = [d for d in datasets["datasets"] if d.get("id") == id][0].get(
+        "cleaning_arguments"
+    )
+
     raw_data_path = get_data_path(path=cache_path, type_="raw", id=id)
     raw_data = _get_nis_raw(id=id, raw_data_path=raw_data_path, app_token=app_token)
     clean_data = nisapi.clean.clean_dataset(
-        df=raw_data, id=id, validation_mode=validation_mode
+        df=raw_data, id=id, clean_args=clean_args, validation_mode=validation_mode
     )
     clean_data_path = get_data_path(path=cache_path, type_="clean", id=id)
     clean_data_filepath = clean_data_path / "part-0.parquet"

@@ -1,5 +1,7 @@
 import tempfile
 from pathlib import Path
+import importlib.resources
+import json
 
 import yaml
 
@@ -13,6 +15,13 @@ td = tempfile.TemporaryDirectory()
 with open("scripts/secrets.yaml") as f:
     app_token = yaml.safe_load(f)["app_token"]
 
+with importlib.resources.open_text(nisapi, "datasets.json") as f:
+    datasets = json.load(f)
+
+clean_args = [d for d in datasets["datasets"] if d.get("id") == dataset_id][0].get(
+    "cleaning_arguments"
+)
+
 raw = nisapi._get_nis_raw(
     id=dataset_id,
     raw_data_path=Path(td.name),
@@ -25,7 +34,7 @@ print(f"Raw data saved to {td.name}")
 raw.head().collect().glimpse()
 
 # try to clean the data
-clean = clean_dataset(raw, dataset_id)
+clean = clean_dataset(raw, dataset_id, clean_args, "warn")
 
 # look at the first few rows of the partially cleaned data
 clean.head(10).collect().glimpse()

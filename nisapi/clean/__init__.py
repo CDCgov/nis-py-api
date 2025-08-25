@@ -1,8 +1,6 @@
 from typing import List
 
-import importlib.resources
 import polars as pl
-import json
 
 from nisapi.clean.helpers import (
     admin1_values,
@@ -28,39 +26,36 @@ from nisapi.clean.helpers import (
 )
 
 
-def clean_dataset(df: pl.LazyFrame, id: str, validation_mode: str) -> pl.DataFrame:
+def clean_dataset(
+    df: pl.LazyFrame, id: str, clean_args: dict, validation_mode: str
+) -> pl.DataFrame:
     """Clean a raw dataset, applying dataset-specific cleaning rules
 
     Args:
         df (pl.DataFrame): raw dataset
-        id (str): dataset ID
+        id (str): dataset id
+        clean_args (dict): cleaning arguments for the raw data set
         validation_mode (str): validation mode
 
     Returns:
         pl.DataFrame: clean dataset
     """
 
-    try:
-        with importlib.resources.open_text(__package__, id + ".json") as f:
-            pars = json.load(f)
-    except FileNotFoundError:
-        print(f"Error: {id}.json not found.")
-
     out = (
-        df.pipe(drop_bad_rows, **pars["drop_bad_rows"])
-        .pipe(clean_geography_type, **pars["clean_geography_type"])
-        .pipe(clean_geography, **pars["clean_geography"])
-        .pipe(clean_domain_type, **pars["clean_domain_type"])
-        .pipe(clean_domain, **pars["clean_domain"])
-        .pipe(clean_indicator_type, **pars["clean_indicator_type"])
-        .pipe(clean_indicator, **pars["clean_indicator"])
-        .pipe(clean_vaccine, **pars["clean_vaccine"])
-        .pipe(clean_time_type, **pars["clean_time_type"])
-        .pipe(clean_time_start_end, **pars["clean_time_start_end"])
-        .pipe(clean_estimate, **pars["clean_estimate"])
-        .pipe(clean_lci_uci, **pars["clean_lci_uci"])
-        .pipe(clean_sample_size, **pars["clean_sample_size"])
-        .pipe(remove_duplicates, **pars["remove_duplicates"])
+        df.pipe(drop_bad_rows, **clean_args["drop_bad_rows"])
+        .pipe(clean_geography_type, **clean_args["clean_geography_type"])
+        .pipe(clean_geography, **clean_args["clean_geography"])
+        .pipe(clean_domain_type, **clean_args["clean_domain_type"])
+        .pipe(clean_domain, **clean_args["clean_domain"])
+        .pipe(clean_indicator_type, **clean_args["clean_indicator_type"])
+        .pipe(clean_indicator, **clean_args["clean_indicator"])
+        .pipe(clean_vaccine, **clean_args["clean_vaccine"])
+        .pipe(clean_time_type, **clean_args["clean_time_type"])
+        .pipe(clean_time_start_end, **clean_args["clean_time_start_end"])
+        .pipe(clean_estimate, **clean_args["clean_estimate"])
+        .pipe(clean_lci_uci, **clean_args["clean_lci_uci"])
+        .pipe(clean_sample_size, **clean_args["clean_sample_size"])
+        .pipe(remove_duplicates, **clean_args["remove_duplicates"])
         .pipe(enforce_schema)
     )
 
