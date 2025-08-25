@@ -1,0 +1,365 @@
+{
+  "datasets": [
+    {   "id": "akkj-j5ru",
+        "url": "https://data.cdc.gov/Vaccinations/National-Immunization-Survey-Adult-COVID-Module-NI/akkj-j5ru/about_data",
+        "vaccine": "covid",
+        "start_date": "2021-04-22",
+        "universe": "18+ years old",
+        "cleaning_arguments": {
+            "drop_bad_rows": {"colname": "suppression_flag"},
+            "clean_geography_type": {
+                    "colname": "geography_type",
+                    "replace": {
+                            "jurisdictional estimates": "admin1",
+                            "national estimates": "nation"
+                        }
+                },
+            "clean_geography": {"colname": "geography"},
+            "clean_domain_type": {"colname": "group_name"},
+            "clean_domain": {"colname": "group_category"},
+            "clean_indicator_type": {"colname": "indicator_name"},
+            "clean_indicator": {"colname": "indicator_category"},
+            "clean_vaccine": {"override": "covid"},
+            "clean_time_type": {"colname": "time_type"},
+            "clean_time_start_end": {
+                    "colname": ["time_period", "time_year"],
+                    "col_format": "both",
+                    "time_format": "%B %d %Y"
+                },
+            "clean_estimate": {"colname": "estimate"},
+            "clean_lci_uci": {
+                    "colname": "coninf_95",
+                    "col_format": "full"
+                },
+            "clean_sample_size": {"colname": "sample_size"},
+            "remove_duplicates": {}
+        }
+    },
+    {   "id": "k4cb-dxd7",
+        "url": "https://data.cdc.gov/Vaccinations/Weekly-Cumulative-RSV-Vaccination-Coverage-and-Int/k4cb-dxd7/about_data",
+        "vaccine": "rsv",
+        "start_date": "2024-08-24",
+        "universe": "75+ years old and 60-74 years old with high risk",
+        "cleaning_arguments": {
+            "drop_bad_rows": {"colname": "suppresion_flag"},
+            "clean_geography_type": {"colname": "geography_level"},
+            "clean_geography": {"colname": "geography_name"},
+            "clean_domain_type": {
+                    "colname": "demographic_level",
+                    "append": "age"
+                },
+            "clean_domain": {
+                    "colname": "demographic_name",
+                    "donor_colname": "age_group"
+                },
+            "clean_indicator_type": {"colname": "indicator_label"},
+            "clean_indicator": {"colname": "indicator_category_label"},
+            "clean_vaccine": {"colname": "vaccine"},
+            "clean_time_type": {"override": "week"},
+            "clean_time_start_end": {"colname": "week_ending"},
+            "clean_estimate": {"colname": "estimate"},
+            "clean_lci_uci": {
+                    "colname": "ci_half_width_95pct",
+                    "col_format": "half"
+                },
+            "clean_sample_size": {"colname": "unweighted_sample_size"},
+            "remove_duplicates": {
+                    "synonym_columns": ["indicator_type", "indicator"],
+                    "synonyms": [
+                            ["4-level vaccination and intent", "Received a vaccination"],
+                            ["up-to-date", "Yes"]
+                        ]
+                }
+        }
+    },
+    {   "id": "ker6-gs6z",
+        "url": "https://data.cdc.gov/Child-Vaccinations/Weekly-Parental-Intent-for-Vaccination-and-Cumulat/ker6-gs6z/about_data",
+        "vaccine": "covid",
+        "start_date": "2023-09-30",
+        "universe": "6 months - 17 years old",
+        "cleaning_arguments": {
+            "drop_bad_rows": {"colname": "suppression_flag"},
+            "clean_geography_type": {"colname": "geographic_level"},
+            "clean_geography": {"colname": "geographic_name"},
+            "clean_domain_type": {"colname": "demographic_level"},
+            "clean_domain": {"colname": "demographic_name"},
+            "clean_indicator_type": {"colname": "indicator_label"},
+            "clean_indicator": {"colname": "indicator_category_label"},
+            "clean_vaccine": {"colname": "vaccine"},
+            "clean_time_type": {"override": "week"},
+            "clean_time_start_end": {
+                    "colname": "week_ending",
+                    "col_format": "end",
+                    "time_format": "%Y-%m-%d"
+                },
+            "clean_estimate": {"colname": "estimate"},
+            "clean_lci_uci": {
+                    "colname": "ci_half_width_95pct",
+                    "col_format": "half"
+                },
+            "clean_sample_size": {"colname": "unweighted_sample_size"},
+            "remove_duplicates": {
+                    "synonym_columns": ["indicator_type", "indicator"],
+                    "synonyms": [
+                            ["4-level vaccination and intent", "Vaccinated"],
+                            ["up-to-date", "Yes"]
+                        ]
+                }
+        }
+    },
+    {   "id": "ksfb-ug5d",
+        "url": "https://data.cdc.gov/Vaccinations/Weekly-Cumulative-COVID-19-Vaccination-Coverage-an/ksfb-ug5d/about_data",
+        "vaccine": "covid",
+        "start_date": "2023-09-24",
+        "universe": "18+ years old",
+        "cleaning_arguments": {
+            "drop_bad_rows": {"colname": "suppression_flag"},
+            "clean_geography_type": {"colname": "geographic_level"},
+            "clean_geography": {"colname": "geographic_name"},
+            "clean_domain_type": {"colname": "demographic_level"},
+            "clean_domain": {"colname": "demographic_name"},
+            "clean_indicator_type": {"colname": "indicator_label"},
+            "clean_indicator": {"colname": "indicator_category_label"},
+            "clean_vaccine": {"colname": "vaccine"},
+            "clean_time_type": {"override": "week"},
+            "clean_time_start_end": {"colname": "week_ending"},
+            "clean_estimate": {"colname": "estimate"},
+            "clean_lci_uci": {
+                    "colname": "ci_half_width_95pct",
+                    "col_format": "half"
+                },
+            "clean_sample_size": {"colname": "unweighted_sample_size"},
+            "remove_duplicates": {
+                    "synonym_columns": ["indicator_type", "indicator"],
+                    "synonyms": [
+                            ["4-level vaccination and intent", "Received a vaccination"],
+                            ["up-to-date", "Yes"]
+                        ]
+                }
+        }
+    },
+    {   "id": "si7g-c2bs",
+        "url": "https://data.cdc.gov/Vaccinations/National-Immunization-Survey-Adult-COVID-Module-NI/si7g-c2bs/about_data",
+        "vaccine": "covid, flu, rsv",
+        "start_date": "2024-09-01",
+        "universe": "18+ years old",
+        "cleaning_arguments": {
+            "drop_bad_rows": {"colname": "suppression_flag"},
+            "clean_geography_type": {"colname": "geography_type"},
+            "clean_geography": {"colname": "geography"},
+            "clean_domain_type": {"colname": "group_name"},
+            "clean_domain": {
+                    "colname": "group_category",
+                    "donor_colname": "new_vax_group",
+                    "transfer": {
+                            "(among adults age 60-74 with high-risk conditions)": "60-74 years, high risk",
+                            "(among adults age 75+)": "75+ years, high risk"
+                        }
+                },
+            "clean_indicator_type": {"colname": "indicator_name"},
+            "clean_indicator": {"colname": "indicator_category"},
+            "clean_vaccine": {
+                    "colname": "new_vax_group",
+                    "replace": {
+                            "covid-19": "covid",
+                            "rsv (among adults age 60-74 with high-risk conditions)": "rsv",
+                            "rsv (among adults age 75+)": "rsv"
+                        }
+                },
+            "clean_time_type": {"colname": "time_type"},
+            "clean_time_start_end": {
+                    "colname": ["time_period", "year"],
+                    "col_format": "both",
+                    "time_format": "%B %d %Y"
+                },
+            "clean_estimate": {"colname": "estimate"},
+            "clean_lci_uci": {
+                    "colname": "_95_ci",
+                    "col_format": "full"
+                },
+            "clean_sample_size": {"colname": "sample_size"},
+            "remove_duplicates": {}
+        }
+    },
+    {   "id": "sw5n-wg2p",
+        "url": "https://data.cdc.gov/Flu-Vaccinations/Weekly-Influenza-Vaccination-Coverage-and-Intent-f/sw5n-wg2p/",
+        "vaccine": "flu",
+        "start_date": "2023-09-24",
+        "universe": "18+ years old",
+        "cleaning_arguments": {
+            "drop_bad_rows": {"colname": "suppression_flag"},
+            "clean_geography_type": {"colname": "geographic_level"},
+            "clean_geography": {"colname": "geographic_name"},
+            "clean_domain_type": {"colname": "demographic_level"},
+            "clean_domain": {"colname": "demographic_name"},
+            "clean_indicator_type": {"colname": "indicator_label"},
+            "clean_indicator": {"colname": "indicator_category_label"},
+            "clean_vaccine": {"colname": "vaccine"},
+            "clean_time_type": {"override": "week"},
+            "clean_time_start_end": {"colname": "week_ending"},
+            "clean_estimate": {"colname": "estimates"},
+            "clean_lci_uci": {
+                    "colname": "ci_half_width_95pct",
+                    "col_format": "half"
+                },
+            "clean_sample_size": {"colname": "unweighted_sample_size"},
+            "remove_duplicates": {
+                    "synonym_columns": ["indicator_type", "indicator"],
+                    "synonyms": [
+                            ["4-level vaccination and intent", "Received a vaccination"],
+                            ["up-to-date", "Yes"]
+                        ]
+                }
+        }
+    },
+    {   "id": "vdz4-qrri",
+        "url": "https://data.cdc.gov/Pregnancy-Vaccination/Infant-Protection-Against-Respiratory-Syncytial-Vi/vdz4-qrri/about_data",
+        "vaccine": "nirsevimab and RSV maternal vaccination",
+        "start_date": "2024-08-18",
+        "universe": "adult females aged 18-49 years with infants under the age of 8 months during the RSV season (born since April 1, 2024)",
+        "cleaning_arguments": {
+            "drop_bad_rows": {"colname": "suppressed_flag"},
+            "clean_geography_type": {"colname": "geography_label"},
+            "clean_geography": {"override": "nation"},
+            "clean_domain_type": {"override": "age & season"},
+            "clean_domain": {"override": "adult females aged 18-49 years with infants under the age of 8 months during the RSV season (born since April 1, 2024)"},
+            "clean_indicator_type": {"override": "4-level vaccination and intent"},
+            "clean_indicator": {"colname": "indicator_category_label"},
+            "clean_vaccine": {
+                    "donor_colname": "indicator",
+                    "transfer":{
+                            "nirsevimab for infant": "nirsevimab",
+                            "infant nirsevimab": "nirsevimab",
+                            "Infant received nirsevimab": "nirsevimab",
+                            "Mother received": "rsv_maternal",
+                            "The mother received": "rsv_maternal",
+                            "RSV vaccine": "rsv"
+                        }
+                },
+            "clean_time_type": {"override": "month"},
+            "clean_time_start_end": {
+                    "colname": "timeframe",
+                    "col_format": "both",
+                    "time_format": "%m/%d/%Y"
+                },
+            "clean_estimate": {"colname": "estimate"},
+            "clean_lci_uci": {
+                    "colname": "_95_confidence_interval",
+                    "col_format": "full"
+                },
+            "clean_sample_size": {"colname": "sample_size"},
+            "remove_duplicates": {}
+        }
+    },
+    {   "id": "vh55-3he6",
+        "url": "https://data.cdc.gov/Flu-Vaccinations/Influenza-Vaccination-Coverage-for-All-Ages-6-Mont/vh55-3he6/about_data",
+        "vaccine": "flu",
+        "start_date": "2009-08-01",
+        "universe": "6+ months old",
+        "cleaning_arguments": {
+            "drop_bad_rows": {},
+            "clean_geography_type": {
+                    "colname": "geography_type",
+                    "replace": {
+                            "states/local areas": "admin1",
+                            "counties": "local",
+                            "hhs regions/national": "region"
+                        }
+                },
+            "clean_geography": {
+                    "colname": "geography",
+                    "replace": {"United States": "nation"}
+                },
+            "clean_domain_type": {
+                    "donor_colname": "dimension_type",
+                    "transfer": {
+                            "Age": "Age & Possible Risk",
+                            "Race and Ethnicity": "Race & Ethnicity",
+                            "Years": "Location & Age"
+                        }
+                },
+            "clean_domain": {
+                    "colname": "dimension",
+                    "donor_colname": "dimension_type",
+                    "transfer": {
+                            "6 Months - 17 Years": "6 Months-17 Years",
+                            ">=18 Years": ">=18 Years",
+                            "18-49 Years": "18-49 Years",
+                            "50-64 Years": "50-64 Years",
+                            ">=65 Years": ">=65 Years"
+                        }
+                },
+            "clean_indicator_type": {"override": "Received a vaccination"},
+            "clean_indicator": {"override": "yes"},
+            "clean_vaccine": {
+                    "colname": "vaccine",
+                    "lowercase": false,
+                    "replace":{
+                            "Seasonal Influenza": "flu",
+                            "Any Influenza Vaccination, Seasonal or H1N1": "flu_seasonal_or_h1n1",
+                            "Influenza A (H1N1) 2009 Monovalent": "flu_h1n1"
+                        }
+                },
+            "clean_time_type": {"override": "month"},
+            "clean_time_start_end": {
+                    "colname": ["month", "year_season"],
+                    "col_format": "end",
+                    "time_format": "%m-%Y"
+                },
+            "clean_estimate": {"colname": "coverage_estimate"},
+            "clean_lci_uci": {
+                    "colname": "_95_ci",
+                    "col_format": "full",
+                    "separator": "to"
+                },
+            "clean_sample_size": {"colname": "population_sample_size"},
+            "remove_duplicates": {}
+        }
+    },
+    {   "id": "vncy-2ds7",
+        "url": "https://data.cdc.gov/Child-Vaccinations/Weekly-Cumulative-Influenza-Vaccination-Coverage-b/vncy-2ds7/about_data",
+        "vaccine": "flu",
+        "start_date": "2019-10-05",
+        "universe": "6 months - 17 years old",
+        "cleaning_arguments": {
+            "drop_bad_rows": {
+                "colname": "suppression_flag",
+                "bad_columns": [
+                        "legend_label",
+                        "indicator_category_label_1",
+                        "demographic_level_sort_order",
+                        "geography_name_order",
+                        "geography_level_sort_order",
+                        "season_sort",
+                        "legend_sort"
+                    ]
+                },
+            "clean_geography_type": {"colname": "geographic_level"},
+            "clean_geography": {"colname": "geographic_name"},
+            "clean_domain_type": {"colname": "demographic_level"},
+            "clean_domain": {
+                    "colname": "demographic_name",
+                    "replace": {"Overall": "6 months-17 years"}
+                },
+            "clean_indicator_type": {"colname": "indicator_label"},
+            "clean_indicator": {"colname": "indicator_category_label"},
+            "clean_vaccine": {"override": "flu"},
+            "clean_time_type": {"override": "week"},
+            "clean_time_start_end": {"colname": "week_ending"},
+            "clean_estimate": {"colname": "estimate"},
+            "clean_lci_uci": {
+                    "colname": "ci_half_width_95pct",
+                    "col_format": "half"
+                },
+            "clean_sample_size": {"colname": "unweighted_sample_size"},
+            "remove_duplicates": {
+                    "synonym_columns": ["indicator_type", "indicator"],
+                    "synonyms": [
+                            ["4-level vaccination and intent", "Received a vaccination"],
+                            ["up-to-date", "Yes"]
+                        ]
+                }
+        }
+    }
+  ]
+}

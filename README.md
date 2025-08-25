@@ -109,17 +109,17 @@ Rows that were suppressed in the raw data are dropped. This includes data with s
 ### Adding a new dataset
 
 1. Find the dataset you want to clean on <https://data.cdc.gov/>.
-2. Add the dataset to `nisapi/datasets.yaml`.
-   - At a minimum, you must include the dataset ID.
+2. Add the dataset to `nisapi/datasets.json`.
+   - At a minimum, you must include the dataset ID and cleaning arguments (see below).
    - It is helpful to also include URL, vaccine, date range, and universe.
-3. Create a dataset-specific .json in `nisapi/clean/`. This contains the arguments for the cleaning helper functions.
-   - Start by copying a relatively simple example, like `sw5n-wg2p.json`, to the new .json file.
+3. Supply the dataset-specific arguments for the cleaning helper functions.
+   - Start by copying the cleaning arguments for a relatively simple example, like `sw5n-wg2p`, to the new dataset's entry in `nisapi/datasets.json`.
    - Replace the arguments for each helper function with arguments suitable to the new dataset.
 4. Run `scripts/demo_clean.py`, after substituting the name of the dataset you are adding in Line 9. This should cache the raw dataset and run the cleaning function. It will probably fail on validation, because there are often quirks of a new dataset that were not obvious at first.
-5. Iteratively update the dataset-specific .json until validation passes.
-   - The helper functions are always deployed in the same order, but they offer lots of flexibility in solving odd validation problems. For example, `drop_bad_rows()` allows you not only to remove rows with a non-zero suppression flag, but also to remove "bad_columns" that contain useless information and might sabotage subsequent cleaning steps. See the [helper docstrings](https://github.com/CDCgov/nis-py-api/blob/main/nisapi/clean/helpers.py), including `_replace_column_name()`, `_replace_column_values()`, and `_borrow_column_values()`, all the creative cleaning manipulations that are possible.
+5. Iteratively update the cleaning arguments until validation passes.
+   - The helper functions are always deployed in the same order, but they offer lots of flexibility in solving odd validation problems. For example, `drop_bad_rows()` allows you not only to remove rows with a non-zero suppression flag, but also to remove "bad_columns" that contain useless information that might sabotage subsequent cleaning steps. See the [helper docstrings](https://github.com/CDCgov/nis-py-api/blob/main/nisapi/clean/helpers.py), including `_replace_column_name()`, `_replace_column_values()`, and `_borrow_column_values()`, all the creative cleaning manipulations that are possible.
    - Be especially aware of redundant indicators. If you suspect redundant indicators, use the `remove_duplicates` helper to check if the redundancy is truly synonymous, and if so to keep only the indicator with the most rows. For example, `ksfb-ug5d` and `sw5n-wg2p` drop the up-to-date indicator in favor of the 4-level vaccination intent indicator.
-   - If you find some dataset-specific anomaly or validation problem, make a note of it in `datasets.yaml`. Again, the helper functions offer lots of flexibility to solve validation problems with creative use of the existing arguments. In the worst case, you can add a feature to one of the helper functions to get the behavior you want.
+   - Again, the helper functions offer lots of flexibility to solve validation problems with creative use of the existing arguments. In the worst case, you can add a feature to one of the helper functions to get the behavior you want.
 6. Open a PR.
    - Include any validations if you needed to correct an anomaly.
 
