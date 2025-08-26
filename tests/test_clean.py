@@ -18,13 +18,15 @@ from nisapi.clean.helpers import (
 
 
 @pytest.fixture
-def mock_dataframe():
+def mock_df():
     df = pl.DataFrame(
         {
             "supp_flag": ["0", "0", "0", "0", "0", "0", "0", "1"],
             "text_col1": ["area", "area", "area", "area", "age", "age", "age", "age"],
             "text_col2": ["PA", "US", "PA", "US", "18+", " 18+ ", "18- 45", " 18 - 45"],
+            "time_type": ["month"] * 8,
             "time": ["2025-08-26"] * 8,
+            "time_range": ["Jul 2025 to Aug 2025"] * 8,
             "estimate": [1.0, 10.0, 1.0, 10.0, 2.0, 2.0, 6.0, 6.0],
             "_ci_95": [0.1, 0.1, 1.0, 10.2, 0.2, 0.2, 0.6, 0.6],
             "ss": [100, 100, 1000, 1000, 100, 100, 100, 100],
@@ -33,18 +35,45 @@ def mock_dataframe():
     return df
 
 
-def test_drop_bad_rows(mock_dataframe):
+def test_drop_bad_rows(mock_df):
     result = drop_bad_rows(
-        mock_dataframe.lazy(), colname="supp_flag", bad_columns=["_ci_95", "ss"]
+        mock_df.lazy(), colname="supp_flag", bad_columns=["_ci_95", "ss"]
     ).collect()
 
     expected = pl.DataFrame(
         {
             "text_col1": ["area", "area", "area", "area", "age", "age", "age"],
             "text_col2": ["PA", "US", "PA", "US", "18+", " 18+ ", "18- 45"],
+            "time_type": ["month"] * 7,
             "time": ["2025-08-26"] * 7,
+            "time_range": ["Jul 2025 to Aug 2025"] * 7,
             "estimate": [1.0, 10.0, 1.0, 10.0, 2.0, 2.0, 6.0],
         }
+    )
+
+    polars.testing.assert_frame_equal(result, expected, check_row_order=False)
+
+
+def test_clean_time_start_end_onecol(mock_df):
+    result = clean_time_start_end(mock_df.lazy(), "time", "end", "%Y-%m-%d").collect()
+
+    expected = pl.DataFrame(
+        {
+            "supp_flag": ["0", "0", "0", "0", "0", "0", "0", "1"],
+            "text_col1": ["area", "area", "area", "area", "age", "age", "age", "age"],
+            "text_col2": ["PA", "US", "PA", "US", "18+", " 18+ ", "18- 45", " 18 - 45"],
+            "time_type": ["month"] * 8,
+            "time": ["2025-08-26"] * 8,
+            "time_range": ["Jul 2025 to Aug 2025"] * 8,
+            "estimate": [1.0, 10.0, 1.0, 10.0, 2.0, 2.0, 6.0, 6.0],
+            "_ci_95": [0.1, 0.1, 1.0, 10.2, 0.2, 0.2, 0.6, 0.6],
+            "ss": [100, 100, 1000, 1000, 100, 100, 100, 100],
+            "time_end": ["2025-08-26"] * 8,
+            "time_start": ["2025-07-26"] * 8,
+        }
+    ).with_columns(
+        time_end=pl.col("time_end").str.to_date(),
+        time_start=pl.col("time_start").str.to_date(),
     )
 
     polars.testing.assert_frame_equal(result, expected, check_row_order=False)
