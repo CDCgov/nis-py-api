@@ -7,6 +7,7 @@ from nisapi.clean.helpers import (
     _replace_column_name,
     _replace_column_values,
     _borrow_column_values,
+    clean_estimate,
     clean_lci_uci,
     clean_sample_size,
     clean_time_start_end,
@@ -29,9 +30,9 @@ def mock_df():
             "time_range": ["July 26 2025 - August 26 2025"] * 8,
             "month_day": ["July 26 - August 26"] * 8,
             "year": ["2025"] * 8,
-            "estimate": [1.0, 10.0, 1.0, 10.0, 2.0, 2.0, 6.0, 6.0],
-            "_ci_95": [0.1, 0.1, 1.0, 10.2, 0.2, 0.2, 0.6, 0.6],
-            "ss": [100, 100, 1000, 1000, 100, 100, 100, 100],
+            "estimate": ["1.0", "10.0", "1.0", "10.0", "2.0", "2.0", "6.0", "six"],
+            "_ci_95": ["0.1", "1.0", "0.1", "10.2", "0.2", "0.2", "0.6", "0.6"],
+            "ci": ["0.0 to 100.2"] * 8,
         }
     )
     return df
@@ -39,7 +40,7 @@ def mock_df():
 
 def test_drop_bad_rows(mock_df):
     result = drop_bad_rows(
-        mock_df.lazy(), colname="supp_flag", bad_columns=["_ci_95", "ss"]
+        mock_df.lazy(), colname="supp_flag", bad_columns=["_ci_95", "ci"]
     ).collect()
 
     expected = pl.DataFrame(
@@ -51,7 +52,7 @@ def test_drop_bad_rows(mock_df):
             "time_range": ["July 26 2025 - August 26 2025"] * 7,
             "month_day": ["July 26 - August 26"] * 7,
             "year": ["2025"] * 7,
-            "estimate": [1.0, 10.0, 1.0, 10.0, 2.0, 2.0, 6.0],
+            "estimate": ["1.0", "10.0", "1.0", "10.0", "2.0", "2.0", "6.0"],
         }
     )
 
@@ -71,9 +72,9 @@ def test_clean_time_start_end_endcol(mock_df):
             "time_range": ["July 26 2025 - August 26 2025"] * 8,
             "month_day": ["July 26 - August 26"] * 8,
             "year": ["2025"] * 8,
-            "estimate": [1.0, 10.0, 1.0, 10.0, 2.0, 2.0, 6.0, 6.0],
-            "_ci_95": [0.1, 0.1, 1.0, 10.2, 0.2, 0.2, 0.6, 0.6],
-            "ss": [100, 100, 1000, 1000, 100, 100, 100, 100],
+            "estimate": ["1.0", "10.0", "1.0", "10.0", "2.0", "2.0", "6.0", "six"],
+            "_ci_95": ["0.1", "1.0", "0.1", "10.2", "0.2", "0.2", "0.6", "0.6"],
+            "ci": ["0.0 to 100.2"] * 8,
             "time_end": ["2025-08-26"] * 8,
             "time_start": ["2025-07-26"] * 8,
         }
@@ -100,9 +101,9 @@ def test_clean_time_start_end_bothcol(mock_df):
             "time_range": ["July 26 2025 - August 26 2025"] * 8,
             "month_day": ["July 26 - August 26"] * 8,
             "year": ["2025"] * 8,
-            "estimate": [1.0, 10.0, 1.0, 10.0, 2.0, 2.0, 6.0, 6.0],
-            "_ci_95": [0.1, 0.1, 1.0, 10.2, 0.2, 0.2, 0.6, 0.6],
-            "ss": [100, 100, 1000, 1000, 100, 100, 100, 100],
+            "estimate": ["1.0", "10.0", "1.0", "10.0", "2.0", "2.0", "6.0", "six"],
+            "_ci_95": ["0.1", "1.0", "0.1", "10.2", "0.2", "0.2", "0.6", "0.6"],
+            "ci": ["0.0 to 100.2"] * 8,
             "time_start": ["2025-07-26"] * 8,
             "time_end": ["2025-08-26"] * 8,
         }
@@ -129,15 +130,85 @@ def test_clean_time_start_end_twocol(mock_df):
             "time_range": ["July 26 2025 - August 26 2025"] * 8,
             "month_day": ["July 26 - August 26"] * 8,
             "year": ["2025"] * 8,
-            "estimate": [1.0, 10.0, 1.0, 10.0, 2.0, 2.0, 6.0, 6.0],
-            "_ci_95": [0.1, 0.1, 1.0, 10.2, 0.2, 0.2, 0.6, 0.6],
-            "ss": [100, 100, 1000, 1000, 100, 100, 100, 100],
+            "estimate": ["1.0", "10.0", "1.0", "10.0", "2.0", "2.0", "6.0", "six"],
+            "_ci_95": ["0.1", "1.0", "0.1", "10.2", "0.2", "0.2", "0.6", "0.6"],
+            "ci": ["0.0 to 100.2"] * 8,
             "time_start": ["2025-07-26"] * 8,
             "time_end": ["2025-08-26"] * 8,
         }
     ).with_columns(
         time_end=pl.col("time_end").str.to_date(),
         time_start=pl.col("time_start").str.to_date(),
+    )
+
+    polars.testing.assert_frame_equal(result, expected, check_row_order=False)
+
+
+def test_clean_estimate(mock_df):
+    result = clean_estimate(mock_df.lazy(), "estimate").collect()
+
+    expected = pl.DataFrame(
+        {
+            "supp_flag": ["0", "0", "0", "0", "0", "0", "0"],
+            "text_col1": ["area", "area", "area", "area", "age", "age", "age"],
+            "text_col2": ["PA", "US", "PA", "US", "18+", " 18+ ", "18- 45"],
+            "time_type": ["month"] * 7,
+            "time": ["2025-08-26"] * 7,
+            "time_range": ["July 26 2025 - August 26 2025"] * 7,
+            "month_day": ["July 26 - August 26"] * 7,
+            "year": ["2025"] * 7,
+            "estimate": [0.01, 0.1, 0.01, 0.1, 0.02, 0.02, 0.06],
+            "_ci_95": ["0.1", "1.0", "0.1", "10.2", "0.2", "0.2", "0.6"],
+            "ci": ["0.0 to 100.2"] * 7,
+        }
+    )
+
+    polars.testing.assert_frame_equal(result, expected, check_row_order=False)
+
+
+def test_clean_lci_uci_half(mock_df):
+    result = clean_estimate(mock_df.lazy(), "estimate")
+    result = clean_lci_uci(result, "_ci_95", "half").collect()
+
+    expected = pl.DataFrame(
+        {
+            "supp_flag": ["0", "0", "0", "0", "0", "0", "0"],
+            "text_col1": ["area", "area", "area", "area", "age", "age", "age"],
+            "text_col2": ["PA", "US", "PA", "US", "18+", " 18+ ", "18- 45"],
+            "time_type": ["month"] * 7,
+            "time": ["2025-08-26"] * 7,
+            "time_range": ["July 26 2025 - August 26 2025"] * 7,
+            "month_day": ["July 26 - August 26"] * 7,
+            "year": ["2025"] * 7,
+            "estimate": [0.01, 0.1, 0.01, 0.1, 0.02, 0.02, 0.06],
+            "ci": ["0.0 to 100.2"] * 7,
+            "lci": [0.009, 0.09, 0.009, 0.0, 0.018, 0.018, 0.054],
+            "uci": [0.011, 0.11, 0.011, 0.202, 0.022, 0.022, 0.066],
+        }
+    )
+
+    polars.testing.assert_frame_equal(result, expected, check_row_order=False)
+
+
+def test_clean_lci_uci_full(mock_df):
+    result = clean_estimate(mock_df.lazy(), "estimate")
+    result = clean_lci_uci(result, "ci", "full", "to").collect()
+
+    expected = pl.DataFrame(
+        {
+            "supp_flag": ["0", "0", "0", "0", "0", "0", "0"],
+            "text_col1": ["area", "area", "area", "area", "age", "age", "age"],
+            "text_col2": ["PA", "US", "PA", "US", "18+", " 18+ ", "18- 45"],
+            "time_type": ["month"] * 7,
+            "time": ["2025-08-26"] * 7,
+            "time_range": ["July 26 2025 - August 26 2025"] * 7,
+            "month_day": ["July 26 - August 26"] * 7,
+            "year": ["2025"] * 7,
+            "estimate": [0.01, 0.1, 0.01, 0.1, 0.02, 0.02, 0.06],
+            "_ci_95": ["0.1", "1.0", "0.1", "10.2", "0.2", "0.2", "0.6"],
+            "lci": [0.0] * 7,
+            "uci": [1.0] * 7,
+        }
     )
 
     polars.testing.assert_frame_equal(result, expected, check_row_order=False)
