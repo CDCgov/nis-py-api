@@ -343,6 +343,123 @@ def test_replace_column_values_infer(mock_df):
     polars.testing.assert_frame_equal(result, expected, check_row_order=False)
 
 
+def test_borrow_column_values_whole(mock_df):
+    result = _borrow_column_values(mock_df, "text_col1", "text_col2")
+
+    expected = pl.DataFrame(
+        {
+            "supp_flag": ["0", "0", "0", "0", "0", "0", "0", "1"],
+            "text_col1": [
+                "area & PA",
+                "area & US",
+                "area & PA",
+                "area & US",
+                "age & 18+",
+                "age &  18+ ",
+                "age & 18- 45",
+                "age &  18 - 45",
+            ],
+            "text_col2": ["PA", "US", "PA", "US", "18+", " 18+ ", "18- 45", " 18 - 45"],
+            "time_type": ["month"] * 8,
+            "time": ["2025-08-26"] * 8,
+            "time_range": ["July 26 2025 - August 26 2025"] * 8,
+            "month_day": ["July 26 - August 26"] * 8,
+            "year": ["2025"] * 8,
+            "estimate": ["1.0", "10.0", "1.0", "10.0", "2.0", "2.0", "6.0", "six"],
+            "_ci_95": ["0.1", "1.0", "0.1", "10.2", "0.2", "0.2", "0.6", "0.6"],
+            "ci": ["0.0 to 100.2"] * 8,
+        }
+    )
+
+    polars.testing.assert_frame_equal(result, expected, check_row_order=False)
+
+
+def test_borrow_column_values_whole_newcol(mock_df):
+    result = _borrow_column_values(mock_df, "text_col3", "text_col2")
+
+    expected = pl.DataFrame(
+        {
+            "supp_flag": ["0", "0", "0", "0", "0", "0", "0", "1"],
+            "text_col1": ["area", "area", "area", "area", "age", "age", "age", "age"],
+            "text_col2": ["PA", "US", "PA", "US", "18+", " 18+ ", "18- 45", " 18 - 45"],
+            "time_type": ["month"] * 8,
+            "time": ["2025-08-26"] * 8,
+            "time_range": ["July 26 2025 - August 26 2025"] * 8,
+            "month_day": ["July 26 - August 26"] * 8,
+            "year": ["2025"] * 8,
+            "estimate": ["1.0", "10.0", "1.0", "10.0", "2.0", "2.0", "6.0", "six"],
+            "_ci_95": ["0.1", "1.0", "0.1", "10.2", "0.2", "0.2", "0.6", "0.6"],
+            "ci": ["0.0 to 100.2"] * 8,
+            "text_col3": ["PA", "US", "PA", "US", "18+", " 18+ ", "18- 45", " 18 - 45"],
+        }
+    )
+
+    polars.testing.assert_frame_equal(result, expected, check_row_order=False)
+
+
+def test_borrow_column_values_part(mock_df):
+    result = _borrow_column_values(mock_df, "text_col1", "text_col2", {"18": "adult"})
+
+    expected = pl.DataFrame(
+        {
+            "supp_flag": ["0", "0", "0", "0", "0", "0", "0", "1"],
+            "text_col1": [
+                "area",
+                "area",
+                "area",
+                "area",
+                "age & adult",
+                "age & adult",
+                "age & adult",
+                "age & adult",
+            ],
+            "text_col2": ["PA", "US", "PA", "US", "18+", " 18+ ", "18- 45", " 18 - 45"],
+            "time_type": ["month"] * 8,
+            "time": ["2025-08-26"] * 8,
+            "time_range": ["July 26 2025 - August 26 2025"] * 8,
+            "month_day": ["July 26 - August 26"] * 8,
+            "year": ["2025"] * 8,
+            "estimate": ["1.0", "10.0", "1.0", "10.0", "2.0", "2.0", "6.0", "six"],
+            "_ci_95": ["0.1", "1.0", "0.1", "10.2", "0.2", "0.2", "0.6", "0.6"],
+            "ci": ["0.0 to 100.2"] * 8,
+        }
+    )
+
+    polars.testing.assert_frame_equal(result, expected, check_row_order=False)
+
+
+def test_borrow_column_values_part_newcol(mock_df):
+    result = _borrow_column_values(mock_df, "text_col3", "text_col2", {"18": "adult"})
+
+    expected = pl.DataFrame(
+        {
+            "supp_flag": ["0", "0", "0", "0", "0", "0", "0", "1"],
+            "text_col1": ["area", "area", "area", "area", "age", "age", "age", "age"],
+            "text_col2": ["PA", "US", "PA", "US", "18+", " 18+ ", "18- 45", " 18 - 45"],
+            "time_type": ["month"] * 8,
+            "time": ["2025-08-26"] * 8,
+            "time_range": ["July 26 2025 - August 26 2025"] * 8,
+            "month_day": ["July 26 - August 26"] * 8,
+            "year": ["2025"] * 8,
+            "estimate": ["1.0", "10.0", "1.0", "10.0", "2.0", "2.0", "6.0", "six"],
+            "_ci_95": ["0.1", "1.0", "0.1", "10.2", "0.2", "0.2", "0.6", "0.6"],
+            "ci": ["0.0 to 100.2"] * 8,
+            "text_col3": [
+                "missing value",
+                "missing value",
+                "missing value",
+                "missing value",
+                "adult",
+                "adult",
+                "adult",
+                "adult",
+            ],
+        }
+    )
+
+    polars.testing.assert_frame_equal(result, expected, check_row_order=False)
+
+
 def test_mean_max_diff():
     input_df = pl.DataFrame(
         {
