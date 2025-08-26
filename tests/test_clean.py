@@ -9,7 +9,6 @@ from nisapi.clean.helpers import (
     _borrow_column_values,
     clean_estimate,
     clean_lci_uci,
-    clean_sample_size,
     clean_time_start_end,
     drop_bad_rows,
     _mean_max_diff,
@@ -208,6 +207,136 @@ def test_clean_lci_uci_full(mock_df):
             "_ci_95": ["0.1", "1.0", "0.1", "10.2", "0.2", "0.2", "0.6"],
             "lci": [0.0] * 7,
             "uci": [1.0] * 7,
+        }
+    )
+
+    polars.testing.assert_frame_equal(result, expected, check_row_order=False)
+
+
+def test_replace_column_name_rename(mock_df):
+    result = _replace_column_name(mock_df, "new_name", "text_col1")
+
+    expected = pl.DataFrame(
+        {
+            "supp_flag": ["0", "0", "0", "0", "0", "0", "0", "1"],
+            "new_name": ["area", "area", "area", "area", "age", "age", "age", "age"],
+            "text_col2": ["PA", "US", "PA", "US", "18+", " 18+ ", "18- 45", " 18 - 45"],
+            "time_type": ["month"] * 8,
+            "time": ["2025-08-26"] * 8,
+            "time_range": ["July 26 2025 - August 26 2025"] * 8,
+            "month_day": ["July 26 - August 26"] * 8,
+            "year": ["2025"] * 8,
+            "estimate": ["1.0", "10.0", "1.0", "10.0", "2.0", "2.0", "6.0", "six"],
+            "_ci_95": ["0.1", "1.0", "0.1", "10.2", "0.2", "0.2", "0.6", "0.6"],
+            "ci": ["0.0 to 100.2"] * 8,
+        }
+    )
+
+    polars.testing.assert_frame_equal(result, expected, check_row_order=False)
+
+
+def test_replace_column_name_override(mock_df):
+    result = _replace_column_name(mock_df, "text_col1", override="some_category_type")
+
+    expected = pl.DataFrame(
+        {
+            "supp_flag": ["0", "0", "0", "0", "0", "0", "0", "1"],
+            "text_col1": ["some_category_type"] * 8,
+            "text_col2": ["PA", "US", "PA", "US", "18+", " 18+ ", "18- 45", " 18 - 45"],
+            "time_type": ["month"] * 8,
+            "time": ["2025-08-26"] * 8,
+            "time_range": ["July 26 2025 - August 26 2025"] * 8,
+            "month_day": ["July 26 - August 26"] * 8,
+            "year": ["2025"] * 8,
+            "estimate": ["1.0", "10.0", "1.0", "10.0", "2.0", "2.0", "6.0", "six"],
+            "_ci_95": ["0.1", "1.0", "0.1", "10.2", "0.2", "0.2", "0.6", "0.6"],
+            "ci": ["0.0 to 100.2"] * 8,
+        }
+    )
+
+    polars.testing.assert_frame_equal(result, expected, check_row_order=False)
+
+
+def test_replace_column_values_replace(mock_df):
+    result = _replace_column_values(
+        mock_df, "text_col1", replace={"area": "Area", "age": "Age"}
+    )
+
+    expected = pl.DataFrame(
+        {
+            "supp_flag": ["0", "0", "0", "0", "0", "0", "0", "1"],
+            "text_col1": ["Area", "Area", "Area", "Area", "Age", "Age", "Age", "Age"],
+            "text_col2": ["PA", "US", "PA", "US", "18+", " 18+ ", "18- 45", " 18 - 45"],
+            "time_type": ["month"] * 8,
+            "time": ["2025-08-26"] * 8,
+            "time_range": ["July 26 2025 - August 26 2025"] * 8,
+            "month_day": ["July 26 - August 26"] * 8,
+            "year": ["2025"] * 8,
+            "estimate": ["1.0", "10.0", "1.0", "10.0", "2.0", "2.0", "6.0", "six"],
+            "_ci_95": ["0.1", "1.0", "0.1", "10.2", "0.2", "0.2", "0.6", "0.6"],
+            "ci": ["0.0 to 100.2"] * 8,
+        }
+    )
+
+    polars.testing.assert_frame_equal(result, expected, check_row_order=False)
+
+
+def test_replace_column_values_append(mock_df):
+    result = _replace_column_values(mock_df, "text_col1", append="age")
+
+    expected = pl.DataFrame(
+        {
+            "supp_flag": ["0", "0", "0", "0", "0", "0", "0", "1"],
+            "text_col1": [
+                "area & age",
+                "area & age",
+                "area & age",
+                "area & age",
+                "age",
+                "age",
+                "age",
+                "age",
+            ],
+            "text_col2": ["PA", "US", "PA", "US", "18+", " 18+ ", "18- 45", " 18 - 45"],
+            "time_type": ["month"] * 8,
+            "time": ["2025-08-26"] * 8,
+            "time_range": ["July 26 2025 - August 26 2025"] * 8,
+            "month_day": ["July 26 - August 26"] * 8,
+            "year": ["2025"] * 8,
+            "estimate": ["1.0", "10.0", "1.0", "10.0", "2.0", "2.0", "6.0", "six"],
+            "_ci_95": ["0.1", "1.0", "0.1", "10.2", "0.2", "0.2", "0.6", "0.6"],
+            "ci": ["0.0 to 100.2"] * 8,
+        }
+    )
+
+    polars.testing.assert_frame_equal(result, expected, check_row_order=False)
+
+
+def test_replace_column_values_infer(mock_df):
+    result = _replace_column_values(mock_df, "text_col1", infer={"area": "region"})
+
+    expected = pl.DataFrame(
+        {
+            "supp_flag": ["0", "0", "0", "0", "0", "0", "0", "1"],
+            "text_col1": [
+                "region",
+                "region",
+                "region",
+                "region",
+                "age",
+                "age",
+                "age",
+                "age",
+            ],
+            "text_col2": ["PA", "US", "PA", "US", "18+", " 18+ ", "18- 45", " 18 - 45"],
+            "time_type": ["month"] * 8,
+            "time": ["2025-08-26"] * 8,
+            "time_range": ["July 26 2025 - August 26 2025"] * 8,
+            "month_day": ["July 26 - August 26"] * 8,
+            "year": ["2025"] * 8,
+            "estimate": ["1.0", "10.0", "1.0", "10.0", "2.0", "2.0", "6.0", "six"],
+            "_ci_95": ["0.1", "1.0", "0.1", "10.2", "0.2", "0.2", "0.6", "0.6"],
+            "ci": ["0.0 to 100.2"] * 8,
         }
     )
 
