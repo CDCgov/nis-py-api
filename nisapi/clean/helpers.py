@@ -657,7 +657,7 @@ def _replace_column_values(
                 .otherwise(new_values)
             )
 
-    df = df.with_columns(new_values)
+    df = df.with_columns(new_values.alias(colname))
 
     return df
 
