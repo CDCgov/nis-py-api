@@ -1,12 +1,53 @@
 import polars as pl
 import polars.testing
+import pytest
 
 from nisapi.clean import Validate
 from nisapi.clean.helpers import (
+    _replace_column_name,
+    _replace_column_values,
+    _borrow_column_values,
+    clean_lci_uci,
+    clean_sample_size,
+    clean_time_start_end,
+    drop_bad_rows,
     _mean_max_diff,
     remove_duplicates,
     rows_with_any_null,
 )
+
+
+@pytest.fixture
+def mock_dataframe():
+    df = pl.DataFrame(
+        {
+            "supp_flag": ["0", "0", "0", "0", "0", "0", "0", "1"],
+            "text_col1": ["area", "area", "area", "area", "age", "age", "age", "age"],
+            "text_col2": ["PA", "US", "PA", "US", "18+", " 18+ ", "18- 45", " 18 - 45"],
+            "time": ["2025-08-26"] * 8,
+            "estimate": [1.0, 10.0, 1.0, 10.0, 2.0, 2.0, 6.0, 6.0],
+            "_ci_95": [0.1, 0.1, 1.0, 10.2, 0.2, 0.2, 0.6, 0.6],
+            "ss": [100, 100, 1000, 1000, 100, 100, 100, 100],
+        }
+    )
+    return df
+
+
+def test_drop_bad_rows(mock_dataframe):
+    result = drop_bad_rows(
+        mock_dataframe.lazy(), colname="supp_flag", bad_columns=["_ci_95", "ss"]
+    ).collect()
+
+    expected = pl.DataFrame(
+        {
+            "text_col1": ["area", "area", "area", "area", "age", "age", "age"],
+            "text_col2": ["PA", "US", "PA", "US", "18+", " 18+ ", "18- 45"],
+            "time": ["2025-08-26"] * 7,
+            "estimate": [1.0, 10.0, 1.0, 10.0, 2.0, 2.0, 6.0],
+        }
+    )
+
+    polars.testing.assert_frame_equal(result, expected, check_row_order=False)
 
 
 def test_mean_max_diff():
