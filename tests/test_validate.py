@@ -14,7 +14,18 @@ def test_range_problems():
             "estimate": [0.5, 1.2],
             "lci": [0.4, 1.1],
             "uci": [0.6, 1.3],
+            "geography_type": "nation",
+            "geography": "nation",
+            "domain_type": "all",
+            "domain": "all",
+            "time_type": "week",
+            "time_start": ["2025-08-14", "2025-08-20"],
+            "time_end": ["2025-08-21", "2025-08-27"],
+            "sample_size": 10,
         }
+    ).with_columns(
+        time_start=pl.col("time_start").str.to_date(),
+        time_end=pl.col("time_end").str.to_date(),
     )
     v = Validate(id="test_df", df=df, mode="warn")
     # we should get an error about each col
@@ -33,7 +44,18 @@ def test_range_error():
             "estimate": [0.5, 1.2],
             "lci": [0.4, 1.1],
             "uci": [0.6, 1.3],
+            "geography_type": "nation",
+            "geography": "nation",
+            "domain_type": "all",
+            "domain": "all",
+            "time_type": "week",
+            "time_start": ["2025-08-14", "2025-08-20"],
+            "time_end": ["2025-08-21", "2025-08-27"],
+            "sample_size": 10,
         }
+    ).with_columns(
+        time_start=pl.col("time_start").str.to_date(),
+        time_end=pl.col("time_end").str.to_date(),
     )
     with pytest.raises(RuntimeError):
         Validate(id="test_df", df=df, mode="error")
