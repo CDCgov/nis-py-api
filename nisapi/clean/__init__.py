@@ -150,9 +150,9 @@ class Validate:
             intervals=(pl.col("time_end") - pl.col("time_start")).dt.total_days()
         )
 
-        if not df_with_intervals["intervals"].is_in([7, 28, 29, 30, 31]).all():
+        if not df_with_intervals["intervals"].is_in([6, 7, 8, 28, 29, 30, 31]).all():
             bad_intervals = df_with_intervals.filter(
-                pl.col("intervals").is_in([7, 28, 29, 30, 31]).not_()
+                pl.col("intervals").is_in([6, 7, 8, 28, 29, 30, 31]).not_()
             ).glimpse(return_as_string=True)
             problems.append(
                 f"Unusual intervals between time_start and time_end: {bad_intervals}"
