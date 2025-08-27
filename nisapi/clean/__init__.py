@@ -102,7 +102,7 @@ class Validate:
 
         # df must have expected column order and types
         if not df.schema == data_schema:
-            problems.append(f"Bad schema: {df.schema}")
+            problems.append(f"Bad schema: {df.schema}. Expected schema: {data_schema}.")
 
         # no duplicated rows
         if df.is_duplicated().any():
@@ -110,9 +110,7 @@ class Validate:
             problems.append(f"Duplicated rows: {rows}")
 
         # no duplicated values
-        if not {"estimate", "lci", "uci"}.issubset(df.columns):
-            problems.append("Missing columns: `estimate`, `lci`, or `uci`")
-        elif df.drop(["estimate", "lci", "uci"]).is_duplicated().any():
+        if df.drop(["estimate", "lci", "uci"]).is_duplicated().any():
             dup_groups = (
                 df.drop(["estimate", "lci", "uci"])
                 .pipe(duplicated_rows)
@@ -142,21 +140,31 @@ class Validate:
         pass
 
         # Times -------------------------------------------------------------------
-        if "time_type" not in df.columns:
-            problems.append("Missing column `time_type`")
-        elif not df["time_type"].is_in(["week", "month"]).all():
-            problems.append("Bad time type")
+        if not df["time_type"].is_in(["week", "month"]).all():
+            bad_time_types = set(df["time_type"].unique()) - set(["week", "month"])
+            problems.append(
+                f"Bad time type: {bad_time_types}. Expected only 'week' or 'month."
+            )
 
-        if not {"time_start", "time_end"}.issubset(df.columns):
-            problems.append("Missing columns `time_start` or `time_end`")
-        elif not (df["time_start"] <= df["time_end"]).all():
-            problems.append("Not all time starts are before time ends")
+        df_with_intervals = df.with_columns(
+            intervals=(pl.col("time_end") - pl.col("time_start")).dt.total_days()
+        )
+
+        if not df_with_intervals["intervals"].is_in([7, 28, 29, 30, 31]).all():
+            bad_intervals = df_with_intervals.filter(
+                pl.col("intervals").is_in([7, 28, 29, 30, 31]).not_()
+            ).glimpse(return_as_string=True)
+            problems.append(
+                f"Unusual intervals between time_start and time_end: {bad_intervals}"
+            )
 
         # Metrics -----------------------------------------------------------------
         # estimates and CIs must be proportions
         for col in ["estimate", "lci", "uci"]:
             if not df[col].is_between(0.0, 1.0).all():
-                bad_rows = df.filter(pl.col(col).is_between(0.0, 1.0).not_())
+                bad_rows = df.filter(pl.col(col).is_between(0.0, 1.0).not_()).glimpse(
+                    return_as_string=True
+                )
                 problems.append(f"`{col}` is not in range 0-1: {bad_rows}")
 
         # confidence intervals must bracket estimate
@@ -164,16 +172,21 @@ class Validate:
             bad_rows = df.filter(
                 (pl.col("lci") > pl.col("estimate"))
                 | (pl.col("uci") < pl.col("estimate"))
-            )
+            ).glimpse(return_as_string=True)
             problems.append(f"confidence intervals do not bracket estimate: {bad_rows}")
+
+        # Sample Sizes ------------------------------------------------------------
+        # sample sizes must be positive
+        if not (df["sample_size"] > 0).all():
+            bad_sample_sizes = df.filter(pl.col("sample_size") <= 0).glimpse(
+                return_as_string=True
+            )
+            problems.append(f"Non-positive sample sizes: {bad_sample_sizes}")
 
         return problems
 
     @staticmethod
     def validate_vaccine(df: pl.DataFrame, column: str) -> List[str]:
-        if column not in df.columns:
-            return [f"Missing column `{column}`"]
-
         bad_vaccines = set(df[column].to_list()) - {
             "flu",
             "covid",
@@ -192,9 +205,6 @@ class Validate:
     def validate_geography(
         cls, df: pl.DataFrame, type_column: str, value_column: str
     ) -> List[str]:
-        if not {type_column, value_column}.issubset(df.columns):
-            return [f"Missing columns `{type_column}` or `{value_column}`"]
-
         errors = []
 
         # type must be in a certain set
@@ -258,9 +268,6 @@ class Validate:
 
     @classmethod
     def validate_age_groups(cls, df) -> List[str]:
-        if "domain_type" not in df.columns:
-            return ["Missing column `domain_type`"]
-
         age_groups = df.filter(pl.col("domain_type") == pl.lit("age"))[
             "domain"
         ].unique()
