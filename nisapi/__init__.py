@@ -1,4 +1,5 @@
 import importlib.resources
+import json
 import shutil
 import tempfile
 import warnings
@@ -8,7 +9,6 @@ from typing import Literal, Optional
 
 import platformdirs
 import polars as pl
-import json
 
 import nisapi.clean
 import nisapi.socrata
@@ -83,11 +83,16 @@ def delete_cache(path: Optional[Path] = None, confirm: bool = True) -> None:
         shutil.rmtree(path)
 
 
-def _get_dataset_ids() -> Sequence[str]:
-    with importlib.resources.open_text(nisapi, "datasets.json") as f:
-        datasets = json.load(f)
+def _get_metadata() -> dict:
+    with importlib.resources.open_text(nisapi, "metadata.json") as f:
+        metadata = json.load(f)
 
-    return [dataset["id"] for dataset in datasets["datasets"]]
+    return metadata
+
+
+def _get_dataset_ids() -> Sequence[str]:
+    metadata = _get_metadata()
+    return [dataset["id"] for dataset in metadata["datasets"]]
 
 
 def _cache_clean_dataset(
@@ -97,10 +102,9 @@ def _cache_clean_dataset(
     overwrite: str,
     validation_mode: str,
 ) -> None:
-    with importlib.resources.open_text(nisapi, "datasets.json") as f:
-        datasets = json.load(f)
+    metadata = _get_metadata()
 
-    clean_args = [d for d in datasets["datasets"] if d.get("id") == id][0].get(
+    clean_args = [d for d in metadata["datasets"] if d.get("id") == id][0].get(
         "cleaning_arguments"
     )
 
