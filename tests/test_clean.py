@@ -4,14 +4,14 @@ import pytest
 
 from nisapi.clean import Validate
 from nisapi.clean.helpers import (
+    _borrow_column_values,
+    _mean_max_diff,
     _replace_column_name,
     _replace_column_values,
-    _borrow_column_values,
     clean_estimate,
     clean_lci_uci,
     clean_time_start_end,
     drop_bad_rows,
-    _mean_max_diff,
     remove_duplicates,
     rows_with_any_null,
 )
@@ -144,7 +144,11 @@ def test_clean_time_start_end_twocol(mock_df):
 
 
 def test_clean_estimate(mock_df):
-    result = clean_estimate(mock_df.lazy(), "estimate").collect()
+    with pytest.warns(
+        UserWarning,
+        match="Some rows contain non-numeric estimates. These rows will be dropped.",
+    ):
+        result = mock_df.lazy().pipe(clean_estimate, "estimate").collect()
 
     expected = pl.DataFrame(
         {
@@ -166,8 +170,16 @@ def test_clean_estimate(mock_df):
 
 
 def test_clean_lci_uci_half(mock_df):
-    result = clean_estimate(mock_df.lazy(), "estimate")
-    result = clean_lci_uci(result, "_ci_95", "half").collect()
+    with pytest.warns(
+        UserWarning,
+        match="Some rows contain non-numeric estimates. These rows will be dropped.",
+    ):
+        result = (
+            mock_df.lazy()
+            .pipe(clean_estimate, "estimate")
+            .pipe(clean_lci_uci, "_ci_95", "half")
+            .collect()
+        )
 
     expected = pl.DataFrame(
         {
@@ -190,8 +202,16 @@ def test_clean_lci_uci_half(mock_df):
 
 
 def test_clean_lci_uci_full(mock_df):
-    result = clean_estimate(mock_df.lazy(), "estimate")
-    result = clean_lci_uci(result, "ci", "full", "to").collect()
+    with pytest.warns(
+        UserWarning,
+        match="Some rows contain non-numeric estimates. These rows will be dropped.",
+    ):
+        result = (
+            mock_df.lazy()
+            .pipe(clean_estimate, "estimate")
+            .pipe(clean_lci_uci, "ci", "full", "to")
+            .collect()
+        )
 
     expected = pl.DataFrame(
         {
