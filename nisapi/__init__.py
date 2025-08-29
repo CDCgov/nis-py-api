@@ -85,7 +85,7 @@ def delete_cache(path: Optional[Path] = None, confirm: bool = True) -> None:
 
 def _get_metadata() -> dict:
     """Load all metadata"""
-    with importlib.resources.open_text(nisapi, "metadata.json") as f:
+    with (importlib.resources.files(nisapi) / "metadata.json").open() as f:
         metadata = json.load(f)
 
     return metadata
