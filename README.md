@@ -109,11 +109,11 @@ Rows that were suppressed in the raw data are dropped. This includes data with s
 ### Adding a new dataset
 
 1. Find the dataset you want to clean on <https://data.cdc.gov/>.
-2. Add the dataset to `nisapi/datasets.json`.
+2. Add the dataset to `nisapi/metadata.json`.
    - At a minimum, you must include the dataset ID and cleaning arguments (see below).
    - It is helpful to also include URL, vaccine, date range, and universe.
 3. Supply the dataset-specific arguments for the cleaning helper functions.
-   - Start by copying the cleaning arguments for a relatively simple example, like `sw5n-wg2p`, to the new dataset's entry in `nisapi/datasets.json`.
+   - Start by copying the cleaning arguments for a relatively simple example, like `sw5n-wg2p`, to the new dataset's entry in `nisapi/metadata.json`.
    - Replace the arguments for each helper function with arguments suitable to the new dataset.
 4. Run `scripts/demo_clean.py`, after substituting the name of the dataset you are adding in Line 9. This should cache the raw dataset and run the cleaning function. It will probably fail on validation, because there are often quirks of a new dataset that were not obvious at first.
 5. Iteratively update the cleaning arguments until validation passes.
