@@ -1,4 +1,5 @@
 import importlib.resources
+import json
 import shutil
 import tempfile
 import warnings
@@ -8,7 +9,6 @@ from typing import Literal, Optional
 
 import platformdirs
 import polars as pl
-import json
 
 import nisapi.clean
 import nisapi.socrata
@@ -83,11 +83,30 @@ def delete_cache(path: Optional[Path] = None, confirm: bool = True) -> None:
         shutil.rmtree(path)
 
 
-def _get_dataset_ids() -> Sequence[str]:
-    with importlib.resources.open_text(nisapi, "datasets.json") as f:
-        datasets = json.load(f)
+def _get_metadata() -> dict:
+    """Load all metadata"""
+    with (importlib.resources.files(nisapi) / "metadata.json").open() as f:
+        metadata = json.load(f)
 
-    return [dataset["id"] for dataset in datasets["datasets"]]
+    return metadata
+
+
+def _get_dataset_ids() -> Sequence[str]:
+    """Get IDs of datasets present in the metadata"""
+    metadata = _get_metadata()
+    return [dataset["id"] for dataset in metadata["datasets"]]
+
+
+def _get_dataset_metadata(id: str, key: str):
+    """Get metadata associated with a single dataset and key"""
+    metadata = _get_metadata()
+    datasets = metadata["datasets"]
+    assert id in [d["id"] for d in datasets], f"Unknown dataset ID: {id}"
+    this_metadata = next(d for d in datasets if d["id"] == id)
+    assert isinstance(this_metadata, dict)
+
+    assert key in this_metadata, f"Key {key} not found in metadata for dataset {id}"
+    return this_metadata[key]
 
 
 def _cache_clean_dataset(
@@ -97,12 +116,7 @@ def _cache_clean_dataset(
     overwrite: str,
     validation_mode: str,
 ) -> None:
-    with importlib.resources.open_text(nisapi, "datasets.json") as f:
-        datasets = json.load(f)
-
-    clean_args = [d for d in datasets["datasets"] if d.get("id") == id][0].get(
-        "cleaning_arguments"
-    )
+    clean_args = _get_dataset_metadata(id, "cleaning_arguments")
 
     raw_data_path = get_data_path(path=cache_path, type_="raw", id=id)
     raw_data = _get_nis_raw(id=id, raw_data_path=raw_data_path, app_token=app_token)
