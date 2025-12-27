@@ -12,6 +12,9 @@ import polars as pl
 
 import nisapi.clean
 import nisapi.socrata
+from nisapi.clean import VALIDATION_MODES
+
+OVERWRITE_OPTIONS = Literal["warn", "force"]
 
 
 def get_nis(path: Optional[Path] = None) -> pl.LazyFrame:
@@ -31,8 +34,8 @@ def get_nis(path: Optional[Path] = None) -> pl.LazyFrame:
 def cache_all_datasets(
     path: Optional[Path] = None,
     app_token: Optional[str] = None,
-    overwrite: str = "warn",
-    validation_mode: str = "warn",
+    overwrite: OVERWRITE_OPTIONS = "warn",
+    validation_mode: VALIDATION_MODES = "warn",
 ) -> None:
     """Download all raw datasets known in the metadata, and clean them
 
@@ -40,10 +43,11 @@ def cache_all_datasets(
         path (Path, optional): Path to cache. If None (default), use
             default location.
         app_token (str): Socrata developer API token
-        overwrite (str): Overwrite existing datasets? Default ("warn")
-            will not overwrite but will print a warning.
-        validation_mode (str): How should validation problems be handled?
-            Default ("warn") will print a warning and continue.
+        overwrite: Overwrite existing datasets? Default ("warn")
+            will not overwrite but will print a warning. "force" will
+            overwrite.
+        validation_mode: How should validation problems be handled? See
+            Validate().
     """
     if path is None:
         path = default_cache_path()
@@ -113,8 +117,8 @@ def _cache_clean_dataset(
     id: str,
     cache_path: Path,
     app_token: Optional[str],
-    overwrite: str,
-    validation_mode: str,
+    overwrite: OVERWRITE_OPTIONS,
+    validation_mode: VALIDATION_MODES,
 ) -> None:
     clean_args = _get_dataset_metadata(id, "cleaning_arguments")
 
@@ -127,8 +131,10 @@ def _cache_clean_dataset(
     clean_data_filepath = clean_data_path / "part-0.parquet"
 
     if clean_data_filepath.exists():
-        msg = f"Clean dataset {clean_data_filepath} already exists"
-        if overwrite == "warn":
+        if overwrite == "force":
+            pass
+        elif overwrite == "warn":
+            msg = f"Clean dataset {clean_data_filepath} already exists"
             warnings.warn(msg)
             return None
         else:

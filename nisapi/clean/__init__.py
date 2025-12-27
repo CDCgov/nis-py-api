@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Literal, get_args
 
 import polars as pl
 
@@ -25,9 +25,11 @@ from nisapi.clean.helpers import (
     rows_with_any_null,
 )
 
+VALIDATION_MODES = Literal["warn", "error", "ignore"]
+
 
 def clean_dataset(
-    df: pl.LazyFrame, id: str, clean_args: dict, validation_mode: str
+    df: pl.LazyFrame, id: str, clean_args: dict, validation_mode: VALIDATION_MODES
 ) -> pl.DataFrame:
     """Clean a raw dataset, applying dataset-specific cleaning rules
 
@@ -35,7 +37,7 @@ def clean_dataset(
         df (pl.DataFrame): raw dataset
         id (str): dataset id
         clean_args (dict): cleaning arguments for the raw data set
-        validation_mode (str): validation mode
+        validation_mode: validation mode. See Validate().
 
     Returns:
         pl.DataFrame: clean dataset
@@ -65,8 +67,6 @@ def clean_dataset(
 
 
 class Validate:
-    modes = ["warn", "error", "ignore"]
-
     def __init__(self, id: str, df: pl.DataFrame | pl.LazyFrame, mode: str):
         """Set up for validation
 
@@ -80,8 +80,9 @@ class Validate:
         self.id = id
         self.df = df.pipe(ensure_eager)
 
-        if mode not in self.modes:
-            raise RuntimeError(f"Unknown mode {mode}. Must be one of: {self.modes}.")
+        modes = get_args(VALIDATION_MODES)
+        if mode not in modes:
+            raise RuntimeError(f"Unknown mode {mode}. Must be one of: {modes}.")
 
         self.mode = mode
 
