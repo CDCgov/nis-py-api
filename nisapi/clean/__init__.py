@@ -125,7 +125,8 @@ class Validate:
 
         # whitespace
         for column in ["domain_type", "domain", "indicator_type", "indicator"]:
-            cls.validate_whitespace(df, column=column)
+            problems += cls.validate_whitespace(df, column=column)
+            # problems += cls.validate_capitals(df, column=column)
 
         # Vaccine -------------------------------------------------------------
         # `vaccine` must be in a certain set
@@ -295,6 +296,10 @@ class Validate:
             | x.str.contains(r"^\s+")
             | x.str.contains(r"\s+$")
         )
+
+    @staticmethod
+    def _has_bad_capitals(x):
+        return x.str.contains(r"[A-Z]+")
 
     @classmethod
     def validate_age_groups(cls, df) -> List[str]:
