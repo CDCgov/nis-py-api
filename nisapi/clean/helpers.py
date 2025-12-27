@@ -209,6 +209,7 @@ def clean_domain_type(
         df.pipe(_replace_column_name, "domain_type", colname, override)
         .pipe(_replace_column_values, "domain_type", lowercase, replace, append, infer)
         .pipe(_borrow_column_values, "domain_type", donor_colname, transfer)
+        .pipe(_normalize_whitespace, "domain_type")
     )
 
     return df
@@ -235,6 +236,7 @@ def clean_domain(
         df.pipe(_replace_column_name, "domain", colname, override)
         .pipe(_replace_column_values, "domain", lowercase, replace, append, infer)
         .pipe(_borrow_column_values, "domain", donor_colname, transfer)
+        .pipe(_normalize_whitespace, "domain")
     )
 
     return df
@@ -260,6 +262,7 @@ def clean_indicator_type(
             _replace_column_values, "indicator_type", lowercase, replace, append, infer
         )
         .pipe(_borrow_column_values, "indicator_type", donor_colname, transfer)
+        .pipe(_normalize_whitespace, "indicator_type")
     )
 
     return df
@@ -283,6 +286,7 @@ def clean_indicator(
         df.pipe(_replace_column_name, "indicator", colname, override)
         .pipe(_replace_column_values, "indicator", lowercase, replace, append, infer)
         .pipe(_borrow_column_values, "indicator", donor_colname, transfer)
+        .pipe(_normalize_whitespace, "indicator")
     )
 
     return df
@@ -706,6 +710,13 @@ def _borrow_column_values(
     df = df.with_columns(new_values.alias(recip_colname))
 
     return df
+
+
+def _normalize_whitespace(df: pl.LazyFrame, colname: str) -> pl.LazyFrame:
+    """Remove leading & trailing whitespace, then compact any internal whitespace into single spaces"""
+    return df.with_columns(
+        pl.col(colname).str.strip_chars(characters=None).str.replace_all(r"\s+", " ")
+    )
 
 
 def enforce_schema(df: pl.LazyFrame, schema: pl.Schema = data_schema) -> pl.LazyFrame:

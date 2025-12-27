@@ -1,33 +1,42 @@
 import re
+from datetime import date
 
 import polars as pl
 import pytest
 
 from nisapi.clean import Validate
+from nisapi.clean.helpers import data_schema
+
+BASE_DF = pl.DataFrame(
+    {
+        "vaccine": "flu",
+        "estimate": [0.5, 0.6],
+        "lci": [0.4, 0.5],
+        "uci": [0.6, 0.7],
+        "geography_type": "nation",
+        "geography": "nation",
+        "domain_type": "all",
+        "domain": "all",
+        "indicator_type": "vaccination",
+        "indicator": "received a vaccination",
+        "time_type": "week",
+        "time_start": [date(2025, 8, 14), date(2025, 8, 20)],
+        "time_end": [date(2025, 8, 21), date(2025, 8, 27)],
+        "sample_size": 10,
+    },
+    schema=data_schema,
+)
+
+BAD_RANGE_DF = BASE_DF.with_columns(
+    estimate=pl.Series([0.5, 1.2]),
+    lci=pl.Series([0.4, 1.1]),
+    uci=pl.Series([0.6, 1.3]),
+)
 
 
 def test_range_problems():
     """Estimate, lci, or uci outside of 0-1 should throw an error"""
-    df = pl.DataFrame(
-        {
-            "vaccine": "flu",
-            "estimate": [0.5, 1.2],
-            "lci": [0.4, 1.1],
-            "uci": [0.6, 1.3],
-            "geography_type": "nation",
-            "geography": "nation",
-            "domain_type": "all",
-            "domain": "all",
-            "time_type": "week",
-            "time_start": ["2025-08-14", "2025-08-20"],
-            "time_end": ["2025-08-21", "2025-08-27"],
-            "sample_size": 10,
-        }
-    ).with_columns(
-        time_start=pl.col("time_start").str.to_date(),
-        time_end=pl.col("time_end").str.to_date(),
-    )
-    v = Validate(id="test_df", df=df, mode="warn")
+    v = Validate(id="test_df", df=BAD_RANGE_DF, mode="warn")
     # we should get an error about each col
     for col in ["estimate", "lci", "uci"]:
         matches = [re.search(f"`{col}` is not in range 0-1", x) for x in v.problems]
@@ -38,24 +47,29 @@ def test_range_problems():
 
 def test_range_error():
     """Range problems should throw an error if we are in error mode"""
-    df = pl.DataFrame(
-        {
-            "vaccine": "flu",
-            "estimate": [0.5, 1.2],
-            "lci": [0.4, 1.1],
-            "uci": [0.6, 1.3],
-            "geography_type": "nation",
-            "geography": "nation",
-            "domain_type": "all",
-            "domain": "all",
-            "time_type": "week",
-            "time_start": ["2025-08-14", "2025-08-20"],
-            "time_end": ["2025-08-21", "2025-08-27"],
-            "sample_size": 10,
-        }
-    ).with_columns(
-        time_start=pl.col("time_start").str.to_date(),
-        time_end=pl.col("time_end").str.to_date(),
-    )
     with pytest.raises(RuntimeError):
-        Validate(id="test_df", df=df, mode="error")
+        Validate(id="test_df", df=BAD_RANGE_DF, mode="error")
+
+
+def test_has_excess_whitespace():
+    bad_strings = pl.Series(
+        [
+            "non-space\twhitespace",
+            "multiple  whitespace",
+            " starting whitespace",
+            "trailing whitespace ",
+        ]
+    )
+    assert Validate._has_excess_whitespace(bad_strings).all()
+
+    assert Validate._has_excess_whitespace(pl.Series(["this is ok"])).not_().all()
+
+
+def test_has_excess_whitespace_df():
+    df = BASE_DF.with_columns(indicator=pl.lit("received  a  vaccination")).select(
+        BASE_DF.columns
+    )
+
+    v = Validate(id="test_df", df=df, mode="warn")
+    assert len(v.problems) == 1
+    assert "whitespace" in v.problems[0]
