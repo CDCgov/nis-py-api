@@ -127,6 +127,7 @@ class Validate:
         # whitespace
         for column in ["domain_type", "domain", "indicator_type", "indicator"]:
             problems += cls.validate_whitespace(df, column=column)
+            problems += cls.validate_capitals(df, column=column)
 
         # Vaccine -------------------------------------------------------------
         # `vaccine` must be in a certain set
@@ -280,7 +281,18 @@ class Validate:
             .to_list()
         )
 
-        return [f"Bad whitespace in column {column}: '{x}'" for x in bad_values]
+        return [f"Bad whitespace in column '{column}': '{x}'" for x in bad_values]
+
+    @classmethod
+    def validate_capitals(cls, df: pl.DataFrame, column: str) -> List[str]:
+        bad_values = (
+            df.select(pl.col(column).unique())
+            .filter(pl.col(column).pipe(cls._has_bad_capitals))
+            .to_series()
+            .to_list()
+        )
+
+        return [f"Bad capitals in column '{column}': '{x}'" for x in bad_values]
 
     @staticmethod
     def _has_excess_whitespace(x):
