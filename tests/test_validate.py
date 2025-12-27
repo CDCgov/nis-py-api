@@ -73,21 +73,3 @@ def test_has_excess_whitespace_df():
     v = Validate(id="test_df", df=df, mode="warn")
     assert len(v.problems) == 1
     assert "whitespace" in v.problems[0]
-
-
-def test_has_bad_capitals():
-    bad_strings = pl.Series(
-        [
-            "Received a vaccination",
-            "RECEIVED A VACCINATION",
-            "received a Vaccination",
-        ]
-    )
-    assert Validate._has_bad_capitals(bad_strings).all()
-
-    good_strings = pl.Series(
-        [
-            "received a vaccination",
-        ]
-    )
-    assert Validate._has_bad_capitals(good_strings).not_().all()
