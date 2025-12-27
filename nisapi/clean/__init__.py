@@ -4,7 +4,6 @@ import polars as pl
 
 from nisapi.clean.helpers import (
     admin1_values,
-    data_schema,
     clean_domain,
     clean_domain_type,
     clean_estimate,
@@ -17,11 +16,12 @@ from nisapi.clean.helpers import (
     clean_time_start_end,
     clean_time_type,
     clean_vaccine,
+    data_schema,
     drop_bad_rows,
-    enforce_schema,
-    remove_duplicates,
     duplicated_rows,
+    enforce_schema,
     ensure_eager,
+    remove_duplicates,
     rows_with_any_null,
 )
 
@@ -123,6 +123,10 @@ class Validate:
         if null_rows.shape[0] > 0:
             problems.append(f"Null values in rows: {null_rows}")
 
+        # whitespace
+        for column in ["domain_type", "domain", "indicator_type", "indicator"]:
+            cls.validate_whitespace(df, column=column)
+
         # Vaccine -------------------------------------------------------------
         # `vaccine` must be in a certain set
         problems += cls.validate_vaccine(df, column="vaccine")
@@ -132,7 +136,7 @@ class Validate:
             df, type_column="geography_type", value_column="geography"
         )
 
-        # domains ------------------------------------------------------------
+        # Domain --------------------------------------------------------------
         # age groups should have the form "18-49 years" or "65+ years"
         problems += cls.validate_age_groups(df)
 
@@ -265,6 +269,32 @@ class Validate:
         # no validation applies to substate
 
         return errors
+
+    @classmethod
+    def validate_whitespace(cls, df: pl.DataFrame, column: str) -> List[str]:
+        bad_values = (
+            df.select(pl.col(column).unique())
+            .filter(pl.col(column).pipe(cls._has_excess_whitespace))
+            .to_series()
+            .to_list()
+        )
+
+        return [f"Bad whitespace in column {column}: '{x}'" for x in bad_values]
+
+    @staticmethod
+    def _has_excess_whitespace(x):
+        """
+        String contains any of:
+          - whitespace other than space
+          - multiple whitespaces characters in a row
+          - whitespace at the start or end of the string
+        """
+        return (
+            x.str.contains(r"[^\S ]")
+            | x.str.contains(r"\s{2,}")
+            | x.str.contains(r"^\s+")
+            | x.str.contains(r"\s+$")
+        )
 
     @classmethod
     def validate_age_groups(cls, df) -> List[str]:

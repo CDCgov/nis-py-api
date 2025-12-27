@@ -59,3 +59,17 @@ def test_range_error():
     )
     with pytest.raises(RuntimeError):
         Validate(id="test_df", df=df, mode="error")
+
+
+def test_has_excess_whitespace():
+    bad_strings = pl.Series(
+        [
+            "non-space\twhitespace",
+            "multiple  whitespace",
+            " starting whitespace",
+            "trailing whitespace ",
+        ]
+    )
+    assert Validate._has_excess_whitespace(bad_strings).all()
+
+    assert Validate._has_excess_whitespace(pl.Series(["this is ok"])).not_().all()
