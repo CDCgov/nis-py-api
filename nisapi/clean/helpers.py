@@ -210,6 +210,7 @@ def clean_domain_type(
         .pipe(_replace_column_values, "domain_type", lowercase, replace, append, infer)
         .pipe(_borrow_column_values, "domain_type", donor_colname, transfer)
         .pipe(_normalize_whitespace, "domain_type")
+        .pipe(_normalize_capitalization, "domain_type")
     )
 
     return df
@@ -237,6 +238,7 @@ def clean_domain(
         .pipe(_replace_column_values, "domain", lowercase, replace, append, infer)
         .pipe(_borrow_column_values, "domain", donor_colname, transfer)
         .pipe(_normalize_whitespace, "domain")
+        .pipe(_normalize_capitalization, "domain")
     )
 
     return df
@@ -263,6 +265,7 @@ def clean_indicator_type(
         )
         .pipe(_borrow_column_values, "indicator_type", donor_colname, transfer)
         .pipe(_normalize_whitespace, "indicator_type")
+        .pipe(_normalize_capitalization, "indicator_type")
     )
 
     return df
@@ -287,6 +290,7 @@ def clean_indicator(
         .pipe(_replace_column_values, "indicator", lowercase, replace, append, infer)
         .pipe(_borrow_column_values, "indicator", donor_colname, transfer)
         .pipe(_normalize_whitespace, "indicator")
+        .pipe(_normalize_capitalization, "indicator")
     )
 
     return df
@@ -717,6 +721,11 @@ def _normalize_whitespace(df: pl.LazyFrame, colname: str) -> pl.LazyFrame:
     return df.with_columns(
         pl.col(colname).str.strip_chars(characters=None).str.replace_all(r"\s+", " ")
     )
+
+
+def _normalize_capitalization(df: pl.LazyFrame, colname: str) -> pl.LazyFrame:
+    """Use lowercase everwhere"""
+    return df.with_columns(pl.col(colname).str.to_lowercase())
 
 
 def enforce_schema(df: pl.LazyFrame, schema: pl.Schema = data_schema) -> pl.LazyFrame:
