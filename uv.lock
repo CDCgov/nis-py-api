@@ -557,7 +557,7 @@ wheels = [
 
 [[package]]
 name = "nisapi"
-version = "1.0.1"
+version = "1.0.3"
 source = { editable = "." }
 dependencies = [
     { name = "platformdirs" },
