@@ -5,7 +5,7 @@ import tempfile
 import warnings
 from collections.abc import Sequence
 from pathlib import Path
-from typing import Literal, Optional
+from typing import Literal
 
 import platformdirs
 import polars as pl
@@ -17,7 +17,7 @@ from nisapi.clean import VALIDATION_MODES
 OVERWRITE_OPTIONS = Literal["warn", "force"]
 
 
-def get_nis(path: Optional[Path] = None) -> pl.LazyFrame:
+def get_nis(path: Path | None = None) -> pl.LazyFrame:
     """Get the cleaned NIS dataset
 
     Args:
@@ -32,8 +32,8 @@ def get_nis(path: Optional[Path] = None) -> pl.LazyFrame:
 
 
 def cache_all_datasets(
-    path: Optional[Path] = None,
-    app_token: Optional[str] = None,
+    path: Path | None = None,
+    app_token: str | None = None,
     overwrite: OVERWRITE_OPTIONS = "warn",
     validation_mode: VALIDATION_MODES = "warn",
 ) -> None:
@@ -62,7 +62,7 @@ def cache_all_datasets(
         )
 
 
-def delete_cache(path: Optional[Path] = None, confirm: bool = True) -> None:
+def delete_cache(path: Path | None = None, confirm: bool = True) -> None:
     """Delete cache
 
     Args:
@@ -76,7 +76,7 @@ def delete_cache(path: Optional[Path] = None, confirm: bool = True) -> None:
 
     if not Path(path).exists():
         warnings.warn(f"Cache path {path} does not exist")
-        return None
+        return
 
     if confirm:
         yn = input(f"Remove all files in {path}? [y/N] ").lower()
@@ -116,7 +116,7 @@ def _get_dataset_metadata(id: str, key: str):
 def _cache_clean_dataset(
     id: str,
     cache_path: Path,
-    app_token: Optional[str],
+    app_token: str | None,
     overwrite: OVERWRITE_OPTIONS,
     validation_mode: VALIDATION_MODES,
 ) -> None:
@@ -136,7 +136,7 @@ def _cache_clean_dataset(
         elif overwrite == "warn":
             msg = f"Clean dataset {clean_data_filepath} already exists"
             warnings.warn(msg)
-            return None
+            return
         else:
             raise RuntimeError(f"Invalid overwrite option '{overwrite}'")
 
@@ -147,9 +147,9 @@ def _cache_clean_dataset(
 
 
 def get_data_path(
-    path: Optional[Path] = None,
+    path: Path | None = None,
     type_: Literal["clean", "raw"] = "clean",
-    id: Optional[str] = None,
+    id: str | None = None,
 ) -> Path:
     """
     Get the path to a particular dataset, or to a part of the cache.
@@ -188,7 +188,7 @@ def default_cache_path() -> Path:
 
 
 def _get_nis_raw(
-    id: str, raw_data_path: Path, app_token: Optional[str]
+    id: str, raw_data_path: Path, app_token: str | None
 ) -> pl.LazyFrame:
     """
     Args:
@@ -208,7 +208,7 @@ def _get_nis_raw(
     return pl.scan_parquet(filepath)
 
 
-def _download_dataset(id: str, app_token: Optional[str]) -> pl.DataFrame:
+def _download_dataset(id: str, app_token: str | None) -> pl.DataFrame:
     """Download a raw NIS dataset
 
     Args:

@@ -574,7 +574,7 @@ def test_validate_age_groups():
             {
                 "age_group": [
                     # en dash should fail
-                    "18–49 years"
+                    "18–49 years",
                     # missing "years" should fail
                     "18-49",
                     # fail if there are spaces

@@ -1,4 +1,3 @@
-from typing import Optional
 
 import altair as alt
 import polars as pl
@@ -11,7 +10,7 @@ def widget_filter(
     df: pl.DataFrame,
     column: str,
     options=None,
-    default: Optional[str] = None,
+    default: str | None = None,
     n_radio_max: int = 5,
 ) -> pl.DataFrame:
     if options is None:

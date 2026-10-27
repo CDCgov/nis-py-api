@@ -1,5 +1,4 @@
 import warnings
-from typing import List, Optional
 
 import polars as pl
 
@@ -84,8 +83,8 @@ admin1_values = [
 
 def drop_bad_rows(
     df: pl.LazyFrame,
-    colname: Optional[str] = None,
-    bad_columns: Optional[str | List[str]] = None,
+    colname: str | None = None,
+    bad_columns: str | list[str] | None = None,
 ) -> pl.LazyFrame:
     """
     Bad rows are those with a suppression flag or null values.
@@ -107,14 +106,14 @@ def drop_bad_rows(
 
 def clean_geography_type(
     df: pl.LazyFrame,
-    colname: Optional[str] = None,
-    override: Optional[str] = None,
+    colname: str | None = None,
+    override: str | None = None,
     lowercase: bool = True,
-    replace: Optional[dict] = None,
-    append: Optional[str | List[str]] = None,
-    infer: Optional[dict] = None,
-    donor_colname: Optional[str] = None,
-    transfer: Optional[dict] = None,
+    replace: dict | None = None,
+    append: str | list[str] | None = None,
+    infer: dict | None = None,
+    donor_colname: str | None = None,
+    transfer: dict | None = None,
 ) -> pl.LazyFrame:
     """
     Geography type is the scale of geographic division.
@@ -140,14 +139,14 @@ def clean_geography_type(
 
 def clean_geography(
     df: pl.LazyFrame,
-    colname: Optional[str] = None,
-    override: Optional[str] = None,
+    colname: str | None = None,
+    override: str | None = None,
     lowercase: bool = False,
-    replace: Optional[dict] = None,
-    append: Optional[str | List[str]] = None,
-    infer: Optional[dict] = None,
-    donor_colname: Optional[str] = None,
-    transfer: Optional[dict] = None,
+    replace: dict | None = None,
+    append: str | list[str] | None = None,
+    infer: dict | None = None,
+    donor_colname: str | None = None,
+    transfer: dict | None = None,
 ) -> pl.LazyFrame:
     """
     Geography is the specific geographic location.
@@ -190,14 +189,14 @@ def clean_geography(
 
 def clean_domain_type(
     df: pl.LazyFrame,
-    colname: Optional[str] = None,
-    override: Optional[str] = None,
+    colname: str | None = None,
+    override: str | None = None,
     lowercase: bool = True,
-    replace: Optional[dict] = None,
-    append: Optional[str | List[str]] = None,
-    infer: Optional[dict] = None,
-    donor_colname: Optional[str] = None,
-    transfer: Optional[dict] = None,
+    replace: dict | None = None,
+    append: str | list[str] | None = None,
+    infer: dict | None = None,
+    donor_colname: str | None = None,
+    transfer: dict | None = None,
 ) -> pl.LazyFrame:
     """
     Domain type is the demographic feature used to define groups.
@@ -218,14 +217,14 @@ def clean_domain_type(
 
 def clean_domain(
     df: pl.LazyFrame,
-    colname: Optional[str] = None,
-    override: Optional[str] = None,
+    colname: str | None = None,
+    override: str | None = None,
     lowercase: bool = False,
-    replace: Optional[dict] = None,
-    append: Optional[str | List[str]] = None,
-    infer: Optional[dict] = None,
-    donor_colname: Optional[str] = None,
-    transfer: Optional[dict] = None,
+    replace: dict | None = None,
+    append: str | list[str] | None = None,
+    infer: dict | None = None,
+    donor_colname: str | None = None,
+    transfer: dict | None = None,
 ) -> pl.LazyFrame:
     """
     Domain is the specific demographic group.
@@ -246,14 +245,14 @@ def clean_domain(
 
 def clean_indicator_type(
     df: pl.LazyFrame,
-    colname: Optional[str] = None,
-    override: Optional[str] = None,
+    colname: str | None = None,
+    override: str | None = None,
     lowercase: bool = True,
-    replace: Optional[dict] = None,
-    append: Optional[str | List[str]] = None,
-    infer: Optional[dict] = None,
-    donor_colname: Optional[str] = None,
-    transfer: Optional[dict] = None,
+    replace: dict | None = None,
+    append: str | list[str] | None = None,
+    infer: dict | None = None,
+    donor_colname: str | None = None,
+    transfer: dict | None = None,
 ) -> pl.LazyFrame:
     """
     Indicator type is the survey question that was asked.
@@ -273,14 +272,14 @@ def clean_indicator_type(
 
 def clean_indicator(
     df: pl.LazyFrame,
-    colname: Optional[str] = None,
-    override: Optional[str] = None,
+    colname: str | None = None,
+    override: str | None = None,
     lowercase: bool = False,
-    replace: Optional[dict] = None,
-    append: Optional[str | List[str]] = None,
-    infer: Optional[dict] = None,
-    donor_colname: Optional[str] = None,
-    transfer: Optional[dict] = None,
+    replace: dict | None = None,
+    append: str | list[str] | None = None,
+    infer: dict | None = None,
+    donor_colname: str | None = None,
+    transfer: dict | None = None,
 ) -> pl.LazyFrame:
     """
     Indicator is the specific answer to the survey question.
@@ -298,14 +297,14 @@ def clean_indicator(
 
 def clean_vaccine(
     df: pl.LazyFrame,
-    colname: Optional[str] = None,
-    override: Optional[str] = None,
+    colname: str | None = None,
+    override: str | None = None,
     lowercase: bool = True,
-    replace: Optional[dict] = None,
-    append: Optional[str | List[str]] = None,
-    infer: Optional[dict] = None,
-    donor_colname: Optional[str] = None,
-    transfer: Optional[dict] = None,
+    replace: dict | None = None,
+    append: str | list[str] | None = None,
+    infer: dict | None = None,
+    donor_colname: str | None = None,
+    transfer: dict | None = None,
 ) -> pl.LazyFrame:
     """
     Vaccine is the target pathogen plus any formulation information.
@@ -321,14 +320,14 @@ def clean_vaccine(
 
 def clean_time_type(
     df: pl.LazyFrame,
-    colname: Optional[str] = None,
-    override: Optional[str] = None,
+    colname: str | None = None,
+    override: str | None = None,
     lowercase: bool = True,
-    replace: Optional[dict] = None,
-    append: Optional[str | List[str]] = None,
-    infer: Optional[dict] = None,
-    donor_colname: Optional[str] = None,
-    transfer: Optional[dict] = None,
+    replace: dict | None = None,
+    append: str | list[str] | None = None,
+    infer: dict | None = None,
+    donor_colname: str | None = None,
+    transfer: dict | None = None,
 ) -> pl.LazyFrame:
     """
     Time type is the interval between report dates, e.g. 'month' or 'week'.
@@ -347,7 +346,7 @@ def clean_time_type(
 
 def clean_time_start_end(
     df: pl.LazyFrame,
-    colname: str | List[str],
+    colname: str | list[str],
     col_format: str = "end",
     time_format: str = "%Y-%m-%dT%H:%M:%S%.f",
 ) -> pl.LazyFrame:
@@ -516,8 +515,8 @@ def clean_sample_size(df: pl.LazyFrame, colname: str) -> pl.LazyFrame:
 def remove_duplicates(
     df: pl.LazyFrame,
     tolerance: float = 0.001,
-    synonym_columns: Optional[List] = None,
-    synonyms: Optional[List[List]] = None,
+    synonym_columns: list | None = None,
+    synonyms: list[list] | None = None,
 ) -> pl.LazyFrame:
     """
     Rows are considered duplicates under two circumstances:
@@ -603,8 +602,8 @@ def _mean_max_diff(x: pl.Expr, tolerance: float) -> pl.Expr:
 def _replace_column_name(
     df: pl.LazyFrame,
     new_colname: str,
-    old_colname: Optional[str] = None,
-    override: Optional[str] = None,
+    old_colname: str | None = None,
+    override: str | None = None,
 ) -> pl.LazyFrame:
     """
     Create a column by:
@@ -628,9 +627,9 @@ def _replace_column_values(
     df: pl.LazyFrame,
     colname: str,
     lowercase: bool = True,
-    replace: Optional[dict] = None,
-    append: Optional[str | List[str]] = None,
-    infer: Optional[dict] = None,
+    replace: dict | None = None,
+    append: str | list[str] | None = None,
+    infer: dict | None = None,
 ) -> pl.LazyFrame:
     """
     Edit values in a column by:
@@ -673,8 +672,8 @@ def _replace_column_values(
 def _borrow_column_values(
     df: pl.LazyFrame,
     recip_colname: str,
-    donor_colname: Optional[str] = None,
-    transfer: Optional[dict] = None,
+    donor_colname: str | None = None,
+    transfer: dict | None = None,
 ) -> pl.LazyFrame:
     """
     Augment values in a recipient column with values in a donor column by:
@@ -749,7 +748,7 @@ def ensure_eager(df: pl.DataFrame | pl.LazyFrame) -> pl.DataFrame:
     elif isinstance(df, pl.LazyFrame):
         return df.collect()
     else:
-        raise RuntimeError(f"Cannot collect object of type {type(df)}")
+        raise TypeError(f"Cannot collect object of type {type(df)}")
 
 
 def duplicated_rows(df: pl.DataFrame) -> pl.DataFrame:
