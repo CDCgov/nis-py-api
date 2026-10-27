@@ -43,6 +43,8 @@ Note the pairs `geography_type` and `geography`, `domain_type` and `domain`, and
 
 Rows that were suppressed in the raw data are dropped. This includes data with suppression flag `"1"`, indicating small sample size, and data with flag `"."`, which may indicate that data were not collected.
 
+The cleaning pipeline also drops rows with null values in any remaining column. Dataset-specific columns designated as unnecessary are removed before this null check, so nulls in those columns do not cause rows to be dropped.
+
 ### `vaccine`
 
 - One of:
