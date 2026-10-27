@@ -1,6 +1,8 @@
 # nis-py-api
 
-Python API to access parts of the [National Immunization Survey](https://www.cdc.gov/nis/about/index.html) (NIS) data available via <https://data.cdc.gov/>. This package helps with data download, cleaning, and caching, ensuring quick access to data that have consistent field names and certain validations.
+Python API to access selected vaccination data from <https://data.cdc.gov/>. The datasets are primarily from the [National Immunization Survey](https://www.cdc.gov/nis/about/index.html) (NIS); the all-ages influenza dataset also includes data from the Behavioral Risk Factor Surveillance System (BRFSS). This package helps with data download, cleaning, and caching, ensuring quick access to data that have consistent field names and certain validations.
+
+The [dataset metadata](nisapi/metadata.json) has human-readable notes about each dataset.
 
 ## Getting started
 
@@ -111,7 +113,7 @@ Rows that were suppressed in the raw data are dropped. This includes data with s
 1. Find the dataset you want to clean on <https://data.cdc.gov/>.
 2. Add the dataset to `nisapi/metadata.json`.
    - At a minimum, you must include the dataset ID and cleaning arguments (see below).
-   - It is helpful to also include URL, vaccine, date range, and universe.
+   - Add human-readable dataset information, such as the source URL, vaccines, date range, universe, and source, under the `notes` key.
 3. Supply the dataset-specific arguments for the cleaning helper functions.
    - Start by copying the cleaning arguments for a relatively simple example, like `sw5n-wg2p`, to the new dataset's entry in `nisapi/metadata.json`.
    - Replace the arguments for each helper function with arguments suitable to the new dataset.
