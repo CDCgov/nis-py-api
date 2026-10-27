@@ -1,5 +1,5 @@
 import math
-from typing import Iterable, List, Optional
+from collections.abc import Iterable
 
 import requests
 
@@ -7,7 +7,7 @@ domain = "data.cdc.gov"
 
 
 def n_dataset_rows(
-    id: str, app_token: Optional[str] = None, domain: str = domain
+    id: str, app_token: str | None = None, domain: str = domain
 ) -> int:
     url = f"https://{domain}/resource/{id}.json?$select=count(:id)"
     r = _get_request(url, app_token=app_token)
@@ -22,7 +22,7 @@ def download_dataset_records(
     id: str,
     start_record: int,
     end_record: int,
-    app_token: Optional[str],
+    app_token: str | None,
     domain: str = domain,
 ) -> list[dict]:
     """Download a specific range of rows of a data.cdc.gov dataset
@@ -47,7 +47,7 @@ def download_dataset_records(
     return r.json()
 
 
-def _get_request(url: str, app_token: Optional[str]) -> requests.Response:
+def _get_request(url: str, app_token: str | None) -> requests.Response:
     payload = {}
     if app_token is not None:
         payload["X-App-token"] = app_token
@@ -62,8 +62,8 @@ def _get_request(url: str, app_token: Optional[str]) -> requests.Response:
 
 
 def download_dataset_pages(
-    id: str, app_token: Optional[str], page_size: int = int(1e5), verbose: bool = True
-) -> Iterable[List[dict]]:
+    id: str, app_token: str | None, page_size: int = int(1e5), verbose: bool = True
+) -> Iterable[list[dict]]:
     """Download a dataset page by page
 
     Args:

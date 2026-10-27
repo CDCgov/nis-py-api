@@ -35,9 +35,9 @@ clean.head(10).glimpse()
 print(clean.shape)
 
 # save a copy of the partially cleaned data
-tf = tempfile.NamedTemporaryFile()
-clean.write_parquet(tf.name)
-print(f"Saved cleaned data to {tf.name}")
+with tempfile.NamedTemporaryFile() as tf:
+    clean.write_parquet(tf.name)
+    print(f"Saved cleaned data to {tf.name}")
 
 # this will fail until the dataset cleaning is complete
 Validate(id=dataset_id, df=clean, mode="error")

@@ -1,4 +1,4 @@
-from typing import List, Literal, get_args
+from typing import Literal, get_args
 
 import polars as pl
 
@@ -102,7 +102,7 @@ class Validate:
         problems = []
 
         # df must have expected column order and types
-        if not df.schema == data_schema:
+        if df.schema != data_schema:
             problems.append(f"Bad schema: {df.schema}. Expected schema: {data_schema}.")
 
         # no duplicated rows
@@ -143,11 +143,10 @@ class Validate:
         problems += cls.validate_age_groups(df)
 
         # Indicators --------------------------------------------------------------
-        pass
 
         # Times -------------------------------------------------------------------
         if not df["time_type"].is_in(["week", "month"]).all():
-            bad_time_types = set(df["time_type"].unique()) - set(["week", "month"])
+            bad_time_types = set(df["time_type"].unique()) - {"week", "month"}
             problems.append(
                 f"Bad time type: {bad_time_types}. Expected only 'week' or 'month."
             )
@@ -192,7 +191,7 @@ class Validate:
         return problems
 
     @staticmethod
-    def validate_vaccine(df: pl.DataFrame, column: str) -> List[str]:
+    def validate_vaccine(df: pl.DataFrame, column: str) -> list[str]:
         bad_vaccines = set(df[column].to_list()) - {
             "flu",
             "covid",
@@ -210,7 +209,7 @@ class Validate:
     @classmethod
     def validate_geography(
         cls, df: pl.DataFrame, type_column: str, value_column: str
-    ) -> List[str]:
+    ) -> list[str]:
         errors = []
 
         # type must be in a certain set
@@ -273,7 +272,7 @@ class Validate:
         return errors
 
     @classmethod
-    def validate_whitespace(cls, df: pl.DataFrame, column: str) -> List[str]:
+    def validate_whitespace(cls, df: pl.DataFrame, column: str) -> list[str]:
         bad_values = (
             df.select(pl.col(column).unique())
             .filter(pl.col(column).pipe(cls._has_excess_whitespace))
@@ -284,7 +283,7 @@ class Validate:
         return [f"Bad whitespace in column '{column}': '{x}'" for x in bad_values]
 
     @classmethod
-    def validate_capitalization(cls, df: pl.DataFrame, column: str) -> List[str]:
+    def validate_capitalization(cls, df: pl.DataFrame, column: str) -> list[str]:
         bad_values = (
             df.select(pl.col(column).unique())
             .filter(pl.col(column).pipe(cls._has_bad_capitalization))
@@ -314,7 +313,7 @@ class Validate:
         return x.str.contains(r"[A-Z]+")
 
     @classmethod
-    def validate_age_groups(cls, df) -> List[str]:
+    def validate_age_groups(cls, df) -> list[str]:
         age_groups = df.filter(pl.col("domain_type") == pl.lit("age"))[
             "domain"
         ].unique()
@@ -329,8 +328,8 @@ class Validate:
 
     @staticmethod
     def bad_value_error(
-        column_name: str, values: pl.Series, expected: List[str]
-    ) -> List[str]:
+        column_name: str, values: pl.Series, expected: list[str]
+    ) -> list[str]:
         bad_values = set(values.to_list()) - set(expected)
         if len(bad_values) > 0:
             return [f"Bad values in `{column_name}`: {bad_values}"]
