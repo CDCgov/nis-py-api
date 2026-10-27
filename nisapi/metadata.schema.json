@@ -1,0 +1,174 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/CDCgov/nis-py-api/blob/main/nisapi/metadata.schema.json",
+  "type": "object",
+  "properties": {
+    "datasets": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/dataset"
+      }
+    }
+  },
+  "required": ["datasets"],
+  "additionalProperties": false,
+  "$defs": {
+    "dataset": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]{4}-[a-z0-9]{4}$"
+        },
+        "notes": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "cleaning_arguments": {
+          "$ref": "#/$defs/cleaningArgumentMethods"
+        }
+      },
+      "required": ["id", "notes", "cleaning_arguments"],
+      "additionalProperties": false
+    },
+    "cleaningArgumentMethods": {
+      "type": "object",
+      "properties": {
+        "drop_bad_rows": { "$ref": "#/$defs/dropBadRowsArguments" },
+        "clean_geography_type": { "$ref": "#/$defs/columnTransformArguments" },
+        "clean_geography": { "$ref": "#/$defs/columnTransformArguments" },
+        "clean_domain_type": { "$ref": "#/$defs/columnTransformArguments" },
+        "clean_domain": { "$ref": "#/$defs/columnTransformArguments" },
+        "clean_indicator_type": { "$ref": "#/$defs/columnTransformArguments" },
+        "clean_indicator": { "$ref": "#/$defs/columnTransformArguments" },
+        "clean_vaccine": { "$ref": "#/$defs/columnTransformArguments" },
+        "clean_time_type": { "$ref": "#/$defs/columnTransformArguments" },
+        "clean_time_start_end": { "$ref": "#/$defs/timeStartEndArguments" },
+        "clean_estimate": { "$ref": "#/$defs/columnNameArguments" },
+        "clean_lci_uci": { "$ref": "#/$defs/confidenceIntervalArguments" },
+        "clean_sample_size": { "$ref": "#/$defs/columnNameArguments" },
+        "remove_duplicates": { "$ref": "#/$defs/duplicateArguments" }
+      },
+      "required": [
+        "drop_bad_rows",
+        "clean_geography_type",
+        "clean_geography",
+        "clean_domain_type",
+        "clean_domain",
+        "clean_indicator_type",
+        "clean_indicator",
+        "clean_vaccine",
+        "clean_time_type",
+        "clean_time_start_end",
+        "clean_estimate",
+        "clean_lci_uci",
+        "clean_sample_size",
+        "remove_duplicates"
+      ],
+      "additionalProperties": false
+    },
+    "dropBadRowsArguments": {
+      "type": "object",
+      "properties": {
+        "colname": { "type": "string" },
+        "bad_columns": {
+          "oneOf": [
+            { "type": "string" },
+            {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "columnTransformArguments": {
+      "type": "object",
+      "properties": {
+        "colname": { "type": "string" },
+        "override": { "type": "string" },
+        "lowercase": { "type": "boolean" },
+        "replace": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        },
+        "append": {
+          "oneOf": [
+            { "type": "string" },
+            {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          ]
+        },
+        "infer": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        },
+        "donor_colname": { "type": "string" },
+        "transfer": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "timeStartEndArguments": {
+      "type": "object",
+      "properties": {
+        "colname": {
+          "oneOf": [
+            { "type": "string" },
+            {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          ]
+        },
+        "col_format": { "type": "string" },
+        "time_format": { "type": "string" }
+      },
+      "required": ["colname"],
+      "additionalProperties": false
+    },
+    "columnNameArguments": {
+      "type": "object",
+      "properties": {
+        "colname": { "type": "string" }
+      },
+      "required": ["colname"],
+      "additionalProperties": false
+    },
+    "confidenceIntervalArguments": {
+      "type": "object",
+      "properties": {
+        "colname": { "type": "string" },
+        "col_format": { "type": "string" },
+        "separator": { "type": "string" }
+      },
+      "required": ["colname"],
+      "additionalProperties": false
+    },
+    "duplicateArguments": {
+      "type": "object",
+      "properties": {
+        "tolerance": { "type": "number" },
+        "synonym_columns": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "synonyms": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

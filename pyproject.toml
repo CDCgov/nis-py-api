@@ -20,6 +20,7 @@ dev = [
     "pytest>=8.3.3,<9",
     "pre-commit>=4.0.1,<5",
     "detect-secrets>=1.5.0,<2",
+    "jsonschema>=4.23.0,<5",
     "streamlit>=1.40.1,<2",
 ]
 scripts = [
