@@ -7,11 +7,11 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import Literal
 
+import cfasodapy
 import platformdirs
 import polars as pl
 
 import nisapi.clean
-import nisapi.socrata
 from nisapi.clean import VALIDATION_MODES
 
 OVERWRITE_OPTIONS = Literal["warn", "force"]
@@ -219,7 +219,12 @@ def _download_dataset(id: str, app_token: str | None) -> pl.DataFrame:
         pl.DataFrame: raw dataset
     """
     with tempfile.TemporaryDirectory() as tmpdir:
-        pages = nisapi.socrata.download_dataset_pages(id, app_token=app_token)
+        query = cfasodapy.Query(
+            domain="data.cdc.gov",
+            id=id,
+            app_token=app_token,
+        )
+        pages = query.get_pages(page_size=100_000)
         for i, page in enumerate(pages):
             path = f"part-{i}.parquet"
             df = pl.DataFrame(page)
